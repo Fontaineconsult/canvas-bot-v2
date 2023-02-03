@@ -1,0 +1,89 @@
+waits:
+  Announcements: 1
+  Assignment: 1
+  Assignments: 1
+  Discussion: 1
+  ExternalPage: 2
+  GoogleDocument: 4
+  File: 0
+  Home: 0
+  Item: 0.5
+  Module: 0
+  Modules: 1
+  Page: 0.5
+  Pages: 1
+  Quiz: 1
+  BoxPage: 6
+  Discussions: 1
+
+
+
+filters:
+  Announcements: {"class": "announcements-v2__wrapper"}
+  Announcement: {"class": "ic-item-row ic-announcement-row"} #list
+  Assignment: {"id": "assignment_show"}
+  Assignments: {"id": "ag-list"}
+  AssignmentsGroup: {"id": "assignment_group_upcoming"}
+  Discussion: {"id": "discussion_container"}
+  Discussions: { "class": "discussions-v2__wrapper" }
+  DiscussionsGroup: { "class": "ic-item-row ic-discussion-row" }
+  ExternalPage: "body"
+  GoogleDocument: {"id": "docs-editor-container"}
+  File: {"id": "content"}
+  Home: {"class": "show-content user_content clearfix enhanced"}
+  HomeFull: {"id": "wiki_page_show"}
+  Item: {"class": "ui-listview ui-listview-no-rounded-bottom"}
+  Module: {"class": "context_module"} # list
+  Modules: {"id": "context_modules"}
+  Page: {"class": "show-content user_content clearfix enhanced"} # list
+  Pages: {"class": "index-content"}
+  PagesLinks: {"class": "wiki-page-link"}
+  Quiz: {"class": "quiz-header"}
+  NavBar: {"id": "breadcrumbs"}
+  BoxPage: "script"
+
+
+titles:
+  Announcements: "title"
+  Announcement: "h3"
+  Assignment: "h2"
+  Assignments: "h1"
+  AssignmentsGroup: "h2"
+  Discussion: "h1"
+  ExternalPage: "title"
+  GoogleDocument: "title"
+  File: "h2"
+  Home: "title"
+  Item: "title"
+  Module: "h2"
+  Modules: "title"
+  Page: "h1"
+  Pages: "h1"
+  PagesLinks: { "class": "wiki-page-link" }
+  Quiz: "h1"
+  BoxPage: "title"
+  Discussions: "title"
+  DiscussionsGroup: "h3"
+
+
+requests:
+  user-agent: {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+
+selenium:
+  user-agent: {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+
+sorters:
+  first-sort-remove:
+              - null
+              - "#"
+              - "http://None"
+
+  first-sort-remove-regexs:
+              - https://sfsu.instructure.com/courses/\d{0,10}/users/\d{0,10}
+              - data:image.*.
+              - data:video.*.
+              - /video/play.*.
+
+added_mimetypes:
+  - "application/vnd.openxmlformats-officedocument.wordprocessingml.document|.docx"
+  - "application/vnd.openxmlformats-officedocument.presentationml.presentation|.pptx"

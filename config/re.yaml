@@ -1,0 +1,120 @@
+resource_node_re: https://sfsu.instructure.com/courses/[0-9]{0,7}/(pages/|quizzes/|discussion_topics/|assignments/|announcements/).*.[0-9]{0,7}
+
+document_content_regex:
+  - .*\.pdf
+  - .*\.docx
+  - .*\.ppt
+  - .*\.csv
+  - .*\.doc
+  - .*\.pptx
+  - .*\.rtf
+  - .*\.pages
+  - .*\.rar
+  - .*\.xlsx
+  - .*\.txt
+  - .*\.zip
+
+
+ignore_links_regex:
+  - https://sfsu.instructure.com/courses/[0-9]{0,7}/(pages/|quizzes/|discussion_topics/|assignments/|announcements/|items/|modules/).*.[0-9]{0,7}
+  - .*.sfsu.app.box.com/s/.*.
+  - .*.sfsu.box.com/s/.*.
+
+image_content_regex:
+  - .*\.jpg
+  - .*\.bmp
+  - .*\.tiff
+  - .*\.tif
+  - .*\.jpeg
+  - .*\.gif
+  - .*\.svg
+  - .*\.png
+  - .*\.svg+xml
+
+
+canvas_user_file_content_regex: .*.users/[0-9]{0,7}/files/[0-9]{0,9}/preview\?verifier=\w{40}
+
+
+canvas_file_content_regex: .*.courses/[0-9]{0,7}/files/[0-9]{0,9}.*.
+
+
+web_video_resources_regex:
+  - .*..*.youtu[\.]?be.*..*.
+  - .*.vimeo.*.
+  - .*.sfsu.mediasite.*.
+  - .*.dailymotion.*.
+  - .*.alexanderstreet.*.
+  - .*.amara.org/en/videos/.*.
+  - .*.fod.infobase.com.jpllnet.sfsu.edu.*.
+  - .*.player.vimeo.com.*.
+  - .*.www.ted.com/talks/.*.
+  - .*./video-clips/.*.
+  - .*./video/.*.
+  - .*./videos/.*.
+  - .*./v/.*.
+  - https://sfstate-primo.hosted.exlibrisgroup.com/.*.
+  - https://presidio.at.sfsu.edu/media/.{24}
+  - .*./collections/.*./bundles/\d{6}  # diva video
+  - .*./collections/.*./\d{4} # diva collection
+  - .*.presidio.at.sfsu.edu.*.
+  - .*.atvideo.at.sfsu.edu/player/.*.
+  - .*.sfsu.zoom.us.*.
+  - .*.facebook.com/watch/\?v.*.
+  - .*.smartplayer.captionsync.com.*.
+  - .*.instructuremedia.com/embed.*.
+  - .*.tiktok.com/embed/.*.
+  - .*.sfsu.mediasite.com/.*.
+
+
+video_file_resources_regex:
+  - .*\.mp4
+  - .*\.mpg
+  - .*\.mov
+  - .*\.mpeg
+  - .*\.flv
+  - .*\.mkv
+  - .*\.qt
+  - .*\.avi
+  - .*\.webm
+  - .*\.m4p
+  - .*\.m4v
+
+
+web_audio_resources_regex:
+  - .*./audio/.*.
+  - .*./podcasts/.*.
+  - .*./podcast/.*.
+  - .*./episode/.*.
+
+audio_file_resources_regex:
+  - .*\.m4a
+  - .*\.mp3
+  - .*\.wmv
+  - .*\.mp2
+  - .*\.aac
+  - .*\.aiff
+  - .*\.wav
+
+
+web_document_applications_regex:
+  - https://docs.google.com/document/d/.*.
+  - https://docs.google.com/presentation/d/.*.
+
+
+additional_page_regex:
+  BoxPage: .*.sfsu.app.box.com/s/.*.|.*.sfsu.box.com/s/.*.
+
+
+additional_ignore_list_regex:
+  - .*.ramid.ccsf.edu.*.
+  - .*.download.*.
+  - .*.search/rubrics.*.
+  - .*.khanacademy.org.*.
+  - https://www.avi
+  - https://www.youtube.com/user/.*.
+  - .*.().*.
+  - //.*.
+  - https://www.gif
+  - https://en.wikipedia.org/.*.
+
+
