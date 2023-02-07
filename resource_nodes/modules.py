@@ -1,44 +1,30 @@
-import os
-from os.path import join, dirname
-from colorama import Fore, Style
-from dotenv import load_dotenv
-import requests
-import json
+
+from base_node import Node
+from network.api import get_modules, get_module_items
 
 
 
-dotenv_path = join(dirname(__file__), '.env')
-print(dotenv_path)
-load_dotenv(r"C:\Users\DanielPC\Desktop\Servers\canvas-bot-v2\network\.env")
-
-class Modules:
+class Modules(Node):
 
     def __init__(self, course_id, parent):
-        self.parent = parent
-        self.children = []
+        super().__init__(Node(parent))
         self.course_id = course_id
-        self.api_url = f"{os.environ.get('api_path')}/{self.course_id}/modules?access_token={os.environ.get('access_token')}"
+        self.api_request = get_modules
         self.api_request_content = None
-        self.get_modules_list()
-        self.sort_children()
+        self.get_all_items()
 
-    def get_modules_list(self):
-        self.api_request_content = json.loads(requests.get(self.api_url).content)
+    def get_all_items(self):
+        api_request = self.api_request(self.course_id)
+        print(api_request)
 
 
-    def sort_children(self):
-        for each in self.api_request_content:
-            print(each['items_url'])
-            string = f"{each['items_url']}?access_token={os.environ.get('access_token')}?per_page=20"
-            print(string)
-            items = requests.get(f"{each['items_url']}?access_token={os.environ.get('access_token')}&per_page=100")
-            # print(json.loads(items.content))
-            for item in json.loads(items.content):
+        for each in api_request:
+            print("MOD", each)
+
+            module_items = get_module_items(each['items_url'])
+
+            for item in module_items:
                 print(item)
-
-
-
-
 
 
 

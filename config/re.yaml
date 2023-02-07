@@ -1,5 +1,14 @@
 resource_node_re: https://sfsu.instructure.com/courses/[0-9]{0,7}/(pages/|quizzes/|discussion_topics/|assignments/|announcements/).*.[0-9]{0,7}
 
+
+resource_node_types_re:
+  - pages
+  - quizzes
+  - discussion_topics
+  - assignments
+  - announcements
+
+
 document_content_regex:
   - .*\.pdf
   - .*\.docx
