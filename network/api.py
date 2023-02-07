@@ -52,6 +52,13 @@ def get_pages(course_id):
     pages_request = response_handler(pages_url)
     return pages_request
 
+def get_page(course_id, page_id):
+
+    pages_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+                f"/pages/{page_id}?access_token={os.environ.get('access_token')}"
+    pages_request = response_handler(pages_url)
+    return pages_request
+
 
 def get_quizzes(course_id):
     quizzes_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
@@ -71,5 +78,4 @@ def get_module_items(module_items_url):
     module_items_url = f"{module_items_url}?access_token={os.environ.get('access_token')}"
     media_objects_request = response_handler(module_items_url)
     return media_objects_request
-
 

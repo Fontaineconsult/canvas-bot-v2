@@ -1,5 +1,6 @@
 
 from base_node import Node
+from module import Module
 from network.api import get_modules, get_module_items
 
 
@@ -14,17 +15,12 @@ class Modules(Node):
         self.get_all_items()
 
     def get_all_items(self):
+
         api_request = self.api_request(self.course_id)
-        print(api_request)
 
+        for module_dict in api_request:
+            self.children.append(Module(self, module_dict))
 
-        for each in api_request:
-            print("MOD", each)
-
-            module_items = get_module_items(each['items_url'])
-
-            for item in module_items:
-                print(item)
 
 
 
@@ -36,3 +32,4 @@ class Modules(Node):
 
 
 test = Modules('18411', "fgef")
+print(test.url_list)
