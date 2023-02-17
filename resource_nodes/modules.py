@@ -20,7 +20,6 @@ class Modules(Node):
         api_request = self.api_request(self.course_id)
 
         for module_dict in api_request:
-
             self.children.append(Module(self, self.parent, module_dict))
 
 
