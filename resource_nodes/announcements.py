@@ -1,4 +1,29 @@
-class Announcements:
+from network.api import get_announcements
+from resource_nodes.base_node import Node
 
-    def __init__(self):
-        pass
+
+class Announcements(Node):
+
+    def __init__(self, course_id, parent):
+
+        super().__init__(parent, parent)
+        self.course_id = course_id
+        self.api_request = get_announcements
+        self.api_request_content = None
+        self.get_all_items()
+
+    def get_all_items(self):
+
+        api_request = self.api_request(self.course_id)
+
+        for module_dict in api_request:
+
+            self.children.append(Announcement(self, self.parent, module_dict))
+
+
+
+class Announcement(Node):
+
+    def __init__(self, parent, root, api_dict):
+        super().__init__(parent, root, api_dict['id'], api_dict['title'])
+        self.api_dict = api_dict
