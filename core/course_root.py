@@ -40,6 +40,6 @@ class CanvasCourseRoot:
 
 
 
-test = CanvasCourseRoot("18411")
+test = CanvasCourseRoot("17496")
 test.canvas_tree.show_nodes()
 test.manifest.print_manifest()

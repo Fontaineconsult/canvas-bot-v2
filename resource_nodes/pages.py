@@ -16,7 +16,6 @@ class Pages(Node):
     def get_all_items(self):
 
         api_request = self.api_request(self.course_id)
-
         for module_dict in api_request:
             self.children.append(Page(self, self.parent, module_dict))
 
@@ -30,3 +29,6 @@ class Page(Node):
         self.api_dict = api_dict
         self.content_url = self.api_dict['html_url']
         self.root.manifest.add_item_to_manifest(self)
+        self._expand_api_dict_to_class_attributes(self.api_dict)
+
+

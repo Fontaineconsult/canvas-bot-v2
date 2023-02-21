@@ -37,7 +37,7 @@ def get_announcements(course_id):
 def get_assignments(course_id):
     assignment_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
                      f"/assignments?access_token={os.environ.get('access_token')}"
-
+    print(assignment_url)
     return assignment_url
 
 
