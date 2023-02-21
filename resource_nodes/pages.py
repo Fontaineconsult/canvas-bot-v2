@@ -18,7 +18,6 @@ class Pages(Node):
         api_request = self.api_request(self.course_id)
 
         for module_dict in api_request:
-
             self.children.append(Page(self, self.parent, module_dict))
 
 
@@ -26,5 +25,8 @@ class Pages(Node):
 class Page(Node):
 
     def __init__(self, parent, root, api_dict):
-        super().__init__(parent, root, None, api_dict['title'])
+
+        super().__init__(parent, root, api_dict['page_id'], api_dict['title'])
         self.api_dict = api_dict
+        self.content_url = self.api_dict['html_url']
+        self.root.manifest.add_item_to_manifest(self)

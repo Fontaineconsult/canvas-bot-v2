@@ -5,14 +5,27 @@ class Manifest:
         self.manifest = dict()
 
     def add_item_to_manifest(self, node):
-        pass
+        if not self.get_item_from_manifest(node.item_id):
+            self.manifest[node.item_id] = [node]
+        else:
+            self.manifest[node.item_id].append(node)
 
 
+    def get_item_from_manifest(self, node_id):
+        node = self.manifest.get(node_id)
+        if node is not None:
+            return self.manifest[node_id][0]
 
+    def keys(self):
+        return self.manifest.keys()
 
+    def exists(self, node) -> bool:
+        if node.id not in self.manifest.keys():
+            return False
 
-
-
+    def print_manifest(self):
+        for item in self.manifest:
+            print(item, self.manifest[item])
 
 
 

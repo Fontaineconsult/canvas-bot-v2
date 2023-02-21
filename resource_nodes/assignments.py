@@ -14,7 +14,6 @@ class Assignments(Node):
     def get_all_items(self):
 
         api_request = self.api_request(self.course_id)
-
         for module_dict in api_request:
 
             self.children.append(Assignment(self, self.parent, module_dict))
@@ -25,3 +24,4 @@ class Assignment(Node):
     def __init__(self, parent, root, api_dict):
         super().__init__(parent, root, api_dict['id'])
         self.api_dict = api_dict
+        self.root.manifest.add_item_to_manifest(self)

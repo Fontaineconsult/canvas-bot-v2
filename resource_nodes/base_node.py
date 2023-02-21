@@ -16,6 +16,9 @@ class Node:
     def __str__(self):
         return f"<{Fore.WHITE}Node {self.__class__.__name__} {self.title if self.title else self.item_id} {Style.RESET_ALL}>"
 
+    def __repr__(self):
+        return f"<{Fore.WHITE} {self.__class__.__name__} {self.item_id} {Style.RESET_ALL}>"
+
 
     def add_node_to_tree(self):
         if self.root:
