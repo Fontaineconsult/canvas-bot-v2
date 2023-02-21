@@ -12,7 +12,7 @@ load_dotenv(dotenv_path)
 
 def response_handler(request_url):
     request = requests.get(request_url)
-    print("Calling", request_url)
+
     if request.status_code == 200:
         return json.loads(request.content)
     if request.status_code != 200:
@@ -100,11 +100,32 @@ def get_quiz(course_id, quiz_id):
     return quizzes_url
 
 @response_decorator
+def get_files(course_id):
+
+    files_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+                        f"/files?access_token={os.environ.get('access_token')}"
+
+    return files_url
+
+
+@response_decorator
+def get_file(course_id, file_id):
+
+    files_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+                f"/files/{file_id}?access_token={os.environ.get('access_token')}"
+    return files_url
+
+
+@response_decorator
 def get_media_objects(course_id):
     media_objects_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
                       f"/media_objects?access_token={os.environ.get('access_token')}"
 
     return media_objects_url
+
+
+
+
 
 @response_decorator
 def get_module_items(module_items_url):

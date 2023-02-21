@@ -6,6 +6,8 @@ from core.manifest import Manifest
 from resource_nodes.announcements import Announcements
 from resource_nodes.assignments import Assignments
 from resource_nodes.discussions import Discussions
+from resource_nodes.files import Files
+from resource_nodes.media_objects import MediaObjects
 from resource_nodes.modules import Modules
 from resource_nodes.pages import Pages
 from resource_nodes.quizzes import Quizzes
@@ -36,10 +38,12 @@ class CanvasCourseRoot:
         self.discussions = Discussions(self.course_id, self)
         self.pages = Pages(self.course_id, self)
         self.quizzes = Quizzes(self.course_id, self)
+        self.files = Files(self.course_id, self)
+        self.media_objects = MediaObjects(self.course_id, self)
         self.modules = Modules(self.course_id, self)
 
 
 
-test = CanvasCourseRoot("17496")
+test = CanvasCourseRoot("12593")
 test.canvas_tree.show_nodes()
 test.manifest.print_manifest()
