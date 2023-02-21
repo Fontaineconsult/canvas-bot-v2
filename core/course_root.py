@@ -2,6 +2,7 @@ from os.path import join, dirname
 from colorama import Fore, Style
 from dotenv import load_dotenv
 
+from core.manifest import Manifest
 from resource_nodes.announcements import Announcements
 from resource_nodes.assignments import Assignments
 from resource_nodes.discussions import Discussions
@@ -19,6 +20,7 @@ class CanvasCourseRoot:
     def __init__(self, course_id):
         self.course_id = course_id
         self.canvas_tree = CanvasTree()
+        self.manifest = Manifest()
         self._init_modules_root()
 
 
@@ -31,12 +33,13 @@ class CanvasCourseRoot:
 
         self.assignments = Assignments(self.course_id, self)
         self.announcements = Announcements(self.course_id, self)
-        self.modules = Modules(self.course_id, self)
         self.discussions = Discussions(self.course_id, self)
         self.pages = Pages(self.course_id, self)
         self.quizzes = Quizzes(self.course_id, self)
+        self.modules = Modules(self.course_id, self)
 
 
 
-test = CanvasCourseRoot("16484")
+test = CanvasCourseRoot("18411")
 test.canvas_tree.show_nodes()
+test.manifest.print_manifest()
