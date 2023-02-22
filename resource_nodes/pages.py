@@ -1,4 +1,4 @@
-from network.api import get_pages
+from network.api import get_pages, get_page
 from resource_nodes.base_node import Node
 
 
@@ -24,11 +24,12 @@ class Pages(Node):
 class Page(Node):
 
     def __init__(self, parent, root, api_dict):
-
-        super().__init__(parent, root, api_dict['page_id'], api_dict['title'])
-        self.api_dict = api_dict
-        self.content_url = self.api_dict['html_url']
+        page_dict = get_page(root.course_id, api_dict['url'])
+        super().__init__(parent, root, page_dict['page_id'], api_dict['title'])
+        self.content_url = api_dict['html_url']
         self.root.manifest.add_item_to_manifest(self)
-        self._expand_api_dict_to_class_attributes(self.api_dict)
-
+        self._expand_api_dict_to_class_attributes(page_dict)
+        # print(self.__dict__)
+        print(self.body)
+        self.get_html_body_links(self.body)
 

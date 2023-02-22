@@ -1,6 +1,7 @@
 from colorama import Fore, Style
 
 from core.node_sorter import sort_nodes
+from core.scraper import get_general_links_from_html
 
 
 class Node:
@@ -26,7 +27,10 @@ class Node:
         else:
             Warning("No Root Node")
 
-    @classmethod
-    def _expand_api_dict_to_class_attributes(cls, api_dict):
+    def _expand_api_dict_to_class_attributes(self, api_dict):
         for key in api_dict:
-            setattr(cls, key, api_dict[key])
+            setattr(self, key, api_dict[key])
+
+    @staticmethod
+    def get_html_body_links(html_body):
+        return get_general_links_from_html(html_body)

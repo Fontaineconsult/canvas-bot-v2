@@ -26,6 +26,7 @@ def response_decorator(calling_function):
         return response_handler(calling_function(*args))
     return wrapper
 
+
 @response_decorator
 def get_announcements(course_id):
 
@@ -33,12 +34,12 @@ def get_announcements(course_id):
                        f"{course_id}&access_token={os.environ.get('access_token')}"
     return announcement_url
 
+
 @response_decorator
 def get_assignments(course_id):
-    assignment_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+    assignments_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
                      f"/assignments?access_token={os.environ.get('access_token')}"
-    print(assignment_url)
-    return assignment_url
+    return assignments_url
 
 
 @response_decorator
@@ -71,12 +72,14 @@ def get_modules(course_id):
 
     return modules_url
 
+
 @response_decorator
 def get_pages(course_id):
     pages_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
                       f"/pages?access_token={os.environ.get('access_token')}"
 
     return pages_url
+
 @response_decorator
 def get_page(course_id, page_url):
 
@@ -85,11 +88,11 @@ def get_page(course_id, page_url):
 
     return pages_url
 
+
 @response_decorator
 def get_quizzes(course_id):
     quizzes_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
                       f"/quizzes?access_token={os.environ.get('access_token')}"
-
     return quizzes_url
 
 
@@ -99,12 +102,12 @@ def get_quiz(course_id, quiz_id):
                   f"/quizzes/{quiz_id}?access_token={os.environ.get('access_token')}"
     return quizzes_url
 
+
 @response_decorator
 def get_files(course_id):
 
     files_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
                         f"/files?access_token={os.environ.get('access_token')}"
-
     return files_url
 
 
@@ -120,17 +123,12 @@ def get_file(course_id, file_id):
 def get_media_objects(course_id):
     media_objects_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
                       f"/media_objects?access_token={os.environ.get('access_token')}"
-
     return media_objects_url
-
-
-
 
 
 @response_decorator
 def get_module_items(module_items_url):
     module_items_url = f"{module_items_url}?access_token={os.environ.get('access_token')}"
-
     return module_items_url
 
 
