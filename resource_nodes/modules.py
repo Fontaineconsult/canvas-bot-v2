@@ -31,7 +31,7 @@ class Module(Node):
         self.identify_content()
 
     def identify_content(self):
-        from core.node_factory import get_node, get_endpoint
+        from core.node_factory import get_node
         module_items = get_module_items(self.api_dict['items_url'])
         for item in module_items:
             ContentNode = get_node(item['type'])

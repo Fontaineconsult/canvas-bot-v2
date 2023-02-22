@@ -20,7 +20,7 @@ class Manifest:
         return self.manifest.keys()
 
     def exists(self, node) -> bool:
-        if node.id not in self.manifest.keys():
+        if node.item_id not in self.manifest.keys():
             return False
 
     def print_manifest(self):

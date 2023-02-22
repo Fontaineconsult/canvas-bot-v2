@@ -1,3 +1,4 @@
+
 from network.api import get_pages, get_page
 from resource_nodes.base_node import Node
 
@@ -32,5 +33,14 @@ class Page(Node):
         # print(self.__dict__)
 
         # self.get_html_body_links(self.body)
-        print(self.get_data_api_links(self.body))
+        data_api_links = self.get_data_api_links(self.body)
+        from core.node_factory import get_node_by_a_tag_match
+        for link in data_api_links:
+            api_page = get_page(link[0])
 
+
+
+            node = get_node_by_a_tag_match(link[0])
+
+            print(node)
+            # print(self.root.manifest.exists(node))
