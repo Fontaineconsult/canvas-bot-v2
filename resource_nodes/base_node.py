@@ -1,7 +1,7 @@
 from colorama import Fore, Style
 
 from core.node_sorter import sort_nodes
-from core.scraper import get_general_links_from_html
+from core.scraper import get_general_links_from_html, get_data_api_links_from_html
 
 
 class Node:
@@ -34,3 +34,7 @@ class Node:
     @staticmethod
     def get_html_body_links(html_body):
         return get_general_links_from_html(html_body)
+
+    @staticmethod
+    def get_data_api_links(html_body):
+        return get_data_api_links_from_html(html_body)

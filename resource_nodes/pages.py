@@ -30,6 +30,7 @@ class Page(Node):
         self.root.manifest.add_item_to_manifest(self)
         self._expand_api_dict_to_class_attributes(page_dict)
         # print(self.__dict__)
-        print(self.body)
-        self.get_html_body_links(self.body)
+
+        # self.get_html_body_links(self.body)
+        print(self.get_data_api_links(self.body))
 
