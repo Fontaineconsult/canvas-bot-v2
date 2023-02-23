@@ -2,7 +2,7 @@ from colorama import Fore, Style
 
 
 from core.node_sorter import sort_nodes
-from core.scraper import get_general_links_from_html, get_data_api_links_from_html
+from core.scraper import get_data_api_links_from_html, get_general_links_from_html_a_tag
 from network.api import get_url
 
 
@@ -60,7 +60,7 @@ class Node:
     def get_html_body_links(html_body) -> list:
         if not html_body:
             return list()
-        return get_general_links_from_html(html_body)
+        return get_general_links_from_html_a_tag(html_body)
 
     @staticmethod
     def get_data_api_links(html_body) -> list:
