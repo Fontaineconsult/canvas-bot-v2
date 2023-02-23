@@ -16,12 +16,12 @@ document_content_regex = re_combiner(expressions["document_content_regex"])
 
 image_content_regex = re_combiner(expressions["image_content_regex"])
 
-web_video_resources = re_combiner(expressions["web_video_resources_regex"])
+web_video_content_regex = re_combiner(expressions["web_video_resources_regex"])
 
-video_file_resources = re_combiner(expressions["video_file_resources_regex"])
+video_file_content_regex = re_combiner(expressions["video_file_resources_regex"])
 
-web_audio_resources = re_combiner(expressions["web_audio_resources_regex"])
+web_audio_content_regex = re_combiner(expressions["web_audio_resources_regex"])
 
-audio_file_resources = re_combiner(expressions["audio_file_resources_regex"])
+audio_file_content_regex = re_combiner(expressions["audio_file_resources_regex"])
 
-google_doc_regex = re_combiner(expressions["web_document_applications_regex"])
+google_doc_content_regex = re_combiner(expressions["web_document_applications_regex"])
