@@ -1,4 +1,4 @@
-from network.api import get_assignments
+from network.api import get_assignments, get_assignment
 from resource_nodes.base_node import Node
 
 
@@ -22,7 +22,8 @@ class Assignments(Node):
 class Assignment(Node):
 
     def __init__(self, parent, root, api_dict):
-        super().__init__(parent, root, api_dict['id'])
-        self.api_dict = api_dict
+        assignment_dict = get_assignment(root.course_id, api_dict['id'])
+        super().__init__(parent, root, assignment_dict['id'])
         self.root.manifest.add_item_to_manifest(self)
-        self._expand_api_dict_to_class_attributes(self.api_dict)
+        self._expand_api_dict_to_class_attributes(assignment_dict)
+        self.add_data_api_link_to_children(self.description)

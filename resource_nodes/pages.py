@@ -1,6 +1,7 @@
 
-from network.api import get_pages, get_page
+from network.api import get_pages, get_page, get_url
 from resource_nodes.base_node import Node
+from tools.other_tools import get_content_id_key_from_api_url
 
 
 class Pages(Node):
@@ -27,20 +28,7 @@ class Page(Node):
     def __init__(self, parent, root, api_dict):
         page_dict = get_page(root.course_id, api_dict['url'])
         super().__init__(parent, root, page_dict['page_id'], api_dict['title'])
-        self.content_url = api_dict['html_url']
         self.root.manifest.add_item_to_manifest(self)
         self._expand_api_dict_to_class_attributes(page_dict)
-        # print(self.__dict__)
-
-        # self.get_html_body_links(self.body)
-        data_api_links = self.get_data_api_links(self.body)
-        from core.node_factory import get_node_by_a_tag_match
-        for link in data_api_links:
-            api_page = get_page(link[0])
-
-
-
-            node = get_node_by_a_tag_match(link[0])
-
-            print(node)
-            # print(self.root.manifest.exists(node))
+        self.add_data_api_link_to_children(self.body)
+        print(self.get_html_body_links(self.body))

@@ -102,6 +102,8 @@ def get_quiz(course_id, quiz_id):
                   f"/quizzes/{quiz_id}?access_token={os.environ.get('access_token')}"
     return quizzes_url
 
+print(get_quiz("12593","122086"))
+
 
 @response_decorator
 def get_files(course_id):
@@ -134,5 +136,6 @@ def get_module_items(module_items_url):
 
 @response_decorator
 def get_url(url):
+
     authenticated_url = f"{url}?access_token={os.environ.get('access_token')}"
     return authenticated_url

@@ -67,13 +67,13 @@ titles:
 
 
 content_ids:
-  Announcements: id
-  Assignments: id
-  CanvasFile: id
-  Discussions: id
-  Module: id
-  Pages: page_id
-  Quizzes: id
+  announcements: "id"
+  assignments: "id"
+  files: "id"
+  discussion_topics: "id"
+  modules: "id"
+  pages: "page_id"
+  quizzes: "id"
 
 requests:
   user-agent: {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}

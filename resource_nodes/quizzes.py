@@ -1,4 +1,4 @@
-from network.api import get_quizzes
+from network.api import get_quizzes, get_quiz
 from resource_nodes.base_node import Node
 
 
@@ -26,6 +26,8 @@ class Quizzes(Node):
 class Quiz(Node):
 
     def __init__(self, parent, root, api_dict):
-        super().__init__(parent, root, api_dict['id'], api_dict['title'])
+        quiz_dict = get_quiz(root.course_id, api_dict['id'])
+        super().__init__(parent, root, quiz_dict['id'], quiz_dict['title'])
         self.root.manifest.add_item_to_manifest(self)
-        self._expand_api_dict_to_class_attributes(api_dict)
+        self._expand_api_dict_to_class_attributes(quiz_dict)
+        self.add_data_api_link_to_children(self.description)
