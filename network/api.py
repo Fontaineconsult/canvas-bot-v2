@@ -102,7 +102,7 @@ def get_quiz(course_id, quiz_id):
                   f"/quizzes/{quiz_id}?access_token={os.environ.get('access_token')}"
     return quizzes_url
 
-print(get_quiz("12593","122086"))
+
 
 
 @response_decorator

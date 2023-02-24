@@ -9,6 +9,7 @@ resource_node_types_re:
   - announcements
   - files
   - modules
+  - folders
 
 
 document_content_regex:

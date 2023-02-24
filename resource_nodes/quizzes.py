@@ -29,3 +29,4 @@ class Quiz(Node):
         self.root.manifest.add_item_to_manifest(self)
         self._expand_api_dict_to_class_attributes(quiz_dict)
         self.add_data_api_link_to_children(self.description)
+        self.add_content_nodes_to_children(self.description)

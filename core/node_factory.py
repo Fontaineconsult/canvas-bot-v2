@@ -2,7 +2,7 @@
 from typing import Union, Type
 from resource_nodes.assignments import Assignment
 from resource_nodes.announcements import Announcement
-from resource_nodes.canvasfiles import CanvasFile
+from resource_nodes.canvasfiles import CanvasFile, CanvasFolder
 from resource_nodes.discussions import Discussion
 from resource_nodes.modules import Module
 from resource_nodes.pages import Page
@@ -43,7 +43,7 @@ def get_node_by_a_tag_match(a_tag) -> Union[Type[Assignment],
                                         Type[CanvasFile],
                                         None]:
 
-    print(a_tag)
+
     match_link = resource_node_regex.search(a_tag)
 
     if match_link:
@@ -55,6 +55,7 @@ def get_node_by_a_tag_match(a_tag) -> Union[Type[Assignment],
             "pages": Page,
             "quizzes": Quiz,
             "files": CanvasFile,
+            "folders": CanvasFolder
         }
 
         return node_dict[match_link.group()]
@@ -98,7 +99,7 @@ def get_content_node(content_url, **kwargs) -> Union[Type[Document],
 
 def identify_content_url(content_url, **kwargs) -> str:
 
-    print(content_url)
+
 
     if document_content_regex.match(content_url):
         return "document"

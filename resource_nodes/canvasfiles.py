@@ -1,6 +1,6 @@
 from colorama import Fore, Style
 
-from network.api import get_discussions, get_files, get_file
+from network.api import get_discussions, get_files, get_file, get_url
 from resource_nodes.base_content_node import BaseCanvasContentNode
 from resource_nodes.base_node import Node
 
@@ -12,7 +12,6 @@ class CanvasFiles(Node):
         super().__init__(parent, parent)
         self.course_id = course_id
         self.api_request = get_files
-        self.api_request_content = None
         self.get_all_items()
 
     def get_all_items(self):
@@ -30,3 +29,20 @@ class CanvasFile(BaseCanvasContentNode):
         super().__init__(parent, root, canvas_file_dict['id'], canvas_file_dict['filename'])
         self.root.manifest.add_item_to_manifest(self)
         self._expand_api_dict_to_class_attributes(canvas_file_dict)
+
+
+class CanvasFolder(Node):
+
+    def __init__(self, parent, root, api_dict):
+        super().__init__(parent, root, api_dict['id'], api_dict['full_name'])
+        self.root.manifest.add_item_to_manifest(self)
+        self._expand_api_dict_to_class_attributes(api_dict)
+        self.get_all_items()
+
+
+    def get_all_items(self):
+
+        canvas_folder_contents = get_url(self.files_url)
+        if canvas_folder_contents:
+            for file_dict in canvas_folder_contents:
+                self.children.append(CanvasFile(self, self.root, file_dict))
