@@ -24,4 +24,6 @@ web_audio_content_regex = re_combiner(expressions["web_audio_resources_regex"])
 
 audio_file_content_regex = re_combiner(expressions["audio_file_resources_regex"])
 
-google_doc_content_regex = re_combiner(expressions["web_document_applications_regex"])
+web_document_applications_regex = re_combiner(expressions["web_document_applications_regex"])
+
+file_storage_regex = re_combiner(expressions["file_storage_regex"])

@@ -75,6 +75,7 @@ web_video_resources_regex:
   - .*.instructuremedia.com/embed.*.
   - .*.tiktok.com/embed/.*.
   - .*.sfsu.mediasite.com/.*.
+  - .*.sfsu.instructure.com/media_objects_iframe/.*.
 
 
 video_file_resources_regex:
@@ -112,8 +113,9 @@ web_document_applications_regex:
   - https://docs.google.com/presentation/d/.*.
 
 
-additional_page_regex:
-  BoxPage: .*.sfsu.app.box.com/s/.*.|.*.sfsu.box.com/s/.*.
+file_storage_regex:
+  - .*.sfsu.app.box.com/s/.*.|.*.sfsu.box.com/s/.*.
+  - .*.drive.google.com/file/.*.
 
 
 additional_ignore_list_regex:

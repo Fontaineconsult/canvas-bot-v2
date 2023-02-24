@@ -1,7 +1,7 @@
+from typing import Tuple, List, Union
+
 from colorama import Fore, Style
 
-
-from core.node_sorter import sort_nodes
 from core.scraper import get_data_api_links_from_html, get_href_links_from_html_a_tag
 from network.api import get_url
 
@@ -44,26 +44,36 @@ class Node:
 
         for link in data_api_links:
             api_page = get_url(link[0])
-
             item_id = api_page[get_content_id_key_from_api_url(link[0])]
 
             if not self.root.manifest.id_exists(item_id):
                 data_api_node = get_node_by_a_tag_match(link[0])
+
                 if get_node_by_a_tag_match(link[0]) == Module:
                     # need to handle this differently
                     continue
-
                 self.children.append(data_api_node(self, self.root, api_page))
+
+    def add_content_to_children(self, html):
+        from core.node_factory import get_content_node
+
+        content_links = self.get_html_body_links(html)
+
+        for link in content_links:
+            ContentNode = get_content_node(link[0])
+            if ContentNode:
+                self.children.append(ContentNode(self, self.root, link[0], link[1]))
+                print(ContentNode)
 
 
     @staticmethod
-    def get_html_body_links(html_body) -> list:
+    def get_html_body_links(html_body) -> Union[List[Tuple[str, str]], List]:
         if not html_body:
             return list()
         return get_href_links_from_html_a_tag(html_body)
 
     @staticmethod
-    def get_data_api_links(html_body) -> list:
+    def get_data_api_links(html_body) -> Union[List[Tuple[str, str]], List]:
         if not html_body:
             return list()
         return get_data_api_links_from_html(html_body)

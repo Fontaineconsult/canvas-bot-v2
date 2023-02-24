@@ -1,7 +1,7 @@
 from colorama import Fore, Style
 
 from network.api import get_media_objects
-from resource_nodes.base_content_node import BaseContentNode
+from resource_nodes.base_content_node import BaseCanvasContentNode
 from resource_nodes.base_node import Node
 
 
@@ -23,7 +23,7 @@ class CanvasMediaObjects(Node):
             self.children.append(CanvasMediaObject(self, self.parent, media_object_dict))
 
 
-class CanvasMediaObject(BaseContentNode):
+class CanvasMediaObject(BaseCanvasContentNode):
 
     def __init__(self, parent, root, api_dict):
         super().__init__(parent, root, api_dict['media_id'], api_dict['title'])

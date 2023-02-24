@@ -14,9 +14,10 @@ class Assignments(Node):
     def get_all_items(self):
 
         api_request = self.api_request(self.course_id)
-        for module_dict in api_request:
 
-            self.children.append(Assignment(self, self.parent, module_dict))
+        if api_request:
+            for module_dict in api_request:
+                self.children.append(Assignment(self, self.parent, module_dict))
 
 
 class Assignment(Node):
