@@ -49,6 +49,12 @@ class FileStorageSite(BaseContentNode):
         super().__init__(parent, root, url, title)
 
 
+class DigitalTextbook(BaseContentNode):
+    def __init__(self, parent, root, url, title):
+        super().__init__(parent, root, url, title)
+
+
+
 class Unsorted(BaseContentNode):
 
     def __init__(self, parent, root, url, title):

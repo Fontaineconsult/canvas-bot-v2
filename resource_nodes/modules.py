@@ -26,7 +26,7 @@ class Modules(Node):
 
 class Module(Node):
 
-    def __init__(self, parent, root, api_dict):
+    def __init__(self, parent, root, api_dict, **kwargs):
         super().__init__(parent, root, api_dict['id'], api_dict['name'])
         self.api_dict = api_dict
         self.identify_content()

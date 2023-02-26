@@ -13,7 +13,7 @@ from sorters.sorters import resource_node_regex, document_content_regex, image_c
 from network.api import *
 from resource_nodes.content_nodes import *
 
-def get_node(type) -> Union[Type[Assignment],
+def get_node(type: str) -> Union[Type[Assignment],
                             Type[Page],
                             Type[Quiz],
                             Type[Announcement],
@@ -34,7 +34,7 @@ def get_node(type) -> Union[Type[Assignment],
     return node_dict.get(type)
 
 
-def get_node_by_a_tag_match(a_tag) -> Union[Type[Assignment],
+def get_node_by_a_tag_match(a_tag: str) -> Union[Type[Assignment],
                                         Type[Page],
                                         Type[Quiz],
                                         Type[Announcement],
@@ -62,7 +62,7 @@ def get_node_by_a_tag_match(a_tag) -> Union[Type[Assignment],
 
 
 
-def get_content_node(content_url, **kwargs) -> Union[Type[Document],
+def get_content_node(content_url: str, **kwargs) -> Union[Type[Document],
                                                Type[DocumentSite],
                                                Type[VideoSite],
                                                Type[VideoFile],

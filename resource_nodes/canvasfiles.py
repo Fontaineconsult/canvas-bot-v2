@@ -22,18 +22,21 @@ class CanvasFiles(Node):
                 self.children.append(CanvasFile(self, self.parent, file_dict))
 
 
-class CanvasFile(BaseCanvasContentNode):
+class CanvasFile(BaseCanvasContentNode, ):
 
-    def __init__(self, parent, root, api_dict):
-        canvas_file_dict = get_file(root.course_id, api_dict['id'])
-        super().__init__(parent, root, canvas_file_dict['id'], canvas_file_dict['filename'])
+    def __init__(self, parent, root, api_dict, **kwargs):
+
+        if not kwargs.get("bypass_get_url") is True:
+            api_dict = get_file(root.course_id, api_dict['id'])
+        super().__init__(parent, root, api_dict['id'], api_dict['filename'])
         self.root.manifest.add_item_to_manifest(self)
-        self._expand_api_dict_to_class_attributes(canvas_file_dict)
+        self._expand_api_dict_to_class_attributes(api_dict)
 
 
 class CanvasFolder(Node):
 
     def __init__(self, parent, root, api_dict):
+
         super().__init__(parent, root, api_dict['id'], api_dict['full_name'])
         self.root.manifest.add_item_to_manifest(self)
         self._expand_api_dict_to_class_attributes(api_dict)

@@ -14,9 +14,10 @@ def response_handler(request_url):
     request = requests.get(request_url)
 
     if request.status_code == 200:
+        print("DSFSDFDSF", request_url, request.status_code)
         return json.loads(request.content)
     if request.status_code != 200:
-        warning_message = f"{request.status_code} {json.loads(request.content)}"
+        warning_message = f"{request.status_code} {json.loads(request.content)} {request_url}"
         warnings.warn(warning_message, UserWarning)
         return None
 
@@ -48,7 +49,7 @@ def get_assignment(course_id, assignment_id):
                      f"/assignments/{assignment_id}?access_token={os.environ.get('access_token')}"
     return assignment_url
 
-
+# print(get_assignment("6809","186722"))
 
 @response_decorator
 def get_discussions(course_id):
@@ -83,10 +84,10 @@ def get_pages(course_id):
 @response_decorator
 def get_page(course_id, page_url):
 
-    pages_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+    page_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
                 f"/pages/{page_url}?access_token={os.environ.get('access_token')}"
 
-    return pages_url
+    return page_url
 
 
 @response_decorator

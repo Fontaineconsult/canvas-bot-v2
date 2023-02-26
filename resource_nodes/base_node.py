@@ -44,17 +44,24 @@ class Node:
 
         for link in data_api_links:
             api_page = get_url(link[0])
-
+            print(api_page)
             if api_page:
-                item_id = api_page[get_content_id_key_from_api_url(link[0])]
+                if not isinstance(api_page, list):
+                    api_page = [api_page]
 
-                if not self.root.manifest.id_exists(item_id):
-                    data_api_node = get_node_by_a_tag_match(link[0])
+                for api_dict in api_page:
 
-                    if get_node_by_a_tag_match(link[0]) == Module:
-                        # need to handle this differently
-                        continue
-                    self.children.append(data_api_node(self, self.root, api_page))
+                    item_id = api_dict[get_content_id_key_from_api_url(link[0])]
+
+
+                    if not self.root.manifest.id_exists(item_id):
+
+                        data_api_node = get_node_by_a_tag_match(link[0])
+
+                        if get_node_by_a_tag_match(link[0]) == Module:
+                            # need to handle this differently
+                            continue
+                        self.children.append(data_api_node(self, self.root, api_dict, bypass_get_url=True))
 
     def add_content_nodes_to_children(self, html):
         from core.node_factory import get_content_node
@@ -65,7 +72,6 @@ class Node:
             ContentNode = get_content_node(link[0])
             if ContentNode:
                 self.children.append(ContentNode(self, self.root, link[0], link[1]))
-
 
 
     @staticmethod

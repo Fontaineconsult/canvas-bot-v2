@@ -44,6 +44,11 @@ class CanvasCourseRoot:
 
 
 
-test = CanvasCourseRoot("14074")
-test.canvas_tree.show_nodes()
-test.manifest.print_manifest()
+# test = CanvasCourseRoot("13652")
+# test.canvas_tree.show_nodes()
+# test.manifest.print_manifest()
+
+for number in range(13653,14500):
+    test = CanvasCourseRoot(str(number))
+    test.canvas_tree.show_nodes()
+    test.manifest.print_manifest()

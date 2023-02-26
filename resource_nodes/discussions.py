@@ -24,11 +24,13 @@ class Discussions(Node):
 
 class Discussion(Node):
 
-    def __init__(self, parent, root, api_dict):
-        discussion_dict = get_discussion(root.course_id, api_dict['id'])
-        super().__init__(parent, root, api_dict['id'], discussion_dict['title'])
+    def __init__(self, parent, root, api_dict, **kwargs):
+        if not kwargs.get("bypass_get_url") is True:
+            api_dict = get_discussion(root.course_id, api_dict['id'])
+
+        super().__init__(parent, root, api_dict['id'], api_dict['title'])
         self.root.manifest.add_item_to_manifest(self)
-        self._expand_api_dict_to_class_attributes(discussion_dict)
+        self._expand_api_dict_to_class_attributes(api_dict)
         self.add_data_api_link_to_children(self.message)
         self.add_content_nodes_to_children(self.message)
 
