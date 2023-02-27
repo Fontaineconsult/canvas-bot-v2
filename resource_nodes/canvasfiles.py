@@ -35,7 +35,7 @@ class CanvasFile(BaseCanvasContentNode, ):
 
 class CanvasFolder(Node):
 
-    def __init__(self, parent, root, api_dict):
+    def __init__(self, parent, root, api_dict, **kwargs):
 
         super().__init__(parent, root, api_dict['id'], api_dict['full_name'])
         self.root.manifest.add_item_to_manifest(self)

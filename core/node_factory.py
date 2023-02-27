@@ -1,5 +1,7 @@
 
 from typing import Union, Type
+
+from external_content_nodes.box import BoxPage
 from resource_nodes.assignments import Assignment
 from resource_nodes.announcements import Announcement
 from resource_nodes.canvasfiles import CanvasFile, CanvasFolder
@@ -84,9 +86,9 @@ def get_content_node(content_url: str, **kwargs) -> Union[Type[Document],
             "videoSite": VideoSite,
             "videoFile": VideoFile,
             "audioFile": AudioFile,
-            "audioFite": AudioSite,
+            "audioSite": AudioSite,
             "imageFile": ImageFile,
-            "filestorage": FileStorageSite,
+            "filestorage": BoxPage,
 
         }
 
