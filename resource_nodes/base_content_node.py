@@ -9,14 +9,16 @@ class BaseCanvasContentNode:
         self.parent = parent
         self.root = root
         self.children = list()
-        self.add_node_to_tree()
-
-
-    def add_node_to_tree(self):
-        if self.root:
-            self.root.canvas_tree.add_node(self)
-        else:
-            Warning("No Root Node")
+        self.is_content = True
+    #     self.add_node_to_tree()
+    #
+    #
+    #
+    # def add_node_to_tree(self):
+    #     if self.root:
+    #         self.root.canvas_tree.add_node(self)
+    #     else:
+    #         Warning("No Root Node")
 
     @classmethod
     def _expand_api_dict_to_class_attributes(cls, api_dict):
@@ -40,8 +42,10 @@ class BaseContentNode:
         self.parent = parent
         self.root = root
         self.children = list()
+        self.is_content = True
+        self.item_id = hash(self.url)
         self.add_node_to_tree()
-
+        self.root.manifest.add_item_to_manifest(self)
 
     def add_node_to_tree(self):
         if self.root:

@@ -2,6 +2,7 @@ from os.path import join, dirname
 from colorama import Fore, Style
 from dotenv import load_dotenv
 
+from core.content_extractor import ContentExtractor
 from core.manifest import Manifest
 from resource_nodes.announcements import Announcements
 from resource_nodes.assignments import Assignments
@@ -17,14 +18,16 @@ dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
 
-class CanvasCourseRoot:
+class CanvasCourseRoot(ContentExtractor):
 
     def __init__(self, course_id):
+
         self.course_id = course_id
         self.canvas_tree = CanvasTree()
         self.manifest = Manifest()
         self._init_modules_root()
-
+        self.root_node = True
+        super().__init__(self.manifest)
 
     def __str__(self):
         return f"<{Fore.GREEN}Canvas Course Root ID: {self.course_id}{Style.RESET_ALL}>"
@@ -32,7 +35,7 @@ class CanvasCourseRoot:
 
     def _init_modules_root(self):
         self.canvas_tree.init_node(self)
-
+        self.modules = Modules(self.course_id, self)
         self.assignments = Assignments(self.course_id, self)
         self.announcements = Announcements(self.course_id, self)
         self.discussions = Discussions(self.course_id, self)
@@ -40,15 +43,15 @@ class CanvasCourseRoot:
         self.quizzes = Quizzes(self.course_id, self)
         self.files = CanvasFiles(self.course_id, self)
         self.media_objects = CanvasMediaObjects(self.course_id, self)
-        self.modules = Modules(self.course_id, self)
 
 
+
+
+test = CanvasCourseRoot("17820")
+test.canvas_tree.show_nodes()
+test.get_canvas_files()
 #
-# test = CanvasCourseRoot("14074")
-# test.canvas_tree.show_nodes()
-# test.manifest.print_manifest()
-
-for number in range(14370,15000):
-    test = CanvasCourseRoot(str(number))
-    test.canvas_tree.show_nodes()
-    test.manifest.print_manifest()
+# for number in range(14370,15000):
+#     test = CanvasCourseRoot(str(number))
+#     test.canvas_tree.show_nodes()
+#     test.manifest.print_manifest()

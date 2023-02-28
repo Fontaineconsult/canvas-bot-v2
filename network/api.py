@@ -12,9 +12,9 @@ load_dotenv(dotenv_path)
 
 def response_handler(request_url):
     request = requests.get(request_url)
+    # need to handle connection error
 
     if request.status_code == 200:
-        print("DSFSDFDSF", request_url, request.status_code)
         return json.loads(request.content)
     if request.status_code != 200:
         warning_message = f"{request.status_code} {json.loads(request.content)} {request_url}"

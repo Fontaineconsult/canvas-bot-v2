@@ -39,29 +39,32 @@ class Node:
         from core.node_factory import get_node_by_a_tag_match
         from tools.other_tools import get_content_id_key_from_api_url
         from resource_nodes.modules import Module
+        from resource_nodes.canvasfiles import CanvasFile
+        from resource_nodes.canvasfiles import canvas_file_factory
 
         data_api_links = self.get_data_api_links(html)
 
         for link in data_api_links:
             api_page = get_url(link[0])
-            print(api_page)
             if api_page:
                 if not isinstance(api_page, list):
                     api_page = [api_page]
-
                 for api_dict in api_page:
 
                     item_id = api_dict[get_content_id_key_from_api_url(link[0])]
-
-
                     if not self.root.manifest.id_exists(item_id):
 
-                        data_api_node = get_node_by_a_tag_match(link[0])
+                        data_api_node = get_node_by_a_tag_match(link[0]) # returns class object node type
 
                         if get_node_by_a_tag_match(link[0]) == Module:
                             # need to handle this differently
                             continue
-                        self.children.append(data_api_node(self, self.root, api_dict, bypass_get_url=True))
+
+                        initialized_node = data_api_node(self, self.root, api_dict, bypass_get_url=True)
+                        if isinstance(initialized_node, CanvasFile):
+                            classified_canvas_node = canvas_file_factory(initialized_node)
+
+                        self.children.append(initialized_node)
 
     def add_content_nodes_to_children(self, html):
         from core.node_factory import get_content_node
