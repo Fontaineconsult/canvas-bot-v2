@@ -46,7 +46,8 @@ class BaseContentNode:
         self.root = root
         self.children = list()
         self.is_content = True
-        self.item_id = hash(self.url) if self.url else None
+        print("SDFSDF", self.url)
+        self.item_id = hash(self.url)
         self._expand_api_dict_to_class_attributes()
         self.add_node_to_tree()
         self.root.manifest.add_item_to_manifest(self)
@@ -61,7 +62,7 @@ class BaseContentNode:
         if self.api_dict:
             self.is_canvas_file = True
             print(self.api_dict)
-            self.id = self.api_dict['id']
+            self.item_id = self.api_dict['id']
             for key in self.api_dict:
                 setattr(self, key, self.api_dict[key])
 
