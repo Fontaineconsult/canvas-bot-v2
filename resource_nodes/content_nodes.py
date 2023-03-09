@@ -6,8 +6,8 @@ from resource_nodes.base_content_node import BaseContentNode, BaseCanvasContentN
 
 class Document(BaseContentNode):
 
-    def __init__(self, parent, root, url, title):
-        super().__init__(parent, root, url, title)
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+        super().__init__(parent, root, api_dict, url, title, **kwargs)
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
@@ -18,21 +18,21 @@ class Document(BaseContentNode):
 
 class DocumentSite(BaseContentNode):
 
-    def __init__(self, parent, root, url, title):
-        super().__init__(parent, root, url, title)
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+        super().__init__(parent, root, api_dict, url, title, **kwargs)
 
 
 class VideoSite(BaseContentNode):
 
 
-    def __init__(self, parent, root, url, title):
-        super().__init__(parent, root, url, title)
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+        super().__init__(parent, root, api_dict, url, title, **kwargs)
 
 
 class VideoFile(BaseContentNode):
 
-    def __init__(self, parent, root, url, title):
-        super().__init__(parent, root, url, title)
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+        super().__init__(parent, root, api_dict, url, title, **kwargs)
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
@@ -43,8 +43,8 @@ class VideoFile(BaseContentNode):
 
 class AudioFile(BaseContentNode):
 
-    def __init__(self, parent, root, url, title):
-        super().__init__(parent, root, url, title)
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+        super().__init__(parent, root, api_dict, url, title, **kwargs)
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
@@ -55,14 +55,14 @@ class AudioFile(BaseContentNode):
 
 class AudioSite(BaseContentNode):
 
-    def __init__(self, parent, root, url, title):
-        super().__init__(parent, root, url, title)
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+        super().__init__(parent, root, api_dict, url, title, **kwargs)
 
 
 class ImageFile(BaseContentNode):
 
-    def __init__(self, parent, root, url, title):
-        super().__init__(parent, root, url, title)
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+        super().__init__(parent, root, api_dict, url, title, **kwargs)
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
@@ -72,20 +72,20 @@ class ImageFile(BaseContentNode):
 
 
 class FileStorageSite(BaseContentNode):
-    def __init__(self, parent, root, url, title):
-        super().__init__(parent, root, url, title)
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+        super().__init__(parent, root, api_dict, url, title, **kwargs)
 
 
 
 class DigitalTextbook(BaseContentNode):
-    def __init__(self, parent, root, url, title):
-        super().__init__(parent, root, url, title)
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+        super().__init__(parent, root, api_dict, url, title, **kwargs)
 
 
 class Unsorted(BaseContentNode):
 
-    def __init__(self, parent, root, url, title):
-        super().__init__(parent, root, url, title)
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+        super().__init__(parent, root, api_dict, url, title, **kwargs)
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':

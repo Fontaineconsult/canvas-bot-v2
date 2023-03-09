@@ -99,6 +99,7 @@ web_audio_resources_regex:
   - .*./podcasts/.*.
   - .*./podcast/.*.
   - .*./episode/.*.
+  - .*./episodes/.*.
 
 audio_file_resources_regex:
   - .*\.m4a
@@ -113,6 +114,8 @@ audio_file_resources_regex:
 web_document_applications_regex:
   - https://docs.google.com/document/d/.*.
   - https://docs.google.com/presentation/d/.*.
+  - https://books.google.com/books?.*.
+  - https://docs.google.com/spreadsheets/d/.*.
 
 
 file_storage_regex:

@@ -4,7 +4,7 @@ from typing import Union, Type
 from external_content_nodes.box import BoxPage
 from resource_nodes.assignments import Assignment
 from resource_nodes.announcements import Announcement
-from resource_nodes.canvasfiles import CanvasFile, CanvasFolder
+from resource_nodes.canvasfiles import CanvasFolder
 from resource_nodes.discussions import Discussion
 from resource_nodes.modules import Module
 from resource_nodes.pages import Page
@@ -12,7 +12,6 @@ from resource_nodes.quizzes import Quiz
 from sorters.sorters import resource_node_regex, document_content_regex, image_content_regex, web_video_content_regex, \
     video_file_content_regex, web_audio_content_regex, audio_file_content_regex, web_document_applications_regex, \
     file_storage_regex
-from network.api import *
 from resource_nodes.content_nodes import *
 
 def get_node(type: str) -> Union[Type[Assignment],
@@ -36,18 +35,25 @@ def get_node(type: str) -> Union[Type[Assignment],
     return node_dict.get(type)
 
 
-def get_node_by_a_tag_match(a_tag: str) -> Union[Type[Assignment],
+def get_node_by_a_tag_match(a_tag: str, api_dict) -> Union[Type[Assignment],
                                         Type[Page],
                                         Type[Quiz],
                                         Type[Announcement],
                                         Type[Module],
                                         Type[Discussion],
-                                        Type[CanvasFile],
+                                        Type[Document],
+                                        Type[DocumentSite],
+                                        Type[VideoSite],
+                                        Type[VideoFile],
+                                        Type[AudioFile],
+                                        Type[AudioSite],
+                                        Type[ImageFile],
+                                        Type[Unsorted],
+                                        Type[FileStorageSite],
                                         None]:
 
 
     match_link = resource_node_regex.search(a_tag)
-
     if match_link:
         node_dict = {
             "assignments": Assignment,
@@ -56,15 +62,17 @@ def get_node_by_a_tag_match(a_tag: str) -> Union[Type[Assignment],
             "modules": Module,
             "pages": Page,
             "quizzes": Quiz,
-            "files": CanvasFile,
             "folders": CanvasFolder
         }
+
+        if match_link.group() == 'files':
+            return get_content_node(a_tag, api_dict)
 
         return node_dict[match_link.group()]
 
 
 
-def get_content_node(content_url: str, **kwargs) -> Union[Type[Document],
+def get_content_node(content_url, api_dict=None, **kwargs) -> Union[Type[Document],
                                                Type[DocumentSite],
                                                Type[VideoSite],
                                                Type[VideoFile],
@@ -75,8 +83,10 @@ def get_content_node(content_url: str, **kwargs) -> Union[Type[Document],
                                                Type[FileStorageSite],
                                                None]:
 
-    identified_content = identify_content_url(content_url, **kwargs)
+    if api_dict:
+        content_url = api_dict['filename']
 
+    identified_content = identify_content_url(content_url, **kwargs)
     if identified_content:
 
         node_dict = {

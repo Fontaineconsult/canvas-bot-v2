@@ -47,11 +47,11 @@ class CanvasCourseRoot(ContentExtractor):
 
 
 
-test = CanvasCourseRoot("17820")
+test = CanvasCourseRoot("17901")
 test.canvas_tree.show_nodes()
-test.get_canvas_files()
-#
-# for number in range(14370,15000):
+test.manifest.print_manifest()
+
+# for number in range(17884,18000):
 #     test = CanvasCourseRoot(str(number))
 #     test.canvas_tree.show_nodes()
 #     test.manifest.print_manifest()

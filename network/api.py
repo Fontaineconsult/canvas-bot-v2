@@ -49,7 +49,6 @@ def get_assignment(course_id, assignment_id):
                      f"/assignments/{assignment_id}?access_token={os.environ.get('access_token')}"
     return assignment_url
 
-# print(get_assignment("6809","186722"))
 
 @response_decorator
 def get_discussions(course_id):
@@ -102,8 +101,6 @@ def get_quiz(course_id, quiz_id):
     quizzes_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
                   f"/quizzes/{quiz_id}?access_token={os.environ.get('access_token')}"
     return quizzes_url
-
-
 
 
 @response_decorator

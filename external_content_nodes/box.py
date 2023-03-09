@@ -14,8 +14,8 @@ filters = read_config()['filters']
 
 class BoxPage(FileStorageSite):
 
-    def __init__(self, parent, root, url, title):
-        super().__init__(parent, root, url, title)
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+        super().__init__(parent, root, api_dict, url, title, **kwargs)
         self.get_box_html_page()
 
 
@@ -57,4 +57,4 @@ class BoxPage(FileStorageSite):
                     for item in json_dict['items']:
 
                         content_node = get_content_node(item['name'])
-                        self.children.append(content_node(self, self.root, self.url, item['name']))
+                        self.children.append(content_node(self, self.root, None, self.url, item['name']))

@@ -2,7 +2,6 @@ from typing import List
 import inspect
 from content_scaffolds import *
 from core.manifest import Manifest
-from resource_nodes.canvasfiles import CanvasFile
 from resource_nodes.content_nodes import Document
 
 
@@ -32,8 +31,8 @@ class ContentExtractor:
         self.manifest = manifest
 
 
-    def get_canvas_files(self):
-        for item in self.manifest.content_list():
-            if isinstance(item, CanvasFile):
-                pass
-
+    # def get_canvas_files(self):
+    #     for item in self.manifest.content_list():
+    #         if isinstance(item, CanvasFile):
+    #             pass
+    #
