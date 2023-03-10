@@ -116,6 +116,12 @@ web_document_applications_regex:
   - https://docs.google.com/presentation/d/.*.
   - https://books.google.com/books?.*.
   - https://docs.google.com/spreadsheets/d/.*.
+  - https://acrobat.adobe.com/link/track.*.
+  - https://padlet.com/.*.
+
+
+digital_text_book_regex:
+  - .*.ebookcentral.proquest.com/lib/sfsu/reader.*.
 
 
 file_storage_regex:

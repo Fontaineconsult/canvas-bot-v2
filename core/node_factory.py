@@ -84,7 +84,7 @@ def get_content_node(content_url, api_dict=None, **kwargs) -> Union[Type[Documen
                                                None]:
 
     if api_dict:
-        content_url = api_dict['filename']
+        content_url = api_dict['filename'] if api_dict.get('filename') else api_dict['title']
 
     identified_content = identify_content_url(content_url, **kwargs)
     if identified_content:

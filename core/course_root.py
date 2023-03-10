@@ -32,8 +32,10 @@ class CanvasCourseRoot(ContentExtractor):
     def __str__(self):
         return f"<{Fore.GREEN}Canvas Course Root ID: {self.course_id}{Style.RESET_ALL}>"
 
-
     def _init_modules_root(self):
+
+
+
         self.canvas_tree.init_node(self)
         self.modules = Modules(self.course_id, self)
         self.assignments = Assignments(self.course_id, self)
@@ -47,11 +49,13 @@ class CanvasCourseRoot(ContentExtractor):
 
 
 
-test = CanvasCourseRoot("17901")
+test = CanvasCourseRoot("17595")
 test.canvas_tree.show_nodes()
 test.manifest.print_manifest()
+print(test.build_videos_dict())
 
-# for number in range(17884,18000):
+
+# for number in range(18158,19500):
 #     test = CanvasCourseRoot(str(number))
 #     test.canvas_tree.show_nodes()
 #     test.manifest.print_manifest()

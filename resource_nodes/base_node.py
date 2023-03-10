@@ -2,7 +2,12 @@ from typing import Tuple, List, Union
 
 from colorama import Fore, Style
 
-from core.scraper import get_data_api_links_from_html, get_href_links_from_html_a_tag
+from core.scraper import get_data_api_links_from_html,\
+    get_href_links_from_html_a_tag,\
+    get_src_links_from_html_iframe_tag,\
+    get_src_links_from_video_tag, \
+    get_src_links_from_img_tag
+
 from network.api import get_url
 
 
@@ -31,6 +36,7 @@ class Node:
             Warning("No Root Node")
 
     def _expand_api_dict_to_class_attributes(self, api_dict):
+        # print(api_dict)
         for key in api_dict:
             setattr(self, key, api_dict[key])
 
@@ -52,13 +58,11 @@ class Node:
 
                     item_id = api_dict[get_content_id_key_from_api_url(link[0])]
                     if not self.root.manifest.id_exists(item_id):
-                        print(link)
                         data_api_node = get_node_by_a_tag_match(link[0], api_dict) # returns class object node type
 
                         if data_api_node == Module:
                             # need to handle this differently
                             continue
-                        print(data_api_node)
                         initialized_node = data_api_node(self, self.root, api_dict, bypass_get_url=True)
 
 
@@ -71,7 +75,6 @@ class Node:
 
         for link in content_links:
             ContentNode = get_content_node(link[0])
-            print(ContentNode)
             if ContentNode:
                 self.children.append(ContentNode(self, self.root, None, link[0], link[1]))
 
@@ -80,7 +83,14 @@ class Node:
     def get_html_body_links(html_body) -> Union[List[Tuple[str, str]], List]:
         if not html_body:
             return list()
-        return get_href_links_from_html_a_tag(html_body)
+        return_list = get_href_links_from_html_a_tag(html_body)\
+                      + get_src_links_from_html_iframe_tag(html_body)\
+                      + get_src_links_from_video_tag(html_body)\
+                      + get_src_links_from_img_tag(html_body)
+        return return_list
+
+
+
 
     @staticmethod
     def get_data_api_links(html_body) -> Union[List[Tuple[str, str]], List]:
