@@ -1,3 +1,4 @@
+import animation
 from colorama import Fore, Style
 
 from core.node_factory import get_content_node
@@ -16,13 +17,13 @@ class CanvasMediaObjects(Node):
         self.api_request_content = None
         self.get_all_items()
 
+    @animation.wait('spinner')
     def get_all_items(self):
 
         api_request = self.api_request(self.course_id)
 
         for media_object_dict in api_request:
             media_node = get_content_node(None, media_object_dict)
-            print("ASDASD", media_node)
             self.children.append(media_node(self, self.parent, media_object_dict))
 
 

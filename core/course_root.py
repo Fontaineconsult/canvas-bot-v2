@@ -1,7 +1,7 @@
 from os.path import join, dirname
 from colorama import Fore, Style
 from dotenv import load_dotenv
-
+import animation, time
 from core.content_extractor import ContentExtractor
 from core.manifest import Manifest
 from resource_nodes.announcements import Announcements
@@ -34,26 +34,41 @@ class CanvasCourseRoot(ContentExtractor):
 
     def _init_modules_root(self):
 
-
-
         self.canvas_tree.init_node(self)
+
+        print("Importing Modules")
         self.modules = Modules(self.course_id, self)
+
+        print("Importing Assignments")
         self.assignments = Assignments(self.course_id, self)
+
+        print("Importing Announcements")
         self.announcements = Announcements(self.course_id, self)
+
+        print("Importing Discussions")
         self.discussions = Discussions(self.course_id, self)
+
+        print("Importing Pages")
         self.pages = Pages(self.course_id, self)
+
+        print("Importing Quizzes")
         self.quizzes = Quizzes(self.course_id, self)
+
+        print("Importing Canvas Files")
         self.files = CanvasFiles(self.course_id, self)
+
+        print("Importing Media Objects")
         self.media_objects = CanvasMediaObjects(self.course_id, self)
 
 
 
 
-test = CanvasCourseRoot("17595")
+test = CanvasCourseRoot("12593")
 test.canvas_tree.show_nodes()
-test.manifest.print_manifest()
+print(test.build_documents_dict())
 print(test.build_videos_dict())
-
+print(test.build_audio_dict())
+print(test.build_images_dict())
 
 # for number in range(18158,19500):
 #     test = CanvasCourseRoot(str(number))

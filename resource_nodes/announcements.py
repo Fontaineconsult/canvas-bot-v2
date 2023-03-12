@@ -1,3 +1,5 @@
+import animation
+
 from network.api import get_announcements
 from resource_nodes.base_node import Node
 
@@ -12,12 +14,12 @@ class Announcements(Node):
         self.api_request_content = None
         self.get_all_items()
 
+    @animation.wait('spinner')
     def get_all_items(self):
 
         api_request = self.api_request(self.course_id)
         if api_request:
             for module_dict in api_request:
-
                 self.children.append(Announcement(self, self.parent, module_dict))
 
 

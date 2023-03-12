@@ -43,14 +43,36 @@ class ContentExtractor:
     def get_unsorted_objects(self):
         return [item for item in self.manifest.content_list() if isinstance(item, Unsorted)]
 
+    def build_documents_dict(self):
 
-    def build_document_dict(self):
-        for document in self.get_document_objects():
-            print(document_dict(document))
+        return {
+            "documents": [document_dict(document) for document in self.get_document_objects()],
+            "document_sites": [document_site_dict(document_site) for document_site in self.get_document_site_objects()],
+        }
 
     def build_videos_dict(self):
-        for video_site in self.get_video_site_objects():
-            print(video_site_dict(video_site))
 
-        for video_file in self.get_video_file_objects():
-            print(video_file_dict(video_file))
+        return {
+            "video_sites": [video_site_dict(video_site) for video_site in self.get_video_site_objects()],
+            "video_files": [video_file_dict(video_file) for video_file in self.get_video_file_objects()],
+        }
+
+    def build_audio_dict(self):
+
+        return {
+            "audio_sites": [audio_site_dict(audio_site) for audio_site in self.get_audio_site_objects()],
+            "audio_files": [audio_file_dict(audio_file) for audio_file in self.get_audio_file_objects()],
+        }
+
+    def build_images_dict(self):
+
+        return {
+            "image_files": [image_file_dict(image_file) for image_file in self.get_image_file_objects()],
+        }
+
+    def unsorted_dict(self):
+
+        return {
+            "unsorted": [unsorted_dict(unsorted) for unsorted in self.get_unsorted_objects()],
+        }
+

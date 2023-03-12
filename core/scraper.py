@@ -18,7 +18,6 @@ def get_src_links_from_html_iframe_tag(html_body):
     if html_body is None:
         return list()
     soup = BeautifulSoup(html_body, "html.parser")
-    print("IFRAME", soup)
     if soup:
         return [(a_tag.get('src'), a_tag.text.strip()) for a_tag in soup.find_all('iframe')
                 if a_tag.get('src') is not None and resource_node_regex.search(a_tag.get('src')) is None]

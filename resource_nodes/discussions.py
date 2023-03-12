@@ -1,3 +1,4 @@
+import animation
 from colorama import Fore, Style
 
 from network.api import get_discussions, get_discussion
@@ -14,6 +15,7 @@ class Discussions(Node):
         self.api_request_content = None
         self.get_all_items()
 
+    @animation.wait('spinner')
     def get_all_items(self):
 
         api_request = self.api_request(self.course_id)

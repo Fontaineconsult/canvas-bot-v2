@@ -46,14 +46,30 @@ class BaseContentNode:
         self.root = root
         self.children = list()
         self.is_content = True
-        self.item_id = hash(self.url)
+        self.item_id = self.derive_id()
         self._expand_api_dict_to_class_attributes()
         self.add_node_to_tree()
         self.root.manifest.add_item_to_manifest(self)
 
+
+    def derive_id(self):
+        if self.api_dict:
+            if self.api_dict.get('id'):
+                return self.api_dict.get('id')
+        else:
+            if self.url and self.title:
+                return hash(self.url + self.title)
+            if self.url and not self.title:
+                return hash(self.url)
+            if not self.url and self.title:
+                return hash(self.title)
+            if not self.url and not self.title:
+                Warning("Can't derive ID")
+
+
+
     def add_node_to_tree(self):
         if self.root:
-
             self.root.canvas_tree.add_node(self)
         else:
             Warning("No Root Node")

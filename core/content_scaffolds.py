@@ -2,6 +2,14 @@ from datetime import datetime
 from typing import List
 
 
+def get_source_page_url(node) -> int:
+
+    if getattr(node.parent, "html_url", None):
+        return getattr(node.parent, "html_url")
+    else:
+        return getattr(node.parent, "url", None)
+
+
 def get_order(node) -> int:
 
     path_list = build_path(node)
@@ -41,8 +49,7 @@ def build_path(node) -> List:
 def main_dict(**items) -> dict:
 
     main_dict = {
-        "content_type": items.get("content_type"),
-        "course_title": items.get("course_title"),
+
         "course_id": items.get("course_id"),
         "course_url": items.get("course_url"),
         "content": list(),
@@ -59,7 +66,7 @@ def document_dict(document_node):
         "title": getattr(document_node, "title", None),
         "url": getattr(document_node, "url", None),
         "source_page_type": document_node.parent.__class__.__name__,
-        "source_page_url": getattr(document_node.parent, "html_url", None),
+        "source_page_url": get_source_page_url(document_node),
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(document_node),
@@ -72,25 +79,19 @@ def document_dict(document_node):
     return document_dict
 
 
-def document_site_dict(**items):
+def document_site_dict(document_site_node):
 
     document_site_dict = {
 
-        "title": items.get("title"),
-        "url": items.get("url"),
-        "download_url": items.get("download_url"),
-        "source_page_type": items.get("source_page_type"),
-        "source_page_url": items.get("source_page_url"),
-        "source_page_title": items.get("source_page_title"),
+        "title": getattr(document_site_node, "title", None),
+        "url": getattr(document_site_node, "url", None),
+        "source_page_type": document_site_node.parent.__class__.__name__,
+        "source_page_url": get_source_page_url(document_site_node),
+        # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
-        "is_hidden": items.get("is_hidden"),
-        "content_type": items.get("content_type"),
-        "mime_type": items.get("mime_type"),
-        "order": items.get("order"),
-        "downloadable": items.get("downloadable"),
-        "path": items.get('path'),
-        "title_path": items.get("title_path"),
-        "uri_path": items.get("uri_path")
+        "is_hidden": is_hidden(document_site_node),
+        "order": get_order(document_site_node),
+        # "path": build_path(video_site_node),
 
     }
     return document_site_dict
@@ -104,7 +105,7 @@ def video_site_dict(video_site_node):
         "title": getattr(video_site_node, "title", None),
         "url": getattr(video_site_node, "url", None),
         "source_page_type": video_site_node.parent.__class__.__name__,
-        "source_page_url": getattr(video_site_node.parent, "html_url", None),
+        "source_page_url": get_source_page_url(video_site_node),
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(video_site_node),
@@ -122,7 +123,7 @@ def video_file_dict(video_file_node):
         "title": getattr(video_file_node, "title", None),
         "url": getattr(video_file_node, "url", None),
         "source_page_type": video_file_node.parent.__class__.__name__,
-        "source_page_url": getattr(video_file_node.parent, "html_url", None),
+        "source_page_url": get_source_page_url(video_file_node),
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(video_file_node),
@@ -134,99 +135,75 @@ def video_file_dict(video_file_node):
     return video_file_dict
 
 
-def audio_file_dict(**items):
+def audio_file_dict(audio_file_node):
 
     audio_file_dict = {
 
-        "title": items.get("title"),
-        "url": items.get("url"),
-        "download_url": items.get("download_url"),
-        "source_page_type": items.get("source_page_type"),
-        "source_page_url": items.get("source_page_url"),
-        "source_page_title": items.get("source_page_title"),
+        "title": getattr(audio_file_node, "title", None),
+        "url": getattr(audio_file_node, "url", None),
+        "source_page_type": audio_file_node.parent.__class__.__name__,
+        "source_page_url": get_source_page_url(audio_file_node),
+        # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
-        "is_hidden": items.get("is_hidden"),
-        "content_type": items.get("content_type"),
-        "mime_type": items.get("mime_type"),
-        "order": items.get("order"),
-        "downloadable": items.get("downloadable"),
-        "path": items.get('path'),
-        "title_path": items.get("title_path"),
-        "uri_path": items.get("uri_path")
-
+        "is_hidden": is_hidden(audio_file_node),
+        "file_type": getattr(audio_file_node, "mime_class", None),
+        "order": get_order(audio_file_node),
+        # "path": build_path(document_node),
     }
     return audio_file_dict
 
 
-def audio_site_dict(**items):
+def audio_site_dict(audio_site_node):
 
     audio_site_dict = {
 
-        "title": items.get("title"),
-        "url": items.get("url"),
-        "download_url": items.get("download_url"),
-        "source_page_type": items.get("source_page_type"),
-        "source_page_url": items.get("source_page_url"),
-        "source_page_title": items.get("source_page_title"),
+        "title": getattr(audio_site_node, "title", None),
+        "url": getattr(audio_site_node, "url", None),
+        "source_page_type": audio_site_node.parent.__class__.__name__,
+        "source_page_url": get_source_page_url(audio_site_node),
+        # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
-        "is_hidden": items.get("is_hidden"),
-        "content_type": items.get("content_type"),
-        "mime_type": items.get("mime_type"),
-        "order": items.get("order"),
-        "downloadable": items.get("downloadable"),
-        "path": items.get('path'),
-        "title_path": items.get("title_path"),
-        "uri_path": items.get("uri_path")
+        "is_hidden": is_hidden(audio_site_node),
+        "order": get_order(audio_site_node),
+        # "path": build_path(video_site_node),
 
     }
     return audio_site_dict
 
 
 
-def image_file_dict(**items):
+def image_file_dict(image_file_node):
 
     image_file_dict = {
 
-        "title": items.get("title"),
-        "url": items.get("url"),
-        "download_url": items.get("download_url"),
-        "source_page_type": items.get("source_page_type"),
-        "source_page_url": items.get("source_page_url"),
-        "source_page_title": items.get("source_page_title"),
+        "title": getattr(image_file_node, "title", None),
+        "url": getattr(image_file_node, "url", None),
+        "source_page_type": image_file_node.parent.__class__.__name__,
+        "source_page_url": get_source_page_url(image_file_node),
+        # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
-        "is_hidden": items.get("is_hidden"),
-        "content_type": items.get("content_type"),
-        "mime_type": items.get("mime_type"),
-        "order": items.get("order"),
-        "downloadable": items.get("downloadable"),
-        "path": items.get('path'),
-        "title_path": items.get("title_path"),
-        "uri_path": items.get("uri_path")
-
+        "is_hidden": is_hidden(image_file_node),
+        "file_type": getattr(image_file_node, "mime_class", None),
+        "order": get_order(image_file_node),
+        # "path": build_path(document_node),
     }
     return image_file_dict
 
 
 
-def unsorted_dict(**items):
+def unsorted_dict(unsorted_node):
 
     unsorted_dict = {
 
-        "title": items.get("title"),
-        "url": items.get("url"),
-        "download_url": items.get("download_url"),
-        "source_page_type": items.get("source_page_type"),
-        "source_page_url": items.get("source_page_url"),
-        "source_page_title": items.get("source_page_title"),
+        "title": getattr(unsorted_node, "title", None),
+        "url": getattr(unsorted_node, "url", None),
+        "source_page_type": unsorted_node.parent.__class__.__name__,
+        "source_page_url": get_source_page_url(unsorted_node),
+        # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
-        "is_hidden": items.get("is_hidden"),
-        "content_type": items.get("content_type"),
-        "mime_type": items.get("mime_type"),
-        "order": items.get("order"),
-        "downloadable": items.get("downloadable"),
-        "path": items.get('path'),
-        "title_path": items.get("title_path"),
-        "uri_path": items.get("uri_path")
+        "is_hidden": is_hidden(unsorted_node),
+        "order": get_order(unsorted_node),
+        # "path": build_path(video_site_node),
 
     }
     return unsorted_dict

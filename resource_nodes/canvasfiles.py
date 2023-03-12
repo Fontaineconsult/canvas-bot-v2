@@ -1,3 +1,4 @@
+import animation
 from colorama import Fore, Style
 
 
@@ -15,6 +16,7 @@ class CanvasFiles(Node):
         self.api_request = get_files
         self.get_all_items()
 
+    @animation.wait('spinner')
     def get_all_items(self):
         from core.node_factory import get_content_node
         api_request = self.api_request(self.course_id)

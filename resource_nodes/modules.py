@@ -1,3 +1,4 @@
+import animation
 
 from resource_nodes.base_node import Node
 
@@ -15,6 +16,7 @@ class Modules(Node):
         self.api_request_content = None
         self.get_all_items()
 
+    @animation.wait('spinner')
     def get_all_items(self):
 
         api_request = self.api_request(self.course_id)
@@ -28,12 +30,13 @@ class Module(Node):
 
     def __init__(self, parent, root, api_dict, **kwargs):
         super().__init__(parent, root, api_dict['id'], api_dict['name'])
-        self.api_dict = api_dict
+        self._expand_api_dict_to_class_attributes(api_dict)
+        self.items_url = api_dict['items_url']
         self.identify_content()
 
     def identify_content(self):
         from core.node_factory import get_node
-        module_items = get_module_items(self.api_dict['items_url'])
+        module_items = get_module_items(self.items_url)
         for item in module_items:
             ContentNode = get_node(item['type'])
             if ContentNode:

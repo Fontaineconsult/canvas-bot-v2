@@ -1,3 +1,5 @@
+import animation
+
 from network.api import get_quizzes, get_quiz
 from resource_nodes.base_node import Node
 
@@ -13,6 +15,7 @@ class Quizzes(Node):
         self.api_request_content = None
         self.get_all_items()
 
+    @animation.wait('spinner')
     def get_all_items(self):
 
         api_request = self.api_request(self.course_id)
