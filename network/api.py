@@ -150,7 +150,7 @@ def get_external_tools(course_id):
     print(external_tools_url)
     return external_tools_url
 
-# print(get_external_tools("17595"))
+print(get_external_tools("19325"))
 
 @response_decorator
 def get_url(url):

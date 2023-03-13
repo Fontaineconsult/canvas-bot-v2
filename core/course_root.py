@@ -1,7 +1,7 @@
 from os.path import join, dirname
 from colorama import Fore, Style
 from dotenv import load_dotenv
-import animation, time
+import animation, time, os
 from core.content_extractor import ContentExtractor
 from core.manifest import Manifest
 from resource_nodes.announcements import Announcements
@@ -23,14 +23,15 @@ class CanvasCourseRoot(ContentExtractor):
     def __init__(self, course_id):
 
         self.course_id = course_id
+        self.course_url = f"{os.environ.get('canvas_course_page_root')}/{self.course_id}"
         self.canvas_tree = CanvasTree()
         self.manifest = Manifest()
-        self._init_modules_root()
         self.root_node = True
+        self._init_modules_root()
         super().__init__(self.manifest)
 
     def __str__(self):
-        return f"<{Fore.GREEN}Canvas Course Root ID: {self.course_id}{Style.RESET_ALL}>"
+        return f"<{Fore.GREEN}Canvas Course Root ID: {self.course_id} | {self.course_url}{Style.RESET_ALL}>"
 
     def _init_modules_root(self):
 
@@ -63,14 +64,17 @@ class CanvasCourseRoot(ContentExtractor):
 
 
 
-test = CanvasCourseRoot("12593")
-test.canvas_tree.show_nodes()
-print(test.build_documents_dict())
-print(test.build_videos_dict())
-print(test.build_audio_dict())
-print(test.build_images_dict())
+# test = CanvasCourseRoot("15800")
+# test.canvas_tree.show_nodes()
+# print(test.build_documents_dict())
+# print(test.build_videos_dict())
+# print(test.build_audio_dict())
+# print(test.build_images_dict())
 
-# for number in range(18158,19500):
-#     test = CanvasCourseRoot(str(number))
-#     test.canvas_tree.show_nodes()
-#     test.manifest.print_manifest()
+for number in range(19200,20000):
+    test = CanvasCourseRoot(str(number))
+    test.canvas_tree.show_nodes()
+    print(test.build_documents_dict())
+    print(test.build_videos_dict())
+    print(test.build_audio_dict())
+    print(test.build_images_dict())

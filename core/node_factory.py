@@ -11,7 +11,7 @@ from resource_nodes.pages import Page
 from resource_nodes.quizzes import Quiz
 from sorters.sorters import resource_node_regex, document_content_regex, image_content_regex, web_video_content_regex, \
     video_file_content_regex, web_audio_content_regex, audio_file_content_regex, web_document_applications_regex, \
-    file_storage_regex
+    file_storage_regex, ignore_list_regex
 from resource_nodes.content_nodes import *
 
 def get_node(type: str) -> Union[Type[Assignment],
@@ -85,6 +85,16 @@ def get_content_node(content_url, api_dict=None, **kwargs) -> Union[Type[Documen
 
     if api_dict:
         content_url = api_dict['filename'] if api_dict.get('filename') else api_dict['title']
+
+    print(content_url)
+    if content_url is None:
+        return None
+
+    print(ignore_list_regex.match(content_url))
+    if ignore_list_regex.match(content_url):
+        return None
+
+
 
     identified_content = identify_content_url(content_url, **kwargs)
     if identified_content:

@@ -129,16 +129,15 @@ file_storage_regex:
   - .*.drive.google.com/file/.*.
 
 
-additional_ignore_list_regex:
+ignore_list_regex:
   - .*.ramid.ccsf.edu.*.
-  - .*.download.*.
   - .*.search/rubrics.*.
   - .*.khanacademy.org.*.
   - https://www.avi
   - https://www.youtube.com/user/.*.
-  - .*.().*.
-  - //.*.
+  - .*.\(\).*.
   - https://www.gif
   - https://en.wikipedia.org/.*.
+  - .*.community.canvaslms.com.*.
 
 

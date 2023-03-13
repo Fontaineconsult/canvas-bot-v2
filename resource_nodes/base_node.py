@@ -30,13 +30,12 @@ class Node:
 
 
     def add_node_to_tree(self):
-        if self.root:
+        if self.root.root_node:
             self.root.canvas_tree.add_node(self)
         else:
             Warning("No Root Node")
 
     def _expand_api_dict_to_class_attributes(self, api_dict):
-        # print(api_dict)
         for key in api_dict:
             setattr(self, key, api_dict[key])
 
@@ -59,14 +58,12 @@ class Node:
                     item_id = api_dict[get_content_id_key_from_api_url(link[0])]
                     if not self.root.manifest.id_exists(item_id):
                         data_api_node = get_node_by_a_tag_match(link[0], api_dict) # returns class object node type
-
-                        if data_api_node == Module:
-                            # need to handle this differently
-                            continue
-                        initialized_node = data_api_node(self, self.root, api_dict, bypass_get_url=True)
-
-
-                        self.children.append(initialized_node)
+                        if data_api_node:
+                            if data_api_node == Module:
+                                # need to handle this differently
+                                continue
+                            initialized_node = data_api_node(self, self.root, api_dict, bypass_get_url=True)
+                            self.children.append(initialized_node)
 
     def add_content_nodes_to_children(self, html):
         from core.node_factory import get_content_node

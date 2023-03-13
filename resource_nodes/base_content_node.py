@@ -69,7 +69,8 @@ class BaseContentNode:
 
 
     def add_node_to_tree(self):
-        if self.root:
+
+        if self.root.root_node:
             self.root.canvas_tree.add_node(self)
         else:
             Warning("No Root Node")

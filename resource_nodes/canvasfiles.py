@@ -24,7 +24,8 @@ class CanvasFiles(Node):
             for file_dict in api_request:
                 if not self.root.manifest.id_exists(file_dict['id']):
                     content_node = get_content_node(None, file_dict)
-                    self.children.append(content_node(self, self.parent, file_dict))
+                    if content_node:
+                        self.children.append(content_node(self, self.parent, file_dict))
 
 
 class CanvasFolder(Node):
@@ -43,4 +44,5 @@ class CanvasFolder(Node):
         if canvas_folder_contents:
             for file_dict in canvas_folder_contents:
                 content_node = get_content_node(None, file_dict)
-                self.children.append(content_node(self, self.parent, file_dict))
+                if content_node:
+                    self.children.append(content_node(self, self.root, file_dict))
