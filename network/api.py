@@ -147,10 +147,7 @@ def get_module_items(module_items_url):
 def get_external_tools(course_id):
     external_tools_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
                 f"/external_tools?access_token={os.environ.get('access_token')}"
-    print(external_tools_url)
     return external_tools_url
-
-print(get_external_tools("19325"))
 
 @response_decorator
 def get_url(url):

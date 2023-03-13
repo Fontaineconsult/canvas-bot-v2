@@ -1,3 +1,4 @@
+import json, os
 from typing import List
 import inspect
 from content_scaffolds import *
@@ -9,8 +10,10 @@ from resource_nodes.content_nodes import *
 class ContentExtractor:
 
 
-    def __init__(self, manifest: Manifest):
+    def __init__(self, manifest: Manifest, course_id, course_url):
         self.manifest = manifest
+        self.course_id = course_id
+        self.course_url = course_url
 
 
     def get_document_objects(self):
@@ -70,9 +73,44 @@ class ContentExtractor:
             "image_files": [image_file_dict(image_file) for image_file in self.get_image_file_objects()],
         }
 
-    def unsorted_dict(self):
+    def build_unsorted_dict(self):
 
         return {
             "unsorted": [unsorted_dict(unsorted) for unsorted in self.get_unsorted_objects()],
         }
+
+
+    def get_all_content(self, **kwargs):
+
+        main_dict = {
+            "course_id": self.course_id,
+            "course_url": self.course_url,
+            "content":{
+                "documents": self.build_documents_dict(),
+                "videos": self.build_videos_dict(),
+                "audio": self.build_audio_dict(),
+                "images": self.build_images_dict(),
+                "unsorted": self.build_unsorted_dict()
+            }
+        }
+        return main_dict
+
+    def get_all_content_as_json(self):
+        return json.dumps(self.get_all_content(), indent=4, sort_keys=True, default=str)
+
+    def save_content_as_json(self, directory=None):
+        dirname = os.path.abspath(__file__ + "/../../")
+        full_path = os.path.join(dirname, f'output\\json\\{self.course_id}.json')
+
+        if directory:
+            full_path = os.path.join(directory, f"{self.course_id}.json")
+
+        if os.path.exists(full_path):
+            os.remove(full_path)
+
+        with open(full_path, 'w') as f:
+            f.write(self.get_all_content_as_json())
+            f.close()
+
+        return full_path
 

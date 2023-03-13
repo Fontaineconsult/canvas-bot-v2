@@ -28,7 +28,7 @@ class CanvasCourseRoot(ContentExtractor):
         self.manifest = Manifest()
         self.root_node = True
         self._init_modules_root()
-        super().__init__(self.manifest)
+        super().__init__(self.manifest, self.course_id, self.course_url)
 
     def __str__(self):
         return f"<{Fore.GREEN}Canvas Course Root ID: {self.course_id} | {self.course_url}{Style.RESET_ALL}>"
@@ -64,17 +64,14 @@ class CanvasCourseRoot(ContentExtractor):
 
 
 
-# test = CanvasCourseRoot("15800")
-# test.canvas_tree.show_nodes()
-# print(test.build_documents_dict())
-# print(test.build_videos_dict())
-# print(test.build_audio_dict())
-# print(test.build_images_dict())
+test = CanvasCourseRoot("9046")
+test.canvas_tree.show_nodes()
+print(test.save_content_as_json())
 
-for number in range(19200,20000):
-    test = CanvasCourseRoot(str(number))
-    test.canvas_tree.show_nodes()
-    print(test.build_documents_dict())
-    print(test.build_videos_dict())
-    print(test.build_audio_dict())
-    print(test.build_images_dict())
+# for number in range(19200,20000):
+#     test = CanvasCourseRoot(str(number))
+#     test.canvas_tree.show_nodes()
+#     print(test.build_documents_dict())
+#     print(test.build_videos_dict())
+#     print(test.build_audio_dict())
+#     print(test.build_images_dict())
