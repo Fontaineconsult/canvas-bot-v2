@@ -1,7 +1,7 @@
 import json, os
 from typing import List
 import inspect
-from content_scaffolds import *
+from core.content_scaffolds import *
 from core.manifest import Manifest
 from resource_nodes.content_nodes import *
 

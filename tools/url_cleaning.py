@@ -1,12 +1,11 @@
 import posixpath as path
-from urllib import *
+
 from urllib.parse import parse_qs, urlparse, urlunparse
 
 
 def clean_url(url, **kwargs):
 
     return remove_preceding_forward_slashes(url)
-
 
 
 def extract_from_outlook_safelink(url):

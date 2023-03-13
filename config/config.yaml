@@ -1,22 +1,3 @@
-waits:
-  Announcements: 1
-  Assignment: 1
-  Assignments: 1
-  Discussion: 1
-  ExternalPage: 2
-  GoogleDocument: 4
-  File: 0
-  Home: 0
-  Item: 0.5
-  Module: 0
-  Modules: 1
-  Page: 0.5
-  Pages: 1
-  Quiz: 1
-  BoxPage: 6
-  Discussions: 1
-
-
 
 filters:
   Announcements: {"class": "announcements-v2__wrapper"}
