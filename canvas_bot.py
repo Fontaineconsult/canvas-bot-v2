@@ -13,3 +13,6 @@ class CanvasBot(CanvasCourseRoot):
 
     def start(self):
         self._init_modules_root()
+
+    def print_content_tree(self):
+        return self.canvas_tree.show_nodes()

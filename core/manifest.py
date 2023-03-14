@@ -1,5 +1,5 @@
 from typing import Type, List, Union
-from resource_nodes.base_content_node import BaseContentNode, BaseCanvasContentNode
+from resource_nodes.base_content_node import BaseContentNode
 
 
 class Manifest:
@@ -26,7 +26,7 @@ class Manifest:
             return True
         return False
 
-    def content_list(self) -> List[Union[Type[BaseContentNode], Type[BaseCanvasContentNode]]]:
+    def content_list(self) -> List[Union[Type[BaseContentNode]]]:
         return [self.manifest[key][0] for key in self.keys() if hasattr(self.manifest[key][0], "is_content")]
 
     def id_exists(self, item_id) -> bool:

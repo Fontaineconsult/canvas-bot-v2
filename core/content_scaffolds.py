@@ -20,7 +20,7 @@ def get_order(node) -> int:
 
 
 def is_hidden(node) -> bool:
-
+    # don't print node, will cause max recursion error
     path_list = build_path(node)
 
     for node_ in path_list:

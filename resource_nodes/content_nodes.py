@@ -1,6 +1,7 @@
 from colorama import Fore, Style
 
-from resource_nodes.base_content_node import BaseContentNode, BaseCanvasContentNode
+from core.content_scaffolds import is_hidden
+from resource_nodes.base_content_node import BaseContentNode
 
 
 
@@ -11,9 +12,9 @@ class Document(BaseContentNode):
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
-            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {self.title}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {'Hidden' if is_hidden(self) else 'Visible'} {self.title}){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {self.url}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {'Hidden' if is_hidden(self) else 'Visible'} {self.url}){Style.RESET_ALL}"
 
 
 class DocumentSite(BaseContentNode):
@@ -36,9 +37,9 @@ class VideoFile(BaseContentNode):
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
-            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {self.title}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {'Hidden' if is_hidden(self) else 'Visible'} {self.title}){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {self.url}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {'Hidden' if is_hidden(self) else 'Visible'} {self.url}){Style.RESET_ALL}"
 
 
 class AudioFile(BaseContentNode):
@@ -48,9 +49,9 @@ class AudioFile(BaseContentNode):
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
-            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {self.title}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {'Hidden' if is_hidden(self) else 'Visible'} {self.title}){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {self.url}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {'Hidden' if is_hidden(self) else 'Visible'} {self.url}){Style.RESET_ALL}"
 
 
 class AudioSite(BaseContentNode):
@@ -66,9 +67,9 @@ class ImageFile(BaseContentNode):
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
-            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {self.title}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {'Hidden' if is_hidden(self) else 'Visible'} {self.title}){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {self.url}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {'Hidden' if is_hidden(self) else 'Visible'} {self.url}){Style.RESET_ALL}"
 
 
 class FileStorageSite(BaseContentNode):
@@ -89,9 +90,9 @@ class Unsorted(BaseContentNode):
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
-            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {self.title}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {'Hidden' if is_hidden(self) else 'Visible'} {self.title}){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {self.url}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {'Hidden' if is_hidden(self) else 'Visible'} {self.url}){Style.RESET_ALL}"
 
 
 
