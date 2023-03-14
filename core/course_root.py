@@ -24,6 +24,7 @@ class CanvasCourseRoot(ContentExtractor):
 
     def __init__(self, course_id):
 
+        self.detect_and_set_env_file()
         self.course_id = course_id
         self.course_url = f"{os.environ.get('canvas_course_page_root')}/{self.course_id}"
         self.canvas_tree = CanvasTree()
@@ -33,6 +34,9 @@ class CanvasCourseRoot(ContentExtractor):
 
     def __str__(self):
         return f"<{Fore.GREEN}Canvas Course Root ID: {self.course_id} | {self.course_url}{Style.RESET_ALL}>"
+
+    def detect_and_set_env_file(self):
+        pass
 
     def _init_modules_root(self):
 
@@ -61,7 +65,7 @@ class CanvasCourseRoot(ContentExtractor):
 
         print("Importing Media Objects")
         self.media_objects = CanvasMediaObjects(self.course_id, self)
-
+        print("Import Complete")
 
 
 

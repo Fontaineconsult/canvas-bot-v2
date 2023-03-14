@@ -139,5 +139,5 @@ ignore_list_regex:
   - https://www.gif
   - https://en.wikipedia.org/.*.
   - .*.community.canvaslms.com.*.
-
+  - .*.\[\].*.
 

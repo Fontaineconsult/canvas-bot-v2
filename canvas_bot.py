@@ -13,9 +13,3 @@ class CanvasBot(CanvasCourseRoot):
 
     def start(self):
         self._init_modules_root()
-
-
-
-bot = CanvasBot("21029")
-bot.start()
-bot.get_all_content_as_json()
