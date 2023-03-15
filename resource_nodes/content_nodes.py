@@ -12,9 +12,9 @@ class Document(BaseContentNode):
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
-            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {'Hidden' if is_hidden(self) else 'Visible'} {self.title}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTCYAN_EX}({self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {'Hidden' if is_hidden(self) else 'Visible'} {self.title}){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {'Hidden' if is_hidden(self) else 'Visible'} {self.url}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTCYAN_EX}({self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {'Hidden' if is_hidden(self) else 'Visible'} {self.url}){Style.RESET_ALL}"
 
 
 class DocumentSite(BaseContentNode):
@@ -29,6 +29,9 @@ class VideoSite(BaseContentNode):
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
         super().__init__(parent, root, api_dict, url, title, **kwargs)
 
+    def __str__(self):
+        return f"{Fore.LIGHTRED_EX}({self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {'Hidden' if is_hidden(self) else 'Visible'} {self.url}){Style.RESET_ALL}"
+
 
 class VideoFile(BaseContentNode):
 
@@ -37,9 +40,9 @@ class VideoFile(BaseContentNode):
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
-            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {'Hidden' if is_hidden(self) else 'Visible'} {self.title}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTMAGENTA_EX}({self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {'Hidden' if is_hidden(self) else 'Visible'} {self.title}){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {'Hidden' if is_hidden(self) else 'Visible'} {self.url}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTMAGENTA_EX}({self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {'Hidden' if is_hidden(self) else 'Visible'} {self.url}){Style.RESET_ALL}"
 
 
 class AudioFile(BaseContentNode):

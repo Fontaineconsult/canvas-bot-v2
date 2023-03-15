@@ -23,7 +23,7 @@ class Node:
         self.add_node_to_tree()
 
     def __str__(self):
-        return f"<{Fore.WHITE}Node {self.__class__.__name__} {self.title[0:30] if self.title else self.item_id}{Style.RESET_ALL}>"
+        return f"<{Fore.WHITE}{self.__class__.__name__} {self.title[0:30] if self.title else self.item_id}{Style.RESET_ALL}>"
 
     def __repr__(self):
         return f"<{Fore.WHITE} {self.__class__.__name__} {self.item_id}{Style.RESET_ALL}>"

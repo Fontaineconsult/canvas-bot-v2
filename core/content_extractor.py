@@ -4,16 +4,17 @@ import inspect
 from core.content_scaffolds import *
 from core.manifest import Manifest
 from resource_nodes.content_nodes import *
+from tools.downloader import DownloaderMixin
 
 
-
-class ContentExtractor:
+class ContentExtractor(DownloaderMixin):
 
 
     def __init__(self, manifest: Manifest, course_id, course_url):
         self.manifest = manifest
         self.course_id = course_id
         self.course_url = course_url
+
 
 
     def get_document_objects(self):
@@ -79,7 +80,6 @@ class ContentExtractor:
             "unsorted": [unsorted_dict(unsorted) for unsorted in self.get_unsorted_objects()],
         }
 
-
     def get_all_content(self, **kwargs):
 
         main_dict = {
@@ -114,3 +114,5 @@ class ContentExtractor:
 
         return full_path
 
+    def download_files(self, directory):
+        self.download(self, directory)

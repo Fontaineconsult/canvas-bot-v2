@@ -14,6 +14,7 @@ from resource_nodes.pages import Pages
 from resource_nodes.quizzes import Quizzes
 from tools.canvas_tree import CanvasTree
 
+
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 dotenv_path = join(dirname(__file__), '.env')
@@ -31,6 +32,7 @@ class CanvasCourseRoot(ContentExtractor):
         self.manifest = Manifest()
         self.root_node = True
         super().__init__(self.manifest, self.course_id, self.course_url)
+
 
     def __str__(self):
         return f"<{Fore.GREEN}Canvas Course Root ID: {self.course_id} | {self.course_url}{Style.RESET_ALL}>"
@@ -69,7 +71,7 @@ class CanvasCourseRoot(ContentExtractor):
 
 
 
-# test = CanvasCourseRoot("21029")
+# test = CanvasCourseRoot("16885")
 # test.canvas_tree.show_nodes()
 # print(test.save_content_as_json())
 

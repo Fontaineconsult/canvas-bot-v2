@@ -30,10 +30,9 @@ class Quiz(Node):
         if not kwargs.get("bypass_get_url") is True:
             api_dict = get_quiz(root.course_id, api_dict['id'])
 
-
-
-        super().__init__(parent, root, api_dict['id'], api_dict['title'])
-        self.root.manifest.add_item_to_manifest(self)
-        self._expand_api_dict_to_class_attributes(api_dict)
-        self.add_data_api_link_to_children(self.description)
-        self.add_content_nodes_to_children(self.description)
+        if api_dict:
+            super().__init__(parent, root, api_dict['id'], api_dict['title'])
+            self.root.manifest.add_item_to_manifest(self)
+            self._expand_api_dict_to_class_attributes(api_dict)
+            self.add_data_api_link_to_children(self.description)
+            self.add_content_nodes_to_children(self.description)
