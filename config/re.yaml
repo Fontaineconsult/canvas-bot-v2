@@ -25,6 +25,7 @@ document_content_regex:
   - .*\.xlsx
   - .*\.txt
   - .*\.zip
+  - .*\.xls
 
 
 ignore_links_regex:

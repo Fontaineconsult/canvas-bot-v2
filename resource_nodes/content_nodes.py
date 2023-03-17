@@ -2,12 +2,17 @@ from colorama import Fore, Style
 
 from core.content_scaffolds import is_hidden
 from resource_nodes.base_content_node import BaseContentNode
+from tools.string_checking.url_cleaning import is_url
 
 
 
 class Document(BaseContentNode):
 
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+        print(api_dict,url, title)
+        if api_dict is None and is_url(title) is True:
+            title = url.split('/')[-1]
+
         super().__init__(parent, root, api_dict, url, title, **kwargs)
 
     def __str__(self):
@@ -36,6 +41,9 @@ class VideoSite(BaseContentNode):
 class VideoFile(BaseContentNode):
 
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+
+        if api_dict is None and is_url(title) is True:
+            title = url.split('/')[-1]
         super().__init__(parent, root, api_dict, url, title, **kwargs)
 
     def __str__(self):
@@ -48,6 +56,10 @@ class VideoFile(BaseContentNode):
 class AudioFile(BaseContentNode):
 
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+
+        if api_dict is None and is_url(title) is True:
+            title = url.split('/')[-1]
+
         super().__init__(parent, root, api_dict, url, title, **kwargs)
 
     def __str__(self):
@@ -66,6 +78,9 @@ class AudioSite(BaseContentNode):
 class ImageFile(BaseContentNode):
 
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+        if api_dict is None and title is None:
+            title = url.split('/')[-1]
+
         super().__init__(parent, root, api_dict, url, title, **kwargs)
 
     def __str__(self):

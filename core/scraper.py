@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 
 from sorters.sorters import resource_node_regex
-from tools.url_cleaning import clean_url
+from tools.string_checking.url_cleaning import clean_url
 
 
 def get_href_links_from_html_a_tag(html_body):

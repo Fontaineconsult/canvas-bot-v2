@@ -13,7 +13,6 @@ from sorters.sorters import resource_node_regex, document_content_regex, image_c
     video_file_content_regex, web_audio_content_regex, audio_file_content_regex, web_document_applications_regex, \
     file_storage_regex, ignore_list_regex
 from resource_nodes.content_nodes import *
-from tools.url_cleaning import clean_url
 
 
 def get_node(type: str) -> Union[Type[Assignment],

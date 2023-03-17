@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+import win32com.client
 import os.path
 from typing import TYPE_CHECKING
 import requests
@@ -14,16 +14,15 @@ def create_windows_shortcut_from_url(url: str, shortcut_path: str):
     :param url: The URL to create the shortcut from.
     :param shortcut_path: The path to save the shortcut to.
     """
-    import win32com.client
+
     shell = win32com.client.Dispatch("WScript.Shell")
     shortcut = shell.CreateShortCut(shortcut_path)
     shortcut.Targetpath = url
     shortcut.save()
-
+    return shortcut_path
 
 
 class DownloaderMixin:
-
 
     def download(self, content_extractor: ContentExtractor, directory: str):
         for document in content_extractor.get_document_objects():
@@ -37,14 +36,11 @@ class DownloaderMixin:
 
             print(document.url, document.title)
 
-
     def _download_file(self, url, filename:str):
         response = requests.get(url, stream=True, verify=True)
 
-        if response.status_code in [404, 403, 400, 401]:
-
-
-        response.raise_for_status()
+        if response.status_code in [401, 402, 403, 404, 405]:
+            return create_windows_shortcut_from_url(url, f"{filename}.lnk")
 
         with open(filename, 'wb') as file:
 

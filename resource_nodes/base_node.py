@@ -42,7 +42,7 @@ class Node:
 
     def add_data_api_link_to_children(self, html):
         from core.node_factory import get_node_by_a_tag_match
-        from tools.other_tools import get_content_id_key_from_api_url
+        from tools.string_checking.other_tools import get_content_id_key_from_api_url
         from resource_nodes.modules import Module
 
 
