@@ -8,6 +8,20 @@ if TYPE_CHECKING:
     from core.content_extractor import ContentExtractor
 
 
+def create_windows_shortcut_from_url(url: str, shortcut_path: str):
+    """
+    Creates a Windows shortcut (.lnk) file from a URL.
+    :param url: The URL to create the shortcut from.
+    :param shortcut_path: The path to save the shortcut to.
+    """
+    import win32com.client
+    shell = win32com.client.Dispatch("WScript.Shell")
+    shortcut = shell.CreateShortCut(shortcut_path)
+    shortcut.Targetpath = url
+    shortcut.save()
+
+
+
 class DownloaderMixin:
 
 
@@ -16,8 +30,9 @@ class DownloaderMixin:
             if not document.title:
                 raise "No Document Title"
 
-            download_location = r"C:\Users\913678186\Desktop\test"
-            full_file_path = os.path.join(download_location, document.title)
+            if not directory:
+                directory = r"../output/files"
+            full_file_path = os.path.join(directory, document.title)
             self._download_file(document.url, full_file_path)
 
             print(document.url, document.title)
@@ -25,7 +40,12 @@ class DownloaderMixin:
 
     def _download_file(self, url, filename:str):
         response = requests.get(url, stream=True, verify=True)
+
+        if response.status_code in [404, 403, 400, 401]:
+
+
         response.raise_for_status()
+
         with open(filename, 'wb') as file:
 
             for chunk in response.iter_content(chunk_size=8192):
@@ -33,7 +53,7 @@ class DownloaderMixin:
                     file.write(chunk)
                     file.flush()
                     os.fsync(file.fileno())
-
+        return filename
 
 
 
