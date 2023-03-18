@@ -3,6 +3,13 @@ import win32com.client
 import os.path
 from typing import TYPE_CHECKING
 import requests
+from config.read import read_config
+
+user_agent = read_config()['requests']['user-agent']
+
+
+from core.content_scaffolds import is_hidden
+from tools.string_checking.other_tools import has_file_extension
 
 if TYPE_CHECKING:
     from core.content_extractor import ContentExtractor
@@ -26,20 +33,33 @@ class DownloaderMixin:
 
     def download(self, content_extractor: ContentExtractor, directory: str):
         for document in content_extractor.get_document_objects():
-            if not document.title:
-                raise "No Document Title"
+
+            if is_hidden(document):
+                continue
 
             if not directory:
                 directory = r"../output/files"
-            full_file_path = os.path.join(directory, document.title)
+
+            if not has_file_extension(document.title):
+                title = document.url.split('/')[-1]
+            else:
+                title = document.title
+            full_file_path = os.path.join(directory, title)
+
             self._download_file(document.url, full_file_path)
 
-            print(document.url, document.title)
-
     def _download_file(self, url, filename:str):
-        response = requests.get(url, stream=True, verify=True)
 
-        if response.status_code in [401, 402, 403, 404, 405]:
+        try:
+            response = requests.get(url, stream=True, verify=True, headers=user_agent)
+            print(url, response.status_code)
+        except requests.exceptions.ConnectionError as exc:
+            print(f"Connection Error: {exc}")
+            return create_windows_shortcut_from_url(url, f"{filename}.lnk")
+
+        if response.status_code in [401, 402, 403, 404, 405, 406]:
+
+            Warning(f"Error {response.status_code} {response.reason} {url} {filename} {response.text}")
             return create_windows_shortcut_from_url(url, f"{filename}.lnk")
 
         with open(filename, 'wb') as file:
