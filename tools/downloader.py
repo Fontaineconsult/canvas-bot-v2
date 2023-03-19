@@ -1,4 +1,7 @@
 from __future__ import annotations
+
+from datetime import datetime
+
 import win32com.client
 import os.path
 from typing import TYPE_CHECKING
@@ -9,11 +12,25 @@ user_agent = read_config()['requests']['user-agent']
 
 
 from core.content_scaffolds import is_hidden
-from tools.string_checking.other_tools import has_file_extension
+from tools.string_checking.other_tools import has_file_extension, remove_query_params_from_url
 
 if TYPE_CHECKING:
     from core.content_extractor import ContentExtractor
 
+
+def sort_by_date():
+    return datetime.now().strftime('%d-%m-%Y')
+
+
+path_configs = {
+    'sort-by-date':sort_by_date()
+
+}
+
+
+
+
+print(sort_by_date())
 
 def create_windows_shortcut_from_url(url: str, shortcut_path: str):
     """
@@ -31,28 +48,36 @@ def create_windows_shortcut_from_url(url: str, shortcut_path: str):
 
 class DownloaderMixin:
 
-    def download(self, content_extractor: ContentExtractor, directory: str):
-        for document in content_extractor.get_document_objects():
 
-            if is_hidden(document):
+    def download(self, content_extractor: ContentExtractor, directory: str, *args):
+
+        for ContentNode in content_extractor.get_document_objects():
+
+            if is_hidden(ContentNode):
                 continue
 
             if not directory:
                 directory = r"../output/files"
 
-            if not has_file_extension(document.title):
-                title = document.url.split('/')[-1]
+            if not has_file_extension(ContentNode.title):
+                title = remove_query_params_from_url(ContentNode.url.split('/')[-1])
             else:
-                title = document.title
-            full_file_path = os.path.join(directory, title)
+                title = ContentNode.title
 
-            self._download_file(document.url, full_file_path)
+
+
+
+            full_file_path = os.path.join(directory, path_configs['sort-by-date'],title)
+            self._download_file(ContentNode.url, full_file_path)
 
     def _download_file(self, url, filename:str):
 
+        if not os.path.exists(os.path.dirname(filename)):
+            os.makedirs(os.path.dirname(filename))
+
+        print(f"Downloading {url} to {filename}...")
         try:
             response = requests.get(url, stream=True, verify=True, headers=user_agent)
-            print(url, response.status_code)
         except requests.exceptions.ConnectionError as exc:
             print(f"Connection Error: {exc}")
             return create_windows_shortcut_from_url(url, f"{filename}.lnk")
@@ -62,14 +87,19 @@ class DownloaderMixin:
             Warning(f"Error {response.status_code} {response.reason} {url} {filename} {response.text}")
             return create_windows_shortcut_from_url(url, f"{filename}.lnk")
 
-        with open(filename, 'wb') as file:
+        try:
+            with open(filename, 'wb') as file:
 
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    file.write(chunk)
-                    file.flush()
-                    os.fsync(file.fileno())
-        return filename
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        file.write(chunk)
+                        file.flush()
+                        os.fsync(file.fileno())
 
+            return filename
+
+        except PermissionError:
+            print(f"Permission Error: {filename}")
+            return create_windows_shortcut_from_url(url, f"{filename}.lnk")
 
 

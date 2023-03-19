@@ -35,11 +35,19 @@ def is_url(string: str) -> bool:
         r'(?::\d+)?'  # Optional port number
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
+    if string.startswith('www.'):
+        return True
+
     return bool(url_pattern.match(string))
+
+
+
 
 def clean_url(url, **kwargs):
     url = extract_url_query_param(url)
     return remove_preceding_forward_slashes(url)
+
+
 
 
 def extract_url_query_param(url):

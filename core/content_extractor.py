@@ -5,6 +5,7 @@ from core.content_scaffolds import *
 from core.manifest import Manifest
 from resource_nodes.content_nodes import *
 from tools.downloader import DownloaderMixin
+import shutil
 
 
 class ContentExtractor(DownloaderMixin):
@@ -114,5 +115,11 @@ class ContentExtractor(DownloaderMixin):
 
         return full_path
 
-    def download_files(self, directory):
-        self.download(self, directory)
+    def download_files(self, directory, *args):
+        root_download_directory = os.path.join(directory, self.course_id)
+        self.download(self, root_download_directory, *args)
+
+
+    def clear_folder_contents(self, directory):
+        root_download_directory = os.path.join(directory, self.course_id)
+        shutil.rmtree(root_download_directory)
