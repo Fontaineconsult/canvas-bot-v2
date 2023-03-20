@@ -6,7 +6,7 @@ import re
 
 from colorama import Style, Fore
 
-from config.read import read_config
+from config.yaml_io import read_config
 
 from resource_nodes.content_nodes import FileStorageSite
 

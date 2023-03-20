@@ -1,5 +1,5 @@
 import re
-from config.read import read_re
+from config.yaml_io import read_re
 
 expressions = read_re()
 

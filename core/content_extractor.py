@@ -1,6 +1,8 @@
 import json, os
 from typing import List
 import inspect
+
+from config.yaml_io import create_download_manifest
 from core.content_scaffolds import *
 from core.manifest import Manifest
 from resource_nodes.content_nodes import *
@@ -117,6 +119,9 @@ class ContentExtractor(DownloaderMixin):
 
     def download_files(self, directory, *args):
         root_download_directory = os.path.join(directory, self.course_id)
+
+
+        create_download_manifest(root_download_directory)
         self.download(self, root_download_directory, *args)
 
 

@@ -1,6 +1,6 @@
 import re
 
-from config.read import read_config
+from config.yaml_io import read_config
 from sorters.sorters import resource_node_regex
 
 config = read_config()
