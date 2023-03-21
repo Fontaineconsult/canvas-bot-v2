@@ -8,6 +8,7 @@ import os.path
 from typing import TYPE_CHECKING
 import requests
 from config.yaml_io import read_config, read_download_manifest, write_to_download_manifest
+from tools.string_checking.url_cleaning import sanitize_windows_filename
 
 config = read_config()
 
@@ -70,7 +71,7 @@ class DownloaderMixin:
             if not has_file_extension(ContentNode.title):
                 title = remove_query_params_from_url(ContentNode.url.split('/')[-1])
             else:
-                title = ContentNode.title
+                title = sanitize_windows_filename(ContentNode.title)
 
             full_file_path = os.path.join(directory, path_configs['sort-by-date'],title)
 
@@ -83,7 +84,6 @@ class DownloaderMixin:
 
 
     def _download_file(self, url, filename:str):
-
         if not os.path.exists(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))
 
@@ -97,7 +97,7 @@ class DownloaderMixin:
 
         if response.status_code in [401, 402, 403, 404, 405, 406]:
 
-            warnings.warn(f"Error {response.status_code} {response.reason} {url} {filename} {response.text}", UserWarning)
+            warnings.warn(f"Error {response.status_code} {response.reason} {url} {filename}", UserWarning)
             return create_windows_shortcut_from_url(url, f"{filename}.lnk")
 
         try:

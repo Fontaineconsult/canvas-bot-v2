@@ -8,7 +8,6 @@ from tools.string_checking.url_cleaning import is_url, sanitize_windows_filename
 class Document(BaseContentNode):
 
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
-        print(api_dict, url, title)
         if api_dict is None and is_url(title) is True:
             title = sanitize_windows_filename(url.split('/')[-1])
 
