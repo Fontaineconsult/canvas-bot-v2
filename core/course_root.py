@@ -47,6 +47,7 @@ class CanvasCourseRoot(ContentExtractor):
         course_api = get_course(self.course_id)
         if course_api:
             self.title = course_api['name']
+            print(f"Starting import for {self.title} | {self.course_url}")
             self._init_modules_root()
 
         if not course_api:

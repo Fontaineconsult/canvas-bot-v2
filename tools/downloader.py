@@ -52,14 +52,23 @@ class DownloaderMixin:
 
 
     def download(self, content_extractor: ContentExtractor, directory: str, *args):
+
         download_manifest = read_download_manifest(directory)['downloaded_files']
+        include_video_files, include_audio_files = args
 
         if not directory:
             warnings.warn(f"Using default download path: {default_download_path}", UserWarning)
             directory = default_download_path
 
+        download_nodes = [ContentNode for ContentNode in content_extractor.get_document_objects()]
 
-        for ContentNode in content_extractor.get_document_objects():
+        if include_video_files:
+            download_nodes.extend([ContentNode for ContentNode in content_extractor.get_video_file_objects()])
+
+        if include_audio_files:
+            download_nodes.extend([ContentNode for ContentNode in content_extractor.get_audio_file_objects()])
+
+        for ContentNode in download_nodes:
 
             if is_hidden(ContentNode):
                 continue
@@ -80,6 +89,7 @@ class DownloaderMixin:
             download_manifest.append(ContentNode.url)
 
         write_to_download_manifest(directory, "downloaded_files", download_manifest)
+
 
 
 
