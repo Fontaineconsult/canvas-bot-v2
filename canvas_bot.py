@@ -35,8 +35,4 @@ if __name__=='__main__':
         if ctx.params.get('download'):
             bot.download_files(download, course_id)
 
-
-
-
-
     main()
