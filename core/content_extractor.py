@@ -119,8 +119,6 @@ class ContentExtractor(DownloaderMixin):
 
     def download_files(self, directory, *args):
         root_download_directory = os.path.join(directory, self.course_id)
-
-
         create_download_manifest(root_download_directory)
         self.download(self, root_download_directory, *args)
 
