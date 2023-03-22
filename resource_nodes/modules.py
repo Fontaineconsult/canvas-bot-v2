@@ -37,8 +37,9 @@ class Module(Node):
     def identify_content(self):
         from core.node_factory import get_node
         module_items = get_module_items(self.items_url)
-        for item in module_items:
-            ContentNode = get_node(item['type'])
-            if ContentNode:
-                module_item_dict = get_url(item['url'])
-                self.children.append(ContentNode(self, self.root, module_item_dict))
+        if module_items:
+            for item in module_items:
+                ContentNode = get_node(item['type'])
+                if ContentNode:
+                    module_item_dict = get_url(item['url'])
+                    self.children.append(ContentNode(self, self.root, module_item_dict))

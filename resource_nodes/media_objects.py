@@ -19,8 +19,8 @@ class CanvasMediaObjects(Node):
     def get_all_items(self):
 
         api_request = self.api_request(self.course_id)
-
-        for media_object_dict in api_request:
-            media_node = get_content_node(None, media_object_dict)
-            self.children.append(media_node(self, self.parent, media_object_dict))
+        if api_request:
+            for media_object_dict in api_request:
+                media_node = get_content_node(None, media_object_dict)
+                self.children.append(media_node(self, self.parent, media_object_dict))
 

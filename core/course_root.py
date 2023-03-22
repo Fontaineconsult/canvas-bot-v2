@@ -1,9 +1,11 @@
+import warnings
 from os.path import join, dirname
 from colorama import Fore, Style
 from dotenv import load_dotenv
 import os, sys
 from core.content_extractor import ContentExtractor
 from core.manifest import Manifest
+from network.api import get_course
 from resource_nodes.announcements import Announcements
 from resource_nodes.assignments import Assignments
 from resource_nodes.discussions import Discussions
@@ -31,6 +33,7 @@ class CanvasCourseRoot(ContentExtractor):
         self.canvas_tree = CanvasTree()
         self.manifest = Manifest()
         self.root_node = True
+        self.title = None
         super().__init__(self.manifest, self.course_id, self.course_url)
 
 
@@ -39,6 +42,16 @@ class CanvasCourseRoot(ContentExtractor):
 
     def detect_and_set_env_file(self):
         pass
+
+    def initialize_course(self):
+        course_api = get_course(self.course_id)
+        if course_api:
+            self.title = course_api['name']
+            self._init_modules_root()
+
+        if not course_api:
+            print(f"Course ID: {self.course_id} does not exist. Please check the course ID and try again.")
+
 
     def _init_modules_root(self):
 
@@ -68,17 +81,3 @@ class CanvasCourseRoot(ContentExtractor):
         print("Importing Media Objects")
         self.media_objects = CanvasMediaObjects(self.course_id, self)
         print("Import Complete")
-
-
-
-# test = CanvasCourseRoot("16885")
-# test.canvas_tree.show_nodes()
-# print(test.save_content_as_json())
-
-# for number in range(19200,20000):
-#     test = CanvasCourseRoot(str(number))
-#     test.canvas_tree.show_nodes()
-#     print(test.build_documents_dict())
-#     print(test.build_videos_dict())
-#     print(test.build_audio_dict())
-#     print(test.build_images_dict())

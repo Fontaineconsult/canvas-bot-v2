@@ -28,7 +28,7 @@ class Pages(Node):
 class Page(Node):
 
     def __init__(self, parent, root, api_dict, **kwargs):
-        print(api_dict)
+
         if not kwargs.get("bypass_get_url") is True:
             api_dict = get_page(root.course_id, api_dict['page_id'])
 

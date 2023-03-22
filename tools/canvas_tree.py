@@ -7,7 +7,7 @@ class CanvasTree:
         self.tree = Tree()
 
     def init_node(self, root):
-        self.tree.create_node(str(root), str(id(root)))
+        self.tree.create_node(str(f"{root.title} | ID: {root.course_id}"), str(id(root)))
 
     def add_node(self, node):
         node_name = str(node)

@@ -41,6 +41,12 @@ def response_decorator(calling_function):
 
 
 @response_decorator
+def get_course(course_id):
+    course_url = f"{os.environ.get('api_path')}/courses/{course_id}?access_token={os.environ.get('access_token')}"
+    return course_url
+
+
+@response_decorator
 def get_announcements(course_id):
 
     announcement_url = f"{os.environ.get('api_path')}/announcements?context_codes=course_" \
