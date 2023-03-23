@@ -143,6 +143,8 @@ def get_media_objects(course_id):
                       f"/media_objects?access_token={os.environ.get('access_token')}&per_page=100"
     return media_objects_url
 
+print(get_media_objects("12593"))
+
 
 @response_decorator
 def get_module_items(module_items_url):

@@ -18,9 +18,12 @@ class CanvasMediaObjects(Node):
     @animation.wait('spinner')
     def get_all_items(self):
 
-        api_request = self.api_request(self.course_id)
-        if api_request:
-            for media_object_dict in api_request:
+        api_dict = self.api_request(self.course_id)
+        if api_dict:
+            for media_object_dict in api_dict:
                 media_node = get_content_node(None, media_object_dict)
-                self.children.append(media_node(self, self.parent, media_object_dict))
+                self._expand_api_dict_to_class_attributes(media_object_dict)
+                media_node = media_node(self, self.parent, media_object_dict)
+                media_node.url = media_object_dict['media_sources'][-1]['url']
+                self.children.append(media_node)
 

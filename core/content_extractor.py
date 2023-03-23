@@ -1,6 +1,4 @@
 import json, os
-from typing import List
-import inspect
 
 from config.yaml_io import create_download_manifest
 from core.content_scaffolds import *
@@ -13,10 +11,11 @@ import shutil
 class ContentExtractor(DownloaderMixin):
 
 
-    def __init__(self, manifest: Manifest, course_id, course_url):
+    def __init__(self, manifest: Manifest, course_id, course_url, course_name):
         self.manifest = manifest
         self.course_id = course_id
         self.course_url = course_url
+        self.course_name = course_name
 
 
 
@@ -88,6 +87,7 @@ class ContentExtractor(DownloaderMixin):
         main_dict = {
             "course_id": self.course_id,
             "course_url": self.course_url,
+            "course_name": self.course_name,
             "content":{
                 "documents": self.build_documents_dict(),
                 "videos": self.build_videos_dict(),
