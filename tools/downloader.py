@@ -57,7 +57,6 @@ class DownloaderMixin:
     def download(self, content_extractor: ContentExtractor, directory: str, *args):
 
         download_manifest = read_download_manifest(directory)['downloaded_files']
-        print(args)
         include_video_files, include_audio_files = args if args else (False, False)
 
         if not directory:

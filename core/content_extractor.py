@@ -132,14 +132,13 @@ class ContentExtractor(DownloaderMixin):
         Clears the contents of a folder, but not the folder itself. BE VERY CAREFUL WITH THIS FUNCTION.
         directory: The directory containing the course folder to clear.
         """
+        if self.exists:
+            root_download_directory = os.path.join(directory, f"{sanitize_windows_filename(self.course_name)} "
+                                                              f"- {self.course_id}")
 
-        root_download_directory = os.path.join(directory, f"{sanitize_windows_filename(self.course_name)} "
-                                                          f"- {self.course_id}")
-
-
-        for root, dirs, files in os.walk(root_download_directory, topdown=False):
-            for name in files:
-                os.remove(os.path.join(root, name))
-            for name in dirs:
-                os.rmdir(os.path.join(root, name))
-        shutil.rmtree(root_download_directory)
+            for root, dirs, files in os.walk(root_download_directory, topdown=False):
+                for name in files:
+                    os.remove(os.path.join(root, name))
+                for name in dirs:
+                    os.rmdir(os.path.join(root, name))
+            shutil.rmtree(root_download_directory)

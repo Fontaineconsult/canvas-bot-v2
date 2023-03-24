@@ -1,15 +1,10 @@
 import os
 from json import JSONDecodeError
-from os.path import join, dirname
 
 import requests
 from requests.exceptions import MissingSchema
 import json
 import warnings
-from dotenv import load_dotenv
-
-dotenv_path = join(dirname(__file__), '.env')
-load_dotenv(dotenv_path)
 
 
 def response_handler(request_url):
@@ -42,35 +37,35 @@ def response_decorator(calling_function):
 
 @response_decorator
 def get_course(course_id):
-    course_url = f"{os.environ.get('api_path')}/courses/{course_id}?access_token={os.environ.get('access_token')}"
+    course_url = f"{os.environ.get('API_PATH')}/courses/{course_id}?access_token={os.environ.get('access_token')}"
     return course_url
 
 
 @response_decorator
 def get_announcements(course_id):
 
-    announcement_url = f"{os.environ.get('api_path')}/announcements?context_codes=course_" \
+    announcement_url = f"{os.environ.get('API_PATH')}/announcements?context_codes=course_" \
                        f"{course_id}&access_token={os.environ.get('access_token')}&per_page=100"
     return announcement_url
 
 
 @response_decorator
 def get_assignments(course_id):
-    assignments_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+    assignments_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                      f"/assignments?access_token={os.environ.get('access_token')}&per_page=100"
     return assignments_url
 
 
 @response_decorator
 def get_assignment(course_id, assignment_id):
-    assignment_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+    assignment_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                      f"/assignments/{assignment_id}?access_token={os.environ.get('access_token')}"
     return assignment_url
 
 
 @response_decorator
 def get_discussions(course_id):
-    discussions_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+    discussions_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                       f"/discussion_topics?access_token={os.environ.get('access_token')}&per_page=100"
 
     return discussions_url
@@ -78,14 +73,14 @@ def get_discussions(course_id):
 
 @response_decorator
 def get_discussion(course_id, topic_id):
-    discussions_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+    discussions_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                       f"/discussion_topics/{topic_id}?access_token={os.environ.get('access_token')}"
 
     return discussions_url
 
 @response_decorator
 def get_modules(course_id):
-    modules_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+    modules_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                       f"/modules?access_token={os.environ.get('access_token')}&per_page=100"
 
     return modules_url
@@ -93,7 +88,7 @@ def get_modules(course_id):
 
 @response_decorator
 def get_pages(course_id):
-    pages_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+    pages_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                       f"/pages?access_token={os.environ.get('access_token')}&per_page=100"
 
     return pages_url
@@ -101,7 +96,7 @@ def get_pages(course_id):
 @response_decorator
 def get_page(course_id, page_url):
 
-    page_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+    page_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                 f"/pages/{page_url}?access_token={os.environ.get('access_token')}"
 
     return page_url
@@ -109,14 +104,14 @@ def get_page(course_id, page_url):
 
 @response_decorator
 def get_quizzes(course_id):
-    quizzes_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+    quizzes_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                       f"/quizzes?access_token={os.environ.get('access_token')}&per_page=100"
     return quizzes_url
 
 
 @response_decorator
 def get_quiz(course_id, quiz_id):
-    quizzes_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+    quizzes_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                   f"/quizzes/{quiz_id}?access_token={os.environ.get('access_token')}"
     return quizzes_url
 
@@ -124,7 +119,7 @@ def get_quiz(course_id, quiz_id):
 @response_decorator
 def get_files(course_id):
 
-    files_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+    files_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                         f"/files?access_token={os.environ.get('access_token')}&per_page=300"
     return files_url
 
@@ -132,14 +127,14 @@ def get_files(course_id):
 @response_decorator
 def get_file(course_id, file_id):
 
-    files_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+    files_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                 f"/files/{file_id}?access_token={os.environ.get('access_token')}"
     return files_url
 
 
 @response_decorator
 def get_media_objects(course_id):
-    media_objects_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+    media_objects_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                       f"/media_objects?access_token={os.environ.get('access_token')}&per_page=100"
     return media_objects_url
 
@@ -151,7 +146,7 @@ def get_module_items(module_items_url):
 
 @response_decorator
 def get_external_tools(course_id):
-    external_tools_url = f"{os.environ.get('api_path')}/courses/{course_id}" \
+    external_tools_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                 f"/external_tools?access_token={os.environ.get('access_token')}"
     return external_tools_url
 

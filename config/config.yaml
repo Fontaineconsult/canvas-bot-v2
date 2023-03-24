@@ -81,3 +81,8 @@ added_mimetypes:
 
 
 default_download_path: "../output/files"
+
+required_env_file_keys:
+  - CANVAS_COURSE_PAGE_ROOT
+  - ACCESS_TOKEN
+  - API_PATH

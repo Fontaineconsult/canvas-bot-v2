@@ -27,7 +27,6 @@ class CanvasCourseRoot(ContentExtractor):
 
     def __init__(self, course_id):
 
-        self.detect_and_set_env_file()
         self.course_id = course_id
         self.course_url = f"{os.environ.get('canvas_course_page_root')}/{self.course_id}"
         self.canvas_tree = CanvasTree()
@@ -39,9 +38,6 @@ class CanvasCourseRoot(ContentExtractor):
 
     def __str__(self):
         return f"<{Fore.GREEN}Canvas Course Root ID: {self.course_id} | {self.course_url}{Style.RESET_ALL}>"
-
-    def detect_and_set_env_file(self):
-        pass
 
     def initialize_course(self):
         course_api = get_course(self.course_id)
@@ -56,7 +52,6 @@ class CanvasCourseRoot(ContentExtractor):
 
         if not course_api:
             print(f"Course ID: {self.course_id} does not exist. Please check the course ID and try again.")
-
 
     def _init_modules_root(self):
 
