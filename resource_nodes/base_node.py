@@ -11,7 +11,6 @@ from core.scraper import get_data_api_links_from_html,\
 from network.api import get_url
 
 
-
 class Node:
 
     def __init__(self, parent, root, item_id=None, title=None):
@@ -28,7 +27,6 @@ class Node:
     def __repr__(self):
         return f"<{Fore.WHITE} {self.__class__.__name__} {self.item_id}{Style.RESET_ALL}>"
 
-
     def add_node_to_tree(self):
         if self.root.root_node:
             self.root.canvas_tree.add_node(self)
@@ -38,7 +36,6 @@ class Node:
     def _expand_api_dict_to_class_attributes(self, api_dict):
         for key in api_dict:
             setattr(self, key, api_dict[key])
-
 
     def add_data_api_link_to_children(self, html):
         from core.node_factory import get_node_by_a_tag_match
@@ -75,7 +72,6 @@ class Node:
             if ContentNode:
                 self.children.append(ContentNode(self, self.root, None, link[0], link[1]))
 
-
     @staticmethod
     def get_html_body_links(html_body) -> Union[List[Tuple[str, str]], List]:
         if not html_body:
@@ -86,9 +82,6 @@ class Node:
                       + get_src_links_from_img_tag(html_body)
 
         return return_list
-
-
-
 
     @staticmethod
     def get_data_api_links(html_body) -> Union[List[Tuple[str, str]], List]:

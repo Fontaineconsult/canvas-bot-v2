@@ -41,13 +41,9 @@ def is_url(string: str) -> bool:
     return bool(url_pattern.match(string))
 
 
-
-
 def clean_url(url, **kwargs):
     url = extract_url_query_param(url)
     return remove_preceding_forward_slashes(url)
-
-
 
 
 def extract_url_query_param(url):
