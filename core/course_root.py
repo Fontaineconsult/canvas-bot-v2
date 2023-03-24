@@ -34,7 +34,7 @@ class CanvasCourseRoot(ContentExtractor):
         self.manifest = Manifest()
         self.root_node = True
         self.title = None
-        super().__init__(self.manifest, self.course_id, self.course_url)
+        super().__init__(self.manifest, self.course_id, self.course_url, self.title)
 
 
     def __str__(self):
@@ -47,7 +47,7 @@ class CanvasCourseRoot(ContentExtractor):
         course_api = get_course(self.course_id)
         if course_api:
             self.title = course_api['name']
-            print(f"Starting import for {self.title} | {self.course_url}")
+            print(f"\nStarting import for {self.title} | {self.course_url}\n")
             self._init_modules_root()
 
         if not course_api:
