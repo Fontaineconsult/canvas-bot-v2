@@ -144,6 +144,7 @@ def get_media_objects(course_id):
     return media_objects_url
 
 
+
 @response_decorator
 def get_module_items(module_items_url):
     module_items_url = f"{module_items_url}?access_token={os.environ.get('access_token')}&per_page=100"
