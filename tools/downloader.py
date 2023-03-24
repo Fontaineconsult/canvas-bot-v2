@@ -88,7 +88,7 @@ class DownloaderMixin:
 
             full_file_path = os.path.join(directory, path_configs['sort-by-date'],
                                           f"{ContentNode.__class__.__name__}s",
-                                          title)
+                                          sanitize_windows_filename(title))
 
             self._download_file(ContentNode.url, full_file_path)
 

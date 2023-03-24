@@ -4,9 +4,23 @@ import re, os
 from urllib.parse import parse_qs, urlparse, urlunparse
 
 
+def shorten_filename_while_keeping_extension(filename: str, max_length: int) -> str:
+    """
+    Shortens a filename while keeping the file extension.
+    :param filename: The filename to shorten.
+    :param max_length: The maximum length of the filename.
+    :return: The shortened filename.
+    """
+    if len(filename) <= max_length:
+        return filename
+
+    name, extension = path.splitext(filename)
+    return name[:max_length - len(extension)] + extension
+
+
 def sanitize_windows_filename(filename: str) -> str:
     # Remove invalid characters
-    invalid_chars = r'[<>:"/\\|?*]'
+    invalid_chars = r'[%<>:"/\\|?*\x00-\x1f]'
     sanitized_filename = re.sub(invalid_chars, "", filename)
 
     # Add a hyphen to the end of reserved names
@@ -16,12 +30,17 @@ def sanitize_windows_filename(filename: str) -> str:
         "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
     ]
     name_without_extension = sanitized_filename.split('.')[0]
+
     if name_without_extension.upper() in reserved_names:
         name_parts = sanitized_filename.split('.')
         name_parts[0] += '-'
         sanitized_filename = '.'.join(name_parts)
+    if len(sanitized_filename) > 100:
+        name, extension = path.splitext(sanitized_filename)
+        return name[:50 - len(extension)] + extension
 
     return sanitized_filename
+
 
 def is_url(string: str) -> bool:
 
