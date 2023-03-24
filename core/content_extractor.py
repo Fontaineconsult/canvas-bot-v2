@@ -11,11 +11,12 @@ import shutil
 class ContentExtractor(DownloaderMixin):
 
 
-    def __init__(self, manifest: Manifest, course_id, course_url, course_name):
+    def __init__(self, manifest: Manifest, course_id, course_url, course_name, exists):
         self.manifest = manifest
         self.course_id = course_id
         self.course_url = course_url
         self.course_name = course_name
+        self.exists = exists
 
 
 
@@ -102,27 +103,29 @@ class ContentExtractor(DownloaderMixin):
         return json.dumps(self.get_all_content(), indent=4, sort_keys=True, default=str)
 
     def save_content_as_json(self, directory=None):
-        dirname = os.path.abspath(__file__ + "/../../")
-        full_path = os.path.join(dirname, f'output\\json\\{self.course_id}.json')
+        if self.exists:
+            dirname = os.path.abspath(__file__ + "/../../")
+            full_path = os.path.join(dirname, f'output\\json\\{self.course_id}.json')
 
-        if directory:
-            full_path = os.path.join(directory, f"{self.course_id}.json")
+            if directory:
+                full_path = os.path.join(directory, f"{self.course_id}.json")
 
-        if os.path.exists(full_path):
-            os.remove(full_path)
+            if os.path.exists(full_path):
+                os.remove(full_path)
 
-        with open(full_path, 'w') as f:
-            f.write(self.get_all_content_as_json())
-            f.close()
+            with open(full_path, 'w') as f:
+                f.write(self.get_all_content_as_json())
+                f.close()
 
-        return full_path
+            return full_path
 
     def download_files(self, directory, *args):
-        print(self.course_name)
-        root_download_directory = os.path.join(directory, f"{sanitize_windows_filename(self.course_name)} "
-                                                          f"- {self.course_id}")
-        create_download_manifest(root_download_directory)
-        self.download(self, root_download_directory, *args)
+        if self.exists:
+            root_download_directory = os.path.join(directory, f"{sanitize_windows_filename(self.course_name)} "
+                                                              f"- {self.course_id}")
+            create_download_manifest(root_download_directory)
+            self.download(self, root_download_directory, *args)
+
 
     def clear_folder_contents(self, directory):
         """

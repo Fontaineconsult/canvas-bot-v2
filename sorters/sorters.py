@@ -29,3 +29,5 @@ web_document_applications_regex = re_combiner(expressions["web_document_applicat
 file_storage_regex = re_combiner(expressions["file_storage_regex"])
 
 ignore_list_regex = re_combiner(expressions['ignore_list_regex'])
+
+force_to_shortcut = re_combiner(expressions['force_to_shortcut'])

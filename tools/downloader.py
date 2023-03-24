@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import warnings
+from sorters.sorters import force_to_shortcut
 from datetime import datetime
 
 import win32com.client
@@ -57,7 +57,7 @@ class DownloaderMixin:
     def download(self, content_extractor: ContentExtractor, directory: str, *args):
 
         download_manifest = read_download_manifest(directory)['downloaded_files']
-
+        print(args)
         include_video_files, include_audio_files = args if args else (False, False)
 
         if not directory:
@@ -90,7 +90,7 @@ class DownloaderMixin:
                                           f"{ContentNode.__class__.__name__}s",
                                           sanitize_windows_filename(title))
 
-            self._download_file(ContentNode.url, full_file_path)
+            self._download_file(ContentNode.url, full_file_path, bool(force_to_shortcut.match(ContentNode.url)))
 
             download_manifest.append(ContentNode.url)
 
@@ -99,16 +99,16 @@ class DownloaderMixin:
 
 
 
-    def _download_file(self, url, filename:str):
-        """
-        Downloads a file from a URL to a specified location.
-        :param url:
-        :param filename:
-        :return:
-        """
+    def _download_file(self, url, filename:str, force_to_shortcut=False):
+
+        if force_to_shortcut:
+            return create_windows_shortcut_from_url(url, f"{filename}.lnk")
+
 
         if not os.path.exists(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))
+
+
 
         print(f"Downloading {url} to {filename}...")
         try:

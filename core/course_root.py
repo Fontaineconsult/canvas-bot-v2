@@ -34,8 +34,8 @@ class CanvasCourseRoot(ContentExtractor):
         self.manifest = Manifest()
         self.root_node = True
         self.title = None
-        super().__init__(self.manifest, self.course_id, self.course_url, self.title)
-
+        self.exists = False
+        super().__init__(self.manifest, self.course_id, self.course_url, self.title, self.exists)
 
     def __str__(self):
         return f"<{Fore.GREEN}Canvas Course Root ID: {self.course_id} | {self.course_url}{Style.RESET_ALL}>"
@@ -48,8 +48,11 @@ class CanvasCourseRoot(ContentExtractor):
         if course_api:
             self.title = course_api['name'] # name used internally for course
             self.course_name = course_api['name'] # name used for course folder
+            self.exists = True
+
             print(f"\nStarting import for {self.title} | {self.course_url}\n")
             self._init_modules_root()
+
 
         if not course_api:
             print(f"Course ID: {self.course_id} does not exist. Please check the course ID and try again.")
