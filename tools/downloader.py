@@ -54,10 +54,11 @@ class DownloaderMixin:
     def download(self, content_extractor: ContentExtractor, directory: str, *args):
 
         download_manifest = read_download_manifest(directory)['downloaded_files']
-        include_video_files, include_audio_files = args
+
+        include_video_files, include_audio_files = args if args else (False, False)
 
         if not directory:
-            warnings.warn(f"Using default download path: {default_download_path}", UserWarning)
+            print(f"Using default download path: {default_download_path}")
             directory = default_download_path
 
         download_nodes = [ContentNode for ContentNode in content_extractor.get_document_objects()]
@@ -82,7 +83,7 @@ class DownloaderMixin:
             else:
                 title = sanitize_windows_filename(ContentNode.title)
 
-            full_file_path = os.path.join(directory, path_configs['sort-by-date'],title)
+            full_file_path = os.path.join(directory, path_configs['sort-by-date'], ContentNode.__class__.__name__, title)
 
             self._download_file(ContentNode.url, full_file_path)
 
