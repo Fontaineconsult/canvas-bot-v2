@@ -49,6 +49,9 @@ def create_windows_shortcut_from_url(url: str, shortcut_path: str):
 
 
 class DownloaderMixin:
+    """
+    A mixin class for the ContentExtractor class that provides methods for downloading files.
+    """
 
 
     def download(self, content_extractor: ContentExtractor, directory: str, *args):
@@ -83,7 +86,9 @@ class DownloaderMixin:
             else:
                 title = sanitize_windows_filename(ContentNode.title)
 
-            full_file_path = os.path.join(directory, path_configs['sort-by-date'], ContentNode.__class__.__name__, title)
+            full_file_path = os.path.join(directory, path_configs['sort-by-date'],
+                                          f"{ContentNode.__class__.__name__}s",
+                                          title)
 
             self._download_file(ContentNode.url, full_file_path)
 
@@ -95,6 +100,13 @@ class DownloaderMixin:
 
 
     def _download_file(self, url, filename:str):
+        """
+        Downloads a file from a URL to a specified location.
+        :param url:
+        :param filename:
+        :return:
+        """
+
         if not os.path.exists(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))
 
@@ -102,13 +114,13 @@ class DownloaderMixin:
         try:
             response = requests.get(url, stream=True, verify=True, headers=user_agent)
         except requests.exceptions.ConnectionError as exc:
-            warnings.warn(f"Connection Error: {exc}", UserWarning)
+            print(f"Connection Error: {exc}")
 
             return create_windows_shortcut_from_url(url, f"{filename}.lnk")
 
         if response.status_code in [401, 402, 403, 404, 405, 406]:
 
-            warnings.warn(f"Error {response.status_code} {response.reason} {url} {filename}", UserWarning)
+            print(f"Error {response.status_code} {response.reason} {url} {filename}")
             return create_windows_shortcut_from_url(url, f"{filename}.lnk")
 
         try:
@@ -123,7 +135,7 @@ class DownloaderMixin:
             return filename
 
         except PermissionError:
-            warnings.warn(f"Permission Error: {filename}",UserWarning)
+            print(f"Permission Error: {filename}")
             return create_windows_shortcut_from_url(url, f"{filename}.lnk")
 
 

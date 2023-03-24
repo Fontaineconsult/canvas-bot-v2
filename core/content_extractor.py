@@ -118,10 +118,11 @@ class ContentExtractor(DownloaderMixin):
         return full_path
 
     def download_files(self, directory, *args):
-        root_download_directory = os.path.join(directory, self.course_id)
+        print(self.course_name)
+        root_download_directory = os.path.join(directory, f"{sanitize_windows_filename(self.course_name)} "
+                                                          f"- {self.course_id}")
         create_download_manifest(root_download_directory)
         self.download(self, root_download_directory, *args)
-
 
     def clear_folder_contents(self, directory):
         root_download_directory = os.path.join(directory, self.course_id)

@@ -28,6 +28,3 @@ def create_download_manifest(course_folder: str):
     raw_manifest_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "download_manifest.yaml")
     if not os.path.exists(os.path.join(course_folder, ".manifest", "download_manifest.yaml")):
         shutil.copy(raw_manifest_path, os.path.join(course_folder, ".manifest", "download_manifest.yaml"))
-
-
-
