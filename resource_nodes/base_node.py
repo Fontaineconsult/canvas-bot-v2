@@ -13,6 +13,11 @@ from network.api import get_url
 
 class Node:
 
+    """
+    This is the base class for all nodes in the tree. Base nodes canvas organizational systems like modules,
+    assignments, and quizzes.
+    """
+
     def __init__(self, parent, root, item_id=None, title=None):
         self.parent = parent
         self.root = root

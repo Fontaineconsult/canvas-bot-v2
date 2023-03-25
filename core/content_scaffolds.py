@@ -4,6 +4,12 @@ from typing import List
 
 def get_source_page_url(node) -> int:
 
+    """
+    Get the url of the page that the node is on.
+    :param node:
+    :return:
+    """
+
     if getattr(node.parent, "html_url", None):
         return getattr(node.parent, "html_url")
     else:
@@ -11,6 +17,12 @@ def get_source_page_url(node) -> int:
 
 
 def get_order(node) -> int:
+
+    """
+    Get the order of the node in the course.
+    :param node:
+    :return:
+    """
 
     path_list = build_path(node)
     for node_ in path_list:
@@ -20,6 +32,13 @@ def get_order(node) -> int:
 
 
 def is_hidden(node) -> bool:
+
+    """
+    Check if the node is hidden.
+    :param node:
+    :return:
+    """
+
     # don't print node, will cause max recursion error
     path_list = build_path(node)
 
@@ -32,6 +51,13 @@ def is_hidden(node) -> bool:
 
 
 def build_path(node) -> List:
+
+    """
+    Build a list of the path from the node to the root node.
+    :param node:
+    :return:
+    """
+
     path_list = list()
 
     def get_parent(node_):

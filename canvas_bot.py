@@ -96,7 +96,6 @@ class CanvasBot(CanvasCourseRoot):
             return self.canvas_tree.show_nodes()
 
 
-
 if __name__=='__main__':
 
     @click.command()

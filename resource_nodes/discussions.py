@@ -7,6 +7,10 @@ from resource_nodes.base_node import Node
 
 class Discussions(Node):
 
+    """
+    This class is a container for all discussions in a course.
+    """
+
     def __init__(self, course_id, parent):
 
         super().__init__(parent, parent)
@@ -25,6 +29,10 @@ class Discussions(Node):
 
 
 class Discussion(Node):
+
+    """
+    This class is a container for a single discussion in a course.
+    """
 
     def __init__(self, parent, root, api_dict, **kwargs):
         if not kwargs.get("bypass_get_url") is True:

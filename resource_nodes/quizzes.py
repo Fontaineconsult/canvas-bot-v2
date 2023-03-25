@@ -6,6 +6,10 @@ from resource_nodes.base_node import Node
 
 class Quizzes(Node):
 
+    """
+    This class is a container for all quizzes in a course.
+    """
+
 
     def __init__(self, course_id, parent):
 
@@ -25,6 +29,10 @@ class Quizzes(Node):
 
 
 class Quiz(Node):
+
+    """
+    This class is a container for an individual quiz.
+    """
 
     def __init__(self, parent, root, api_dict, **kwargs):
         if not kwargs.get("bypass_get_url") is True:

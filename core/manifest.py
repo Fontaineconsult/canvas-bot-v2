@@ -4,6 +4,10 @@ from resource_nodes.base_content_node import BaseContentNode
 
 class Manifest:
 
+    """
+    This class is used to store all of the nodes that are created during the course of the program.
+    """
+
     def __init__(self):
         self.manifest = dict()
 

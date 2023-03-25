@@ -53,6 +53,13 @@ def get_node_by_a_tag_match(a_tag: str, api_dict) -> Union[Type[Assignment],
                                         Type[FileStorageSite],
                                         None]:
 
+    """
+    A class factory that returns the appropriate class based on the a_tag
+    :param a_tag:
+    :param api_dict:
+    :return:
+    """
+
 
     match_link = resource_node_regex.search(a_tag)
     if match_link:
@@ -85,7 +92,13 @@ def get_content_node(content_url, api_dict=None, **kwargs) -> Union[Type[Documen
                                                None]:
 
 
-
+    """
+    A class factory that returns the appropriate class based on the content_url
+    :param content_url:
+    :param api_dict:
+    :param kwargs:
+    :return:
+    """
 
     if api_dict:
         content_url = api_dict['filename'] if api_dict.get('filename') else api_dict['title']
@@ -121,6 +134,12 @@ def get_content_node(content_url, api_dict=None, **kwargs) -> Union[Type[Documen
 
 def identify_content_url(content_url, **kwargs) -> str:
 
+    """
+    A function that string matching the key in the class factories that matches the right content type
+    :param content_url:
+    :param kwargs:
+    :return:
+    """
 
 
     if document_content_regex.match(content_url):

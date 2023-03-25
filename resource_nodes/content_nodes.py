@@ -10,10 +10,6 @@ class Document(BaseContentNode):
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
         if api_dict is None and is_url(title) is True:
             title = sanitize_windows_filename(url.split('/')[-1])
-
-
-
-
         super().__init__(parent, root, api_dict, url, title, **kwargs)
 
     def __str__(self):
@@ -31,7 +27,6 @@ class DocumentSite(BaseContentNode):
 
 class VideoSite(BaseContentNode):
 
-
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
         super().__init__(parent, root, api_dict, url, title, **kwargs)
 
@@ -42,7 +37,6 @@ class VideoSite(BaseContentNode):
 class VideoFile(BaseContentNode):
 
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
-
         if api_dict is None and is_url(title) is True:
             title = sanitize_windows_filename(url.split('/')[-1])
         super().__init__(parent, root, api_dict, url, title, **kwargs)

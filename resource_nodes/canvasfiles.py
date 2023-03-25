@@ -9,6 +9,11 @@ from resource_nodes.base_node import Node
 
 class CanvasFiles(Node):
 
+    """
+    The CanvasFiles class is a container for files stored directly in the Canvas LMS. CanvasFile nodes are re-classed as
+    content nodes based on their API data before adding to the tree.
+    """
+
     def __init__(self, course_id, parent):
 
         super().__init__(parent, parent)

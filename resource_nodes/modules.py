@@ -8,6 +8,10 @@ from network.api import get_modules, get_module_items, get_url
 
 class Modules(Node):
 
+    """
+    This class is a container for all modules in a course.
+    """
+
     def __init__(self, course_id, parent):
 
         super().__init__(parent, parent)
@@ -27,6 +31,10 @@ class Modules(Node):
 
 
 class Module(Node):
+
+    """
+    This class is a container for all module sections in a module.
+    """
 
     def __init__(self, parent, root, api_dict, **kwargs):
         super().__init__(parent, root, api_dict['id'], api_dict['name'])

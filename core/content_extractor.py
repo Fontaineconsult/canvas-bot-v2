@@ -10,6 +10,10 @@ import shutil
 
 class ContentExtractor(DownloaderMixin):
 
+    """
+    This class is responsible for extracting content from a course and saving it to a folder.
+    """
+
 
     def __init__(self, manifest: Manifest, course_id, course_url, course_name, exists):
         self.manifest = manifest
@@ -103,6 +107,13 @@ class ContentExtractor(DownloaderMixin):
         return json.dumps(self.get_all_content(), indent=4, sort_keys=True, default=str)
 
     def save_content_as_json(self, directory=None):
+
+        """
+        Saves all content as a json file.
+        :param directory:
+        :return:
+        """
+
         if self.exists:
             dirname = os.path.abspath(__file__ + "/../../")
             full_path = os.path.join(dirname, f'output\\json\\{self.course_id}.json')
@@ -120,6 +131,15 @@ class ContentExtractor(DownloaderMixin):
             return full_path
 
     def download_files(self, directory, *args):
+
+        """
+        Downloads all files in the course.
+        :param directory:
+        :param args:
+        :return:
+        """
+
+
         if self.exists:
             root_download_directory = os.path.join(directory, f"{sanitize_windows_filename(self.course_name)} "
                                                               f"- {self.course_id}")

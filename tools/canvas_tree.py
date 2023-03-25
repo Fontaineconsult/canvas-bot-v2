@@ -3,6 +3,10 @@ import warnings
 
 class CanvasTree:
 
+    """
+    This class is used to create a tree of Canvas objects. It uses the treelib library to create the tree.
+    """
+
     def __init__(self):
         self.tree = Tree()
 
@@ -18,7 +22,6 @@ class CanvasTree:
             self.tree.create_node(node_name, node_value, parent)
         except:
             warnings.warn(f"Parent node {node.parent} is not in tree. {node} will not be visible")
-
 
     def show_nodes(self):
         return self.tree.show()

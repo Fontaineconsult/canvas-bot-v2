@@ -5,6 +5,11 @@ from core.content_scaffolds import is_hidden
 
 class BaseContentNode:
 
+    """
+    Base class for all content nodes. Content nodes contain the information for an item of instructional content.
+    Examples include, documents, videos, and links.
+    """
+
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
         self.api_dict = api_dict
         self.is_canvas_file = False

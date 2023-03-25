@@ -7,6 +7,10 @@ from resource_nodes.base_node import Node
 
 class CanvasMediaObjects(Node):
 
+    """
+    This class is a container for all media objects in a course. In Canvas Media Objects are usually videos
+    """
+
     def __init__(self, course_id, parent):
 
         super().__init__(parent, parent)

@@ -100,6 +100,14 @@ class DownloaderMixin:
 
     def _download_file(self, url, filename:str, force_to_shortcut=False):
 
+        """
+        Downloads a file from a URL to a specified location.
+        :param url:
+        :param filename:
+        :param force_to_shortcut:
+        :return:
+        """
+
         if force_to_shortcut:
             return create_windows_shortcut_from_url(url, f"{filename}.lnk")
 

@@ -6,6 +6,10 @@ from resource_nodes.base_node import Node
 
 class Assignments(Node):
 
+    """
+    This class is a container for all assignments in a course.
+    """
+
     def __init__(self, course_id, parent):
         super().__init__(parent, parent)
         self.course_id = course_id

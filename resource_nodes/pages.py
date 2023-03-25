@@ -6,6 +6,9 @@ from resource_nodes.base_node import Node
 
 class Pages(Node):
 
+    """
+    This class is a container for all pages in a course.
+    """
 
     def __init__(self, course_id, parent):
 
@@ -26,6 +29,10 @@ class Pages(Node):
 
 
 class Page(Node):
+
+    """
+    This class is a container for an individual page.
+    """
 
     def __init__(self, parent, root, api_dict, **kwargs):
 
