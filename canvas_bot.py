@@ -1,8 +1,9 @@
-import click
+#!\windowsvenv\Scripts python
+import click, sys, os
 from dotenv import load_dotenv
 from config.yaml_io import read_config
 from core.course_root import CanvasCourseRoot
-import os
+
 
 def read_course_list(course_list_file: str):
     """
@@ -17,51 +18,57 @@ def read_course_list(course_list_file: str):
 
 def detect_valid_env_config():
     """
-    Detects if the .env file is present in the network folder and if it contains the required keys
+    Detects if the .env file is present in the root folder and if it contains the required keys
     :return:
     """
-
-    import os
-    from os.path import join
     required_env_file_keys = read_config()['required_env_file_keys']
     env_dict = {}
-    if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "network", ".env")):
-        dotenv_path = join(os.path.join(os.path.dirname(os.path.abspath(__file__)), "network", ".env"))
-        with open(dotenv_path, 'r') as f:
+
+    if getattr(sys, 'frozen', False):
+        exe_path = os.path.dirname(sys.executable)
+    else:
+        exe_path = os.path.dirname(os.path.abspath(__file__))
+
+    env_path = os.path.join(exe_path, '.env')
+
+    if os.path.exists(env_path):
+
+        with open(env_path, 'r') as f:
             for line in f:
                 if line.strip():  # Ignore empty lines
                     key, value = line.strip().split('=', 1)
                     env_dict[key] = value
 
-        load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "network", ".env"))
+        load_dotenv(env_path)
         return set(required_env_file_keys).issubset(set(list(env_dict.keys())))
     else:
         return False
 
 
-
 def collect_env_variables_from_user():
     """
-    Collects the required keys from the user
+    Collects the required environment variable keys from the user
     :return:
     """
-    import os
-    from os.path import join
+
     required_env_file_keys = read_config()['required_env_file_keys']
     env_dict = {}
     for key in required_env_file_keys:
         env_dict[key] = input(f"Enter {key}: ")
 
-    dotenv_path = join(os.path.join(os.path.dirname(os.path.abspath(__file__)), "network", ".env"))
+    if getattr(sys, 'frozen', False):
+        exe_path = os.path.dirname(sys.executable)
+    else:
+        exe_path = os.path.dirname(os.path.abspath(__file__))
 
+    env_path = os.path.join(exe_path, '.env')
 
-    with open(dotenv_path, 'w') as f:
+    with open(env_path, 'w') as f:
         for key, value in env_dict.items():
             f.write(f"{key}={value}\n")
         os.fsync(f.fileno())
 
-    return dotenv_path
-
+    return env_path
 
 
 class CanvasBot(CanvasCourseRoot):

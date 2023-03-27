@@ -1,9 +1,10 @@
-from colorama import Fore, Style
+from colorama import Fore, Style, init
 
 from core.content_scaffolds import is_hidden
 from resource_nodes.base_content_node import BaseContentNode
 from tools.string_checking.url_cleaning import is_url, sanitize_windows_filename
 
+init()
 
 class Document(BaseContentNode):
 

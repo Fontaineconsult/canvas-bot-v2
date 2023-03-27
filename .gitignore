@@ -1,3 +1,4 @@
 /network/.env
 /.idea/
 /output/json/*
+/root

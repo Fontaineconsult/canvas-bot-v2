@@ -1,8 +1,7 @@
-from colorama import Fore, Style
-
+from colorama import Fore, Style, init
 from core.content_scaffolds import is_hidden
 
-
+init()
 class BaseContentNode:
 
     """

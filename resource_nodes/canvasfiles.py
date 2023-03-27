@@ -1,5 +1,5 @@
 import animation
-from colorama import Fore, Style
+
 
 
 from network.api import get_files, get_url

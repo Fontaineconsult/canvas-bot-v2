@@ -1,6 +1,6 @@
 import warnings
 from os.path import join, dirname
-from colorama import Fore, Style
+from colorama import Fore, Style, init
 from dotenv import load_dotenv
 import os, sys
 from core.content_extractor import ContentExtractor
@@ -21,7 +21,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
-
+init()
 
 class CanvasCourseRoot(ContentExtractor):
 

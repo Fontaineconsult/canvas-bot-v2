@@ -1,6 +1,6 @@
 from typing import Tuple, List, Union
 
-from colorama import Fore, Style
+from colorama import Fore, Style, init
 
 from core.scraper import get_data_api_links_from_html,\
     get_href_links_from_html_a_tag,\
@@ -10,6 +10,7 @@ from core.scraper import get_data_api_links_from_html,\
 
 from network.api import get_url
 
+init()
 
 class Node:
 

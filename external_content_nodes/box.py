@@ -1,5 +1,5 @@
 import json
-
+from colorama import Fore, Style, init
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -9,7 +9,7 @@ from colorama import Style, Fore
 from config.yaml_io import read_config
 
 from resource_nodes.content_nodes import FileStorageSite
-
+init()
 filters = read_config()['filters']
 
 class BoxPage(FileStorageSite):

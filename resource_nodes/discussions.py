@@ -1,5 +1,5 @@
 import animation
-from colorama import Fore, Style
+
 
 from network.api import get_discussions, get_discussion
 from resource_nodes.base_node import Node
