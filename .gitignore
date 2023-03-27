@@ -3,3 +3,6 @@
 /output/json/*
 /root
 .env
+/dist
+/build
+canvas_bot.spec
