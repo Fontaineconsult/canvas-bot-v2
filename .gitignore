@@ -2,3 +2,4 @@
 /.idea/
 /output/json/*
 /root
+.env
