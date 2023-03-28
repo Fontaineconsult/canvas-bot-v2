@@ -151,7 +151,11 @@ if __name__=='__main__':
             bot.start()
             bot.print_content_tree()
             if ctx.params.get('download_folder'):
-                flags = (include_video_files, include_audio_files)
+                flags = (include_video_files,
+                         include_audio_files,
+                         flatten,
+                         flush_after_download,
+                         download_hidden_files)
                 bot.download_files(download_folder, *flags)
 
             if ctx.params.get('output_as_json'):
@@ -165,7 +169,10 @@ if __name__=='__main__':
                         download_folder,
                         output_as_json,
                         include_video_files,
-                        include_audio_files)
+                        include_audio_files,
+                        flatten,
+                        flush_after_download,
+                        download_hidden_files)
 
         if course_id:
             run_bot(ctx,
@@ -173,6 +180,9 @@ if __name__=='__main__':
                     download_folder,
                     output_as_json,
                     include_video_files,
-                    include_audio_files)
+                    include_audio_files,
+                    flatten,
+                    flush_after_download,
+                    download_hidden_files)
 
     main()
