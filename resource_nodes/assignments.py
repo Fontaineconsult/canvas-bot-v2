@@ -13,6 +13,7 @@ class Assignments(Node):
     def __init__(self, course_id, parent):
         super().__init__(parent, parent)
         self.course_id = course_id
+
         self.api_request = get_assignments
         self.api_request_content = None
         self.get_all_items()

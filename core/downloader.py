@@ -7,6 +7,7 @@ import win32com.client
 import os.path
 from typing import TYPE_CHECKING
 import requests
+from requests.exceptions import MissingSchema, InvalidURL
 from config.yaml_io import read_config, read_download_manifest, write_to_download_manifest
 from tools.string_checking.url_cleaning import sanitize_windows_filename
 
@@ -15,7 +16,7 @@ config = read_config()
 user_agent = config['requests']['user-agent']
 default_download_path = config['default_download_path']
 
-from core.content_scaffolds import is_hidden
+from core.content_scaffolds import is_hidden, build_path
 from tools.string_checking.other_tools import has_file_extension, remove_query_params_from_url
 
 if TYPE_CHECKING:
@@ -26,12 +27,18 @@ def sort_by_date():
     return datetime.now().strftime('%d-%m-%Y')
 
 
-path_configs = {
-    'sort-by-date':sort_by_date()
+def get_folder_path(node):
 
-}
+    """
+        Returns the path to the folder that the node should be saved in.
+    """
+    node_path = build_path(node, ignore_root=True)
+    paths = list()
+    for node in node_path:
+        if hasattr(node, 'is_resource'):
+            paths.append(sanitize_windows_filename(node.title[0:40]).rstrip() if node.title else str(node.__class__.__name__))
 
-
+    return os.path.join(sort_by_date(), *paths[::-1])
 
 
 def create_windows_shortcut_from_url(url: str, shortcut_path: str):
@@ -53,7 +60,6 @@ class DownloaderMixin:
     A mixin class for the ContentExtractor class that provides methods for downloading files.
     """
 
-
     def download(self, content_extractor: ContentExtractor, directory: str, *args):
 
         download_manifest = read_download_manifest(directory)['downloaded_files']
@@ -72,7 +78,6 @@ class DownloaderMixin:
             download_nodes.extend([ContentNode for ContentNode in content_extractor.get_audio_file_objects()])
 
         for ContentNode in download_nodes:
-
             if is_hidden(ContentNode):
                 continue
 
@@ -85,8 +90,8 @@ class DownloaderMixin:
             else:
                 title = sanitize_windows_filename(ContentNode.title)
 
-            full_file_path = os.path.join(directory, path_configs['sort-by-date'],
-                                          f"{ContentNode.__class__.__name__}s",
+            full_file_path = os.path.join(directory,
+                                          get_folder_path(ContentNode),
                                           sanitize_windows_filename(title))
 
             self._download_file(ContentNode.url, full_file_path, bool(force_to_shortcut.match(ContentNode.url)))
@@ -94,9 +99,6 @@ class DownloaderMixin:
             download_manifest.append(ContentNode.url)
 
         write_to_download_manifest(directory, "downloaded_files", download_manifest)
-
-
-
 
     def _download_file(self, url, filename:str, force_to_shortcut=False):
 
@@ -108,41 +110,50 @@ class DownloaderMixin:
         :return:
         """
 
-        if force_to_shortcut:
-            return create_windows_shortcut_from_url(url, f"{filename}.lnk")
-
-
         if not os.path.exists(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))
 
-
+        if force_to_shortcut:
+            print(url, filename)
+            return create_windows_shortcut_from_url(url, f"{filename}.lnk")
 
         print(f"Downloading {url} to {filename}...")
         try:
             response = requests.get(url, stream=True, verify=True, headers=user_agent)
+
+            if response.status_code in [401, 402, 403, 404, 405, 406]:
+
+                print(f"Error {response.status_code} {response.reason} {url} {filename}")
+                return create_windows_shortcut_from_url(url, f"{filename}.lnk")
+
+            else:
+                try:
+                    with open(filename, 'wb') as file:
+
+                        for chunk in response.iter_content(chunk_size=8192):
+                            if chunk:
+                                file.write(chunk)
+                                file.flush()
+                                os.fsync(file.fileno())
+
+                    return filename
+
+                except PermissionError:
+                    print(f"Permission Error: {filename}")
+                    return create_windows_shortcut_from_url(url, f"{filename}.lnk")
+
         except requests.exceptions.ConnectionError as exc:
-            print(f"Connection Error: {exc}")
-
+            print(f"Connection Error: {exc}, {url}")
             return create_windows_shortcut_from_url(url, f"{filename}.lnk")
 
-        if response.status_code in [401, 402, 403, 404, 405, 406]:
+        except MissingSchema as exc:
+            print(f"Missing Schema Error: {exc}, {url}")
 
-            print(f"Error {response.status_code} {response.reason} {url} {filename}")
-            return create_windows_shortcut_from_url(url, f"{filename}.lnk")
+        except InvalidURL as exc:
+            print(f"Invalid URL Error: {exc}, {url}")
 
-        try:
-            with open(filename, 'wb') as file:
 
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        file.write(chunk)
-                        file.flush()
-                        os.fsync(file.fileno())
 
-            return filename
 
-        except PermissionError:
-            print(f"Permission Error: {filename}")
-            return create_windows_shortcut_from_url(url, f"{filename}.lnk")
 
 

@@ -14,6 +14,7 @@ class Announcements(Node):
 
         super().__init__(parent, parent)
         self.course_id = course_id
+
         self.api_request = get_announcements
         self.api_request_content = None
         self.get_all_items()

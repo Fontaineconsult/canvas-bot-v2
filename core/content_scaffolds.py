@@ -50,11 +50,12 @@ def is_hidden(node) -> bool:
         return False
 
 
-def build_path(node) -> List:
+def build_path(node, ignore_root=False) -> List:
 
     """
     Build a list of the path from the node to the root node.
     :param node:
+    :param ignore_root:
     :return:
     """
 
@@ -63,7 +64,10 @@ def build_path(node) -> List:
     def get_parent(node_):
 
         if hasattr(node_, "root_node"):
-            path_list.append(node_)
+            if not ignore_root:
+                pass
+            else:
+                path_list.append(node_)
         if not hasattr(node_, "root_node"):
             path_list.append(node_)
             get_parent(node_.parent)

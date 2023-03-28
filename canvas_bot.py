@@ -111,22 +111,41 @@ if __name__=='__main__':
                                                               ' One per line.')
     @click.option('--download_folder', type=click.STRING, help='The Location to Download Files to.'
                                                                ' Default is current directory')
+    @click.option('--output_as_json', type=click.STRING,
+                  help='Output the content tree as a JSON file. Pass the directory to save the file to.'
+                       ' Default is current directory')
     @click.option('--include_video_files', is_flag=True,
                   help='Include Video Files in Download. Default is False')
     @click.option('--include_audio_files', is_flag=True,
                   help='Include Audio Files in Download. Default is False')
-    @click.option('--output_as_json', type=click.STRING,
-                  help='Output the content tree as a JSON file. Pass the directory to save the file to.'
-                       ' Default is current directory')
+    @click.option('--flatten', is_flag=True,
+                  help='Excludes course structure and downloads all files to the same directory. Default is False')
+    @click.option('--flush_after_download', is_flag=True,
+                  help='Deletes all files after download. Default is False')
+    @click.option('--download_hidden_files', is_flag=True,
+                  help='Deletes all files after download. Default is False')
+
     @click.pass_context
-    def main(ctx, course_id, course_id_list, download_folder, output_as_json, include_video_files, include_audio_files):
+    def main(ctx,
+             course_id,
+             course_id_list,
+             download_folder,
+             output_as_json,
+             include_video_files,
+             include_audio_files,
+             flatten,
+             flush_after_download,
+             download_hidden_files):
 
         def run_bot(ctx,
                     course_id,
                     download_folder,
                     output_as_json,
                     include_video_files=False,
-                    include_audio_files=False):
+                    include_audio_files=False,
+                    flatten=False,
+                    flush_after_download=False,
+                    download_hidden_files=False):
 
             bot = CanvasBot(course_id)
             bot.start()
@@ -141,9 +160,19 @@ if __name__=='__main__':
         if course_id_list:
             course_list = read_course_list(course_id_list)
             for course_id in course_list:
-                run_bot(ctx, course_id, download_folder, output_as_json, include_video_files, include_audio_files)
+                run_bot(ctx,
+                        course_id,
+                        download_folder,
+                        output_as_json,
+                        include_video_files,
+                        include_audio_files)
 
         if course_id:
-            run_bot(ctx, course_id, download_folder, output_as_json, include_video_files, include_audio_files)
+            run_bot(ctx,
+                    course_id,
+                    download_folder,
+                    output_as_json,
+                    include_video_files,
+                    include_audio_files)
 
     main()

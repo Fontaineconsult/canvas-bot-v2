@@ -28,7 +28,7 @@ class CanvasCourseRoot(ContentExtractor):
     def __init__(self, course_id):
 
         self.course_id = course_id
-        self.course_url = f"{os.environ.get('canvas_course_page_root')}/{self.course_id}"
+        self.course_url = f"{os.environ.get('CANVAS_COURSE_PAGE_ROOT')}/{self.course_id}"
         self.canvas_tree = CanvasTree()
         self.manifest = Manifest()
         self.root_node = True
@@ -60,6 +60,9 @@ class CanvasCourseRoot(ContentExtractor):
         print("Importing Modules")
         self.modules = Modules(self.course_id, self)
 
+        print("Importing Quizzes")
+        self.quizzes = Quizzes(self.course_id, self)
+
         print("Importing Assignments")
         self.assignments = Assignments(self.course_id, self)
 
@@ -71,9 +74,6 @@ class CanvasCourseRoot(ContentExtractor):
 
         print("Importing Pages")
         self.pages = Pages(self.course_id, self)
-
-        print("Importing Quizzes")
-        self.quizzes = Quizzes(self.course_id, self)
 
         print("Importing Canvas Files")
         self.files = CanvasFiles(self.course_id, self)

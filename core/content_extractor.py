@@ -4,7 +4,7 @@ from config.yaml_io import create_download_manifest
 from core.content_scaffolds import *
 from core.manifest import Manifest
 from resource_nodes.content_nodes import *
-from tools.downloader import DownloaderMixin
+from core.downloader import DownloaderMixin
 import shutil
 
 
@@ -138,7 +138,6 @@ class ContentExtractor(DownloaderMixin):
         :param args:
         :return:
         """
-
 
         if self.exists:
             root_download_directory = os.path.join(directory, f"{sanitize_windows_filename(self.course_name)} "

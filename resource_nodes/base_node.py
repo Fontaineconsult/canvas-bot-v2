@@ -22,6 +22,7 @@ class Node:
     def __init__(self, parent, root, item_id=None, title=None):
         self.parent = parent
         self.root = root
+        self.is_resource = True
         self.children = list()
         self.item_id = item_id
         self.title = title
