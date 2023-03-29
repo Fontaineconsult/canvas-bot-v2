@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from os import path
+
 from sorters.sorters import force_to_shortcut
 from datetime import datetime
 
@@ -27,18 +29,32 @@ def sort_by_date():
     return datetime.now().strftime('%d-%m-%Y')
 
 
-def get_folder_path(node):
+def path_constructor(root_directory, node, filename):
 
     """
         Returns the path to the folder that the node should be saved in.
     """
+
+
+
+
+
     node_path = build_path(node, ignore_root=True)
+
     paths = list()
     for node in node_path:
         if hasattr(node, 'is_resource'):
-            paths.append(sanitize_windows_filename(node.title[0:40]).rstrip() if node.title else str(node.__class__.__name__))
+            paths.append(sanitize_windows_filename(node.title).rstrip() if node.title else str(node.__class__.__name__))
 
-    return os.path.join(sort_by_date(), *paths[::-1])
+    path_length = len(os.path.join(root_directory, sort_by_date(), *paths[::-1], filename))
+    if path_length > 254:
+        file_name, extension = os.path.splitext(filename)
+        lenth_reducer = path_length - 254 // len(paths) + 1
+        reduced_paths = [path[:lenth_reducer] for path in paths]
+        return os.path.join(root_directory, sort_by_date(), *reduced_paths[::-1], file_name[:lenth_reducer] + extension)
+
+
+    return os.path.join(root_directory, sort_by_date(), *paths[::-1], filename)
 
 
 def create_windows_shortcut_from_url(url: str, shortcut_path: str):
@@ -90,9 +106,9 @@ class DownloaderMixin:
             else:
                 title = sanitize_windows_filename(ContentNode.title)
 
-            full_file_path = os.path.join(directory,
-                                          get_folder_path(ContentNode),
-                                          sanitize_windows_filename(title))
+            full_file_path = path_constructor(directory,
+                                              ContentNode,
+                                              sanitize_windows_filename(title))
 
             self._download_file(ContentNode.url, full_file_path, bool(force_to_shortcut.match(ContentNode.url)))
 

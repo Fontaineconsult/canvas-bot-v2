@@ -35,10 +35,6 @@ def sanitize_windows_filename(filename: str) -> str:
         name_parts = sanitized_filename.split('.')
         name_parts[0] += '-'
         sanitized_filename = '.'.join(name_parts)
-    if len(sanitized_filename) > 100:
-        name, extension = path.splitext(sanitized_filename)
-        return name[:50 - len(extension)] + extension
-
     return sanitized_filename
 
 
