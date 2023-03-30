@@ -71,7 +71,8 @@ class DownloaderMixin:
     def download(self, content_extractor: ContentExtractor, directory: str, *args):
 
         download_manifest = read_download_manifest(directory)['downloaded_files']
-        include_video_files, include_audio_files, flatten, flush_after_download, download_hidden_files = args
+        include_video_files, include_audio_files, flatten, flush_after_download, download_hidden_files = args if args\
+            else (False, False, False, False, False)  # if no args are passed, set all to False
 
         if not directory:
             print(f"Using default download path: {os.path.dirname(os.path.abspath(__file__))}")

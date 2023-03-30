@@ -145,8 +145,9 @@ class ContentExtractor(DownloaderMixin):
             create_download_manifest(root_download_directory)
             self.download(self, root_download_directory, *args)
 
-            if args[3]:
-                self.clear_folder_contents(directory)
+            if args:
+                if args[3]:
+                    self.clear_folder_contents(directory)
 
     def clear_folder_contents(self, directory):
         """

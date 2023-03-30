@@ -143,7 +143,8 @@ if __name__=='__main__':
              include_audio_files,
              flatten,
              flush_after_download,
-             download_hidden_files):
+             download_hidden_files,
+             show_content_tree):
 
         def run_bot(ctx,
                     course_id,
@@ -153,11 +154,13 @@ if __name__=='__main__':
                     include_audio_files=False,
                     flatten=False,
                     flush_after_download=False,
-                    download_hidden_files=False):
+                    download_hidden_files=False,
+                    show_content_tree=False):
 
             bot = CanvasBot(course_id)
             bot.start()
-            if ctx.params.get('show_content_tree'):
+
+            if show_content_tree:
                 bot.print_content_tree()
 
             if ctx.params.get('download_folder'):
@@ -183,7 +186,8 @@ if __name__=='__main__':
                         include_audio_files,
                         flatten,
                         flush_after_download,
-                        download_hidden_files)
+                        download_hidden_files,
+                        show_content_tree)
 
         if course_id:
             run_bot(ctx,
@@ -194,6 +198,7 @@ if __name__=='__main__':
                     include_audio_files,
                     flatten,
                     flush_after_download,
-                    download_hidden_files)
+                    download_hidden_files,
+                    show_content_tree)
 
     main()
