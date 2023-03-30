@@ -123,7 +123,7 @@ if __name__=='__main__':
     @click.option('--flush_after_download', is_flag=True,
                   help='Deletes all files after download. Default is False')
     @click.option('--download_hidden_files', is_flag=True,
-                  help='Deletes all files after download. Default is False')
+                  help='Downloads files hidden from students. Default is False')
 
     @click.pass_context
     def main(ctx,

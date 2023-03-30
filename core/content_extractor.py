@@ -138,7 +138,7 @@ class ContentExtractor(DownloaderMixin):
         :param args:
         :return:
         """
-
+        print(args)
         if self.exists:
             root_download_directory = os.path.join(directory, f"{sanitize_windows_filename(self.course_name)} "
                                                               f"- {self.course_id}")
@@ -154,7 +154,6 @@ class ContentExtractor(DownloaderMixin):
         if self.exists:
             root_download_directory = os.path.join(directory, f"{sanitize_windows_filename(self.course_name)} "
                                                               f"- {self.course_id}")
-
             for root, dirs, files in os.walk(root_download_directory, topdown=False):
                 for name in files:
                     os.remove(os.path.join(root, name))

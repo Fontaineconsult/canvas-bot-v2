@@ -1,6 +1,6 @@
 import yaml
 import os
-import shutil
+import shutil, ctypes
 
 def read_config():
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),"config.yaml"), "r", encoding='utf_8') as f:
@@ -25,6 +25,10 @@ def create_download_manifest(course_folder: str):
     if not os.path.exists(os.path.join(course_folder, ".manifest")):
         os.makedirs(os.path.join(course_folder, ".manifest"), exist_ok=True)
 
+
     raw_manifest_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "download_manifest.yaml")
     if not os.path.exists(os.path.join(course_folder, ".manifest", "download_manifest.yaml")):
         shutil.copy(raw_manifest_path, os.path.join(course_folder, ".manifest", "download_manifest.yaml"))
+
+        ctypes.windll.kernel32.SetFileAttributesW(os.path.join(course_folder, ".manifest"), 0x02)
+

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from os import path
 
-from sorters.sorters import force_to_shortcut
+from sorters.sorters import force_to_shortcut, file_name_extractor
 from datetime import datetime
 
 import win32com.client
@@ -29,31 +29,21 @@ def sort_by_date():
     return datetime.now().strftime('%d-%m-%Y')
 
 
-def path_constructor(root_directory, node, filename):
+def path_constructor(root_directory, node, filename, flatten: bool):
 
     """
         Returns the path to the folder that the node should be saved in.
     """
-
-
-
-
-
     node_path = build_path(node, ignore_root=True)
-
     paths = list()
+
+    if flatten:
+        paths.append(sanitize_windows_filename(node.title[:50]).rstrip() if node.title else str(node.__class__.__name__))
+        return os.path.join(root_directory, sort_by_date(), filename)
+
     for node in node_path:
         if hasattr(node, 'is_resource'):
-            paths.append(sanitize_windows_filename(node.title).rstrip() if node.title else str(node.__class__.__name__))
-
-    path_length = len(os.path.join(root_directory, sort_by_date(), *paths[::-1], filename))
-    if path_length > 254:
-        file_name, extension = os.path.splitext(filename)
-        lenth_reducer = path_length - 254 // len(paths) + 1
-        reduced_paths = [path[:lenth_reducer] for path in paths]
-        return os.path.join(root_directory, sort_by_date(), *reduced_paths[::-1], file_name[:lenth_reducer] + extension)
-
-
+            paths.append(sanitize_windows_filename(node.title[:50]).rstrip() if node.title else str(node.__class__.__name__))
     return os.path.join(root_directory, sort_by_date(), *paths[::-1], filename)
 
 
@@ -79,7 +69,7 @@ class DownloaderMixin:
     def download(self, content_extractor: ContentExtractor, directory: str, *args):
 
         download_manifest = read_download_manifest(directory)['downloaded_files']
-        include_video_files, include_audio_files = args if args else (False, False)
+        include_video_files, include_audio_files, flatten, flush_after_download, download_hidden_files = args
 
         if not directory:
             print(f"Using default download path: {default_download_path}")
@@ -95,20 +85,24 @@ class DownloaderMixin:
 
         for ContentNode in download_nodes:
             if is_hidden(ContentNode):
-                continue
+                if download_hidden_files:
+                    print(f"Including hidden file: {ContentNode.title} ({ContentNode.url})")
+                else:
+                    continue
 
             if ContentNode.url in download_manifest:
                 print(f"Skipping {ContentNode.url} because it has already been downloaded.")
                 continue
 
             if not has_file_extension(ContentNode.title):
-                title = remove_query_params_from_url(ContentNode.url.split('/')[-1])
+                title = remove_query_params_from_url(file_name_extractor.match(ContentNode.url.split('/')[-1]).group(0))
             else:
-                title = sanitize_windows_filename(ContentNode.title)
+                title = sanitize_windows_filename(file_name_extractor.match(ContentNode.title).group(0))
 
             full_file_path = path_constructor(directory,
                                               ContentNode,
-                                              sanitize_windows_filename(title))
+                                              title,
+                                              flatten)
 
             self._download_file(ContentNode.url, full_file_path, bool(force_to_shortcut.match(ContentNode.url)))
 
@@ -130,20 +124,19 @@ class DownloaderMixin:
             os.makedirs(os.path.dirname(filename))
 
         if force_to_shortcut:
-            print(url, filename)
             return create_windows_shortcut_from_url(url, f"{filename}.lnk")
 
-        print(f"Downloading {url} to {filename}...")
+
         try:
             response = requests.get(url, stream=True, verify=True, headers=user_agent)
 
             if response.status_code in [401, 402, 403, 404, 405, 406]:
 
-                print(f"Error {response.status_code} {response.reason} {url} {filename}")
+                print(f"Response Error {response.status_code} {response.reason} {url} {filename}")
                 return create_windows_shortcut_from_url(url, f"{filename}.lnk")
-
             else:
                 try:
+                    print(f"Downloading {url} to {filename}...\n")
                     with open(filename, 'wb') as file:
 
                         for chunk in response.iter_content(chunk_size=8192):

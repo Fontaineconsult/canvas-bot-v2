@@ -31,3 +31,13 @@ file_storage_regex = re_combiner(expressions["file_storage_regex"])
 ignore_list_regex = re_combiner(expressions['ignore_list_regex'])
 
 force_to_shortcut = re_combiner(expressions['force_to_shortcut'])
+
+file_name_extractor = re_combiner([document_content_regex.pattern + "|" +
+                                   image_content_regex.pattern + "|" +
+                                   video_file_content_regex.pattern + "|" +
+                                   audio_file_content_regex.pattern])
+
+# print(file_name_extractor.pattern)
+#
+# print(file_name_extractor.match("662629.mp44fg4235264643534534534534534").group(0))
+#
