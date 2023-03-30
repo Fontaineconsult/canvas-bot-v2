@@ -106,14 +106,19 @@ class CanvasBot(CanvasCourseRoot):
 if __name__=='__main__':
 
     @click.command()
+    @click.help_option('-h', '--help', help='Welcome to Canvas Bot. This is a simple tool to scrape Canvas courses.'
+                                            'It will download all files in a course and organize them into a folder'
+                                            ' structure that matches the course structure. It will also output a JSON file of'
+                                            ' the course structure. A canvas API key is required to use this tool. Contact your'
+                                            ' Canvas administrator for more information.')
+
+
     @click.option('--course_id', type=click.STRING, help='The course ID to scrape')
     @click.option('--course_id_list', type=click.STRING, help='Text file containing a list of course IDs to scrape.'
                                                               ' One per line.')
-    @click.option('--download_folder', type=click.STRING, help='The Location to Download Files to.'
-                                                               ' Default is current directory')
+    @click.option('--download_folder', type=click.STRING, help='The Location to download files to.')
     @click.option('--output_as_json', type=click.STRING,
-                  help='Output the content tree as a JSON file. Pass the directory to save the file to.'
-                       ' Default is current directory')
+                  help='Output the content tree as a JSON file. Pass the directory to save the file to.')
     @click.option('--include_video_files', is_flag=True,
                   help='Include Video Files in Download. Default is False')
     @click.option('--include_audio_files', is_flag=True,
@@ -124,6 +129,9 @@ if __name__=='__main__':
                   help='Deletes all files after download. Default is False')
     @click.option('--download_hidden_files', is_flag=True,
                   help='Downloads files hidden from students. Default is False')
+    @click.option('--show_content_tree', is_flag=True,
+                  help='Prints a content tree of the course to the console. Default is False')
+
 
     @click.pass_context
     def main(ctx,
@@ -149,13 +157,16 @@ if __name__=='__main__':
 
             bot = CanvasBot(course_id)
             bot.start()
-            bot.print_content_tree()
+            if ctx.params.get('show_content_tree'):
+                bot.print_content_tree()
+
             if ctx.params.get('download_folder'):
                 flags = (include_video_files,
                          include_audio_files,
                          flatten,
                          flush_after_download,
                          download_hidden_files)
+
                 bot.download_files(download_folder, *flags)
 
             if ctx.params.get('output_as_json'):

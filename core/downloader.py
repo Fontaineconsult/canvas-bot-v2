@@ -29,6 +29,8 @@ def sort_by_date():
     return datetime.now().strftime('%d-%m-%Y')
 
 
+
+
 def path_constructor(root_directory, node, filename, flatten: bool):
 
     """
@@ -72,8 +74,8 @@ class DownloaderMixin:
         include_video_files, include_audio_files, flatten, flush_after_download, download_hidden_files = args
 
         if not directory:
-            print(f"Using default download path: {default_download_path}")
-            directory = default_download_path
+            print(f"Using default download path: {os.path.dirname(os.path.abspath(__file__))}")
+            directory = os.path.dirname(os.path.abspath(__file__))
 
         download_nodes = [ContentNode for ContentNode in content_extractor.get_document_objects()]
 
@@ -86,7 +88,7 @@ class DownloaderMixin:
         for ContentNode in download_nodes:
             if is_hidden(ContentNode):
                 if download_hidden_files:
-                    print(f"Including hidden file: {ContentNode.title} ({ContentNode.url})")
+                    print(f"Including hidden file: {ContentNode.title} {ContentNode.url}\n")
                 else:
                     continue
 
@@ -132,7 +134,7 @@ class DownloaderMixin:
 
             if response.status_code in [401, 402, 403, 404, 405, 406]:
 
-                print(f"Response Error {response.status_code} {response.reason} {url} {filename}")
+                print(f"Response Error {response.status_code} {response.reason} {url} {filename}\n")
                 return create_windows_shortcut_from_url(url, f"{filename}.lnk")
             else:
                 try:
@@ -148,18 +150,18 @@ class DownloaderMixin:
                     return filename
 
                 except PermissionError:
-                    print(f"Permission Error: {filename}")
+                    print(f"Permission Error: {filename}\n")
                     return create_windows_shortcut_from_url(url, f"{filename}.lnk")
 
         except requests.exceptions.ConnectionError as exc:
-            print(f"Connection Error: {exc}, {url}")
+            print(f"Connection Error: {exc}, {url}\n")
             return create_windows_shortcut_from_url(url, f"{filename}.lnk")
 
         except MissingSchema as exc:
-            print(f"Missing Schema Error: {exc}, {url}")
+            print(f"Missing Schema Error: {exc}, {url}\n")
 
         except InvalidURL as exc:
-            print(f"Invalid URL Error: {exc}, {url}")
+            print(f"Invalid URL Error: {exc}, {url}\n")
 
 
 

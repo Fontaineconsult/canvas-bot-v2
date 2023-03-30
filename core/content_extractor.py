@@ -138,13 +138,15 @@ class ContentExtractor(DownloaderMixin):
         :param args:
         :return:
         """
-        print(args)
+
         if self.exists:
             root_download_directory = os.path.join(directory, f"{sanitize_windows_filename(self.course_name)} "
                                                               f"- {self.course_id}")
             create_download_manifest(root_download_directory)
             self.download(self, root_download_directory, *args)
 
+            if args[3]:
+                self.clear_folder_contents(directory)
 
     def clear_folder_contents(self, directory):
         """

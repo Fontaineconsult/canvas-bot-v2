@@ -80,7 +80,7 @@ added_mimetypes:
   - "application/vnd.openxmlformats-officedocument.presentationml.presentation|.pptx"
 
 
-default_download_path: "../output/files"
+default_download_path: "../downloads"
 
 required_env_file_keys:
   - CANVAS_COURSE_PAGE_ROOT
