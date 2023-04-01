@@ -120,9 +120,11 @@ if __name__=='__main__':
     @click.option('--output_as_json', type=click.STRING,
                   help='Output the content tree as a JSON file. Pass the directory to save the file to.')
     @click.option('--include_video_files', is_flag=True,
-                  help='Include Video Files in Download. Default is False')
+                  help='Include video files in download. Default is False')
     @click.option('--include_audio_files', is_flag=True,
-                  help='Include Audio Files in Download. Default is False')
+                  help='Include audio files in download. Default is False')
+    @click.option('--include_image_files', is_flag=True,
+                  help='Include image files in download. Default is False')
     @click.option('--flatten', is_flag=True,
                   help='Excludes course structure and downloads all files to the same directory. Default is False')
     @click.option('--flush_after_download', is_flag=True,
@@ -141,6 +143,7 @@ if __name__=='__main__':
              output_as_json,
              include_video_files,
              include_audio_files,
+             include_image_files,
              flatten,
              flush_after_download,
              download_hidden_files,
@@ -152,6 +155,7 @@ if __name__=='__main__':
                     output_as_json,
                     include_video_files=False,
                     include_audio_files=False,
+                    include_image_files=False,
                     flatten=False,
                     flush_after_download=False,
                     download_hidden_files=False,
@@ -166,6 +170,7 @@ if __name__=='__main__':
             if ctx.params.get('download_folder'):
                 flags = (include_video_files,
                          include_audio_files,
+                         include_image_files,
                          flatten,
                          flush_after_download,
                          download_hidden_files)
@@ -184,6 +189,7 @@ if __name__=='__main__':
                         output_as_json,
                         include_video_files,
                         include_audio_files,
+                        include_image_files,
                         flatten,
                         flush_after_download,
                         download_hidden_files,
@@ -196,6 +202,7 @@ if __name__=='__main__':
                     output_as_json,
                     include_video_files,
                     include_audio_files,
+                    include_image_files,
                     flatten,
                     flush_after_download,
                     download_hidden_files,

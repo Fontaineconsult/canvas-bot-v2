@@ -146,7 +146,7 @@ class ContentExtractor(DownloaderMixin):
             self.download(self, root_download_directory, *args)
 
             if args:
-                if args[3]:
+                if args[4]:
                     self.clear_folder_contents(directory)
 
     def clear_folder_contents(self, directory):

@@ -37,7 +37,3 @@ file_name_extractor = re_combiner([document_content_regex.pattern + "|" +
                                    video_file_content_regex.pattern + "|" +
                                    audio_file_content_regex.pattern])
 
-# print(file_name_extractor.pattern)
-#
-# print(file_name_extractor.match("662629.mp44fg4235264643534534534534534").group(0))
-#

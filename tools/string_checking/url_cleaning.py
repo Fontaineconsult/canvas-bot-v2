@@ -18,9 +18,14 @@ def shorten_filename_while_keeping_extension(filename: str, max_length: int) -> 
     return name[:max_length - len(extension)] + extension
 
 
-def sanitize_windows_filename(filename: str) -> str:
+def sanitize_windows_filename(filename: str, folder=False) -> str:
     # Remove invalid characters
+
     invalid_chars = r'[%<>:"/\\|?*\x00-\x1f]'
+
+    if folder:
+        invalid_chars = r'[\.%<>:"/\\|?*\x00-\x1f]'
+
     sanitized_filename = re.sub(invalid_chars, "", filename)
 
     # Add a hyphen to the end of reserved names

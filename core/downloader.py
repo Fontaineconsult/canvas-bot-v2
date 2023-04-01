@@ -29,24 +29,33 @@ def sort_by_date():
     return datetime.now().strftime('%d-%m-%Y')
 
 
-
-
 def path_constructor(root_directory, node, filename, flatten: bool):
 
     """
-        Returns the path to the folder that the node should be saved in.
+        Returns the path to the folder that the file should be saved in.
     """
     node_path = build_path(node, ignore_root=True)
     paths = list()
-
     if flatten:
-        paths.append(sanitize_windows_filename(node.title[:50]).rstrip() if node.title else str(node.__class__.__name__))
-        return os.path.join(root_directory, sort_by_date(), filename)
+        paths.append(sanitize_windows_filename(node.title[:50], folder=True).rstrip()
+                     if node.title else str(node.__class__.__name__))
 
-    for node in node_path:
-        if hasattr(node, 'is_resource'):
-            paths.append(sanitize_windows_filename(node.title[:50]).rstrip() if node.title else str(node.__class__.__name__))
-    return os.path.join(root_directory, sort_by_date(), *paths[::-1], filename)
+        return os.path.join(root_directory, sort_by_date(),  f"{node.__class__.__name__}s", filename)
+
+    for node_ in node_path:
+        if hasattr(node_, 'is_resource'):
+            paths.append(sanitize_windows_filename(node_.title[:50], folder=True).rstrip() if node_.title else str(node_.__class__.__name__))
+
+    constructed_path = os.path.join(root_directory, sort_by_date(), *paths[::-1], f"{node.__class__.__name__}s", filename)
+    if len(constructed_path) > 260:
+
+        filename_, extension = os.path.splitext(filename)
+
+        if len(extension) > 5:
+            extension = extension[:5]
+        shortened_filename = f"{filename_[:20]}{extension}"
+        constructed_path = constructed_path.replace(filename, shortened_filename)
+    return constructed_path
 
 
 def create_windows_shortcut_from_url(url: str, shortcut_path: str):
@@ -71,8 +80,10 @@ class DownloaderMixin:
     def download(self, content_extractor: ContentExtractor, directory: str, *args):
 
         download_manifest = read_download_manifest(directory)['downloaded_files']
-        include_video_files, include_audio_files, flatten, flush_after_download, download_hidden_files = args if args\
-            else (False, False, False, False, False)  # if no args are passed, set all to False
+
+        include_video_files, include_audio_files, include_image_files,\
+        flatten, flush_after_download, download_hidden_files = args if args\
+            else (False, False, False, False, False, False)  # if no args are passed, set all to False
 
         if not directory:
             print(f"Using default download path: {os.path.dirname(os.path.abspath(__file__))}")
@@ -86,7 +97,11 @@ class DownloaderMixin:
         if include_audio_files:
             download_nodes.extend([ContentNode for ContentNode in content_extractor.get_audio_file_objects()])
 
+        if include_image_files:
+            download_nodes.extend([ContentNode for ContentNode in content_extractor.get_image_file_objects()])
+
         for ContentNode in download_nodes:
+
             if is_hidden(ContentNode):
                 if download_hidden_files:
                     print(f"Including hidden file: {ContentNode.title} {ContentNode.url}\n")
@@ -100,7 +115,12 @@ class DownloaderMixin:
             if not has_file_extension(ContentNode.title):
                 title = remove_query_params_from_url(file_name_extractor.match(ContentNode.url.split('/')[-1]).group(0))
             else:
-                title = sanitize_windows_filename(file_name_extractor.match(ContentNode.title).group(0))
+
+                try:
+                    title = sanitize_windows_filename(file_name_extractor.match(ContentNode.title).group(0))
+                except AttributeError:
+                    title = sanitize_windows_filename(ContentNode.title)
+
 
             full_file_path = path_constructor(directory,
                                               ContentNode,
@@ -127,6 +147,7 @@ class DownloaderMixin:
             os.makedirs(os.path.dirname(filename))
 
         if force_to_shortcut:
+            print(url, filename)
             return create_windows_shortcut_from_url(url, f"{filename}.lnk")
 
 

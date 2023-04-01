@@ -133,7 +133,6 @@ file_storage_regex:
 ignore_list_regex:
   - .*.ramid.ccsf.edu.*.
   - .*.search/rubrics.*.
-  - .*.khanacademy.org.*.
   - https://www.avi
   - https://www.youtube.com/user/.*.
   - .*.\(\).*.
@@ -142,6 +141,8 @@ ignore_list_regex:
   - .*.community.canvaslms.com.*.
   - .*.\[\].*.
 
+
 force_to_shortcut:
   - .*.sfsu.app.box.com/s/.*.
   - .*.sfsu.box.com/s/.*.
+  - .*.docusign.*.
