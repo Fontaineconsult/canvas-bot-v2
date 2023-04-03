@@ -48,7 +48,6 @@ def save_config_data(config_data):
 
     # Save the configuration data as a JSON file
     config_file_path = os.path.join(app_folder, "config.json")
-    print(config_file_path)
     with open(config_file_path, "w") as config_file:
         json.dump(config_data, config_file, indent=4)
 
