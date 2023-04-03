@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from os import path
 
+from resource_nodes.base_content_node import BaseContentNode
 from sorters.sorters import force_to_shortcut, file_name_extractor
 from datetime import datetime
 
@@ -9,9 +10,9 @@ import win32com.client
 import os.path
 from typing import TYPE_CHECKING
 import requests
-from requests.exceptions import MissingSchema, InvalidURL
+from requests.exceptions import MissingSchema, InvalidURL, SSLError
 from config.yaml_io import read_config, read_download_manifest, write_to_download_manifest
-from tools.string_checking.url_cleaning import sanitize_windows_filename
+from tools.string_checking.url_cleaning import sanitize_windows_filename, remove_trailing_path_segments
 
 config = read_config()
 
@@ -25,11 +26,37 @@ if TYPE_CHECKING:
     from core.content_extractor import ContentExtractor
 
 
+def derive_filename_from_url(contentnode: BaseContentNode):
+    """
+    Derives a filename from a URL.
+    :param contentnode: The content node to derive the filename from.
+    :return:
+
+    """
+    # try:
+    #     check_headers = requests.head(contentnode.url, headers=user_agent)
+    # except SSLError:
+    #     return remove_trailing_path_segments(contentnode.url).split('/')[-1]
+    #
+    # print(check_headers.headers.get('Content-Type'))
+    # if check_headers.headers.get('Content-Type'):
+    #     print(check_headers.headers['Content-Type'])
+    #     if check_headers.headers['Content-Type'].split(";")[0] == 'text/html':
+    #         return "Not a File"
+    # if check_headers.headers.get('Content-Disposition'):
+    #     return check_headers['Content-Disposition'].split('filename=')[1].strip('"')
+
+    return remove_trailing_path_segments(contentnode.url).split('/')[-1]
+
+
+
+
+
 def sort_by_date():
     return datetime.now().strftime('%d-%m-%Y')
 
 
-def path_constructor(root_directory, node, filename, flatten: bool):
+def path_constructor(root_directory: str, node: BaseContentNode, filename: str, flatten: bool):
 
     """
         Returns the path to the folder that the file should be saved in.
@@ -113,11 +140,12 @@ class DownloaderMixin:
                 continue
 
             if not has_file_extension(ContentNode.title):
-                title = remove_query_params_from_url(file_name_extractor.match(ContentNode.url.split('/')[-1]).group(0))
+                print(ContentNode.title, ContentNode.url)
+                title = derive_filename_from_url(ContentNode)
             else:
 
                 try:
-                    title = sanitize_windows_filename(file_name_extractor.match(ContentNode.title).group(0))
+                    title = sanitize_windows_filename(file_name_extractor.match(ContentNode.title.split('/')[-1]).group(0))
                 except AttributeError:
                     title = sanitize_windows_filename(ContentNode.title)
 

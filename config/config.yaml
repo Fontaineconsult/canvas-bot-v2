@@ -84,5 +84,4 @@ default_download_path: "../downloads"
 
 required_env_file_keys:
   - CANVAS_COURSE_PAGE_ROOT
-  - ACCESS_TOKEN
   - API_PATH

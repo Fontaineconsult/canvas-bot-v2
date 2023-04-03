@@ -62,16 +62,20 @@ web_video_resources_regex:
   - .*.player.vimeo.com.*.
   - .*.www.ted.com/talks/.*.
   - .*./video-clips/.*.
+  - .*./video-clips
   - .*./video/.*.
   - .*./videos/.*.
   - .*./v/.*.
+  - .*./videos/
+  - .*./video/
+  - .*./video
   - https://sfstate-primo.hosted.exlibrisgroup.com/.*.
   - https://presidio.at.sfsu.edu/media/.{24}
   - .*./collections/.*./bundles/\d{6}  # diva video
   - .*./collections/.*./\d{4} # diva collection
   - .*.presidio.at.sfsu.edu.*.
   - .*.atvideo.at.sfsu.edu/player/.*.
-  - .*.sfsu.zoom.us.*.
+  - .*.zoom.us.*.
   - .*.facebook.com/watch/\?v.*.
   - .*.smartplayer.captionsync.com.*.
   - .*.instructuremedia.com/embed.*.

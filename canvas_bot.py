@@ -3,6 +3,8 @@ import click, sys, os
 from dotenv import load_dotenv
 from config.yaml_io import read_config
 from core.course_root import CanvasCourseRoot
+from network.cred import set_canvas_api_key_to_environment_variable, save_canvas_api_key, save_config_data, \
+    load_config_data_from_appdata
 
 
 def read_course_list(course_list_file: str):
@@ -16,59 +18,24 @@ def read_course_list(course_list_file: str):
     return course_list
 
 
-def detect_valid_env_config():
-    """
-    Detects if the .env file is present in the root folder and if it contains the required keys
-    :return:
-    """
-    required_env_file_keys = read_config()['required_env_file_keys']
-    env_dict = {}
-
-    if getattr(sys, 'frozen', False):
-        exe_path = os.path.dirname(sys.executable)
-    else:
-        exe_path = os.path.dirname(os.path.abspath(__file__))
-
-    env_path = os.path.join(exe_path, '.env')
-
-    if os.path.exists(env_path):
-
-        with open(env_path, 'r') as f:
-            for line in f:
-                if line.strip():  # Ignore empty lines
-                    key, value = line.strip().split('=', 1)
-                    env_dict[key] = value
-
-        load_dotenv(env_path)
-        return set(required_env_file_keys).issubset(set(list(env_dict.keys())))
-    else:
-        return False
+def check_if_api_key_exists():
+    if not set_canvas_api_key_to_environment_variable():
+        api_key = input("Please enter your Canvas API Key: ")
+        save_canvas_api_key(api_key)
+        set_canvas_api_key_to_environment_variable()
 
 
-def collect_env_variables_from_user():
-    """
-    Collects the required environment variable keys from the user
-    :return:
-    """
+def load_json_config_file_from_appdata():
 
-    required_env_file_keys = read_config()['required_env_file_keys']
-    env_dict = {}
-    for key in required_env_file_keys:
-        env_dict[key] = input(f"Enter {key}: ")
+    if not load_config_data_from_appdata():
 
-    if getattr(sys, 'frozen', False):
-        exe_path = os.path.dirname(sys.executable)
-    else:
-        exe_path = os.path.dirname(os.path.abspath(__file__))
+        required_config_file_keys = read_config()['required_env_file_keys']
+        app_config_dict = {}
 
-    env_path = os.path.join(exe_path, '.env')
-
-    with open(env_path, 'w') as f:
-        for key, value in env_dict.items():
-            f.write(f"{key}={value}\n")
-        os.fsync(f.fileno())
-
-    return env_path
+        for key in required_config_file_keys:
+            app_config_dict[key] = input(f"Enter {key}: ")
+        save_config_data(app_config_dict)
+        load_config_data_from_appdata()
 
 
 class CanvasBot(CanvasCourseRoot):
@@ -77,6 +44,13 @@ class CanvasBot(CanvasCourseRoot):
     """
     def __init__(self, course_id: str):
         super().__init__(str(course_id))
+
+    def detect_and_set_config(self):
+        check_if_api_key_exists()
+        load_json_config_file_from_appdata()
+
+
+
 
     def detect_and_set_env_file_in_network_folder(self):
         """
@@ -95,7 +69,7 @@ class CanvasBot(CanvasCourseRoot):
 
     def start(self):
         print("Starting Canvas Bot")
-        self.detect_and_set_env_file_in_network_folder()
+        self.detect_and_set_config()
         self.initialize_course()
 
     def print_content_tree(self):

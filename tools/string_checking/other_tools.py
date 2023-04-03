@@ -14,5 +14,8 @@ def has_file_extension(filename):
     return bool(re.search(r'\.\w+', filename))
 
 
+
+
+
 def remove_query_params_from_url(url):
     return url.split('?')[0]
