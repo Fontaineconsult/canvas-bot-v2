@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from config.yaml_io import read_config
 from core.course_root import CanvasCourseRoot
 from network.cred import set_canvas_api_key_to_environment_variable, save_canvas_api_key, save_config_data, \
-    load_config_data_from_appdata
+    load_config_data_from_appdata, delete_canvas_api_key, delete_config_file_from_appdata
 
 
 def read_course_list(course_list_file: str):
@@ -42,13 +42,18 @@ class CanvasBot(CanvasCourseRoot):
     """
     Wraps Canvas Course Root Class
     """
-    def __init__(self, course_id: str):
+    def __init__(self, course_id):
         super().__init__(str(course_id))
 
     def detect_and_set_config(self):
         check_if_api_key_exists()
         load_json_config_file_from_appdata()
 
+    def reset_config(self):
+        print("Resetting API Key and Config File")
+        delete_canvas_api_key()
+        delete_config_file_from_appdata()
+        self.detect_and_set_config()
 
     def start(self):
         print("Starting Canvas Bot")
@@ -91,7 +96,7 @@ if __name__=='__main__':
     @click.option('--show_content_tree', is_flag=True,
                   help='Prints a content tree of the course to the console. Default is False')
     @click.option('--reset_params', is_flag=True,
-                  help='Deletes API key and config file. Default is False')
+                  help='Resets API key and config file. Default is False')
 
 
     @click.pass_context
@@ -106,7 +111,8 @@ if __name__=='__main__':
              flatten,
              flush_after_download,
              download_hidden_files,
-             show_content_tree):
+             show_content_tree,
+             reset_params):
 
         def run_bot(ctx,
                     course_id,
@@ -118,10 +124,20 @@ if __name__=='__main__':
                     flatten=False,
                     flush_after_download=False,
                     download_hidden_files=False,
-                    show_content_tree=False):
+                    show_content_tree=False,
+                    reset_params=False):
+
 
             bot = CanvasBot(course_id)
-            bot.start()
+
+            if reset_params:
+                bot.reset_config()
+
+            if course_id:
+                bot.start()
+            else:
+                print("No course ID provided. Exiting")
+                exit()
 
             if show_content_tree:
                 bot.print_content_tree()
@@ -152,7 +168,8 @@ if __name__=='__main__':
                         flatten,
                         flush_after_download,
                         download_hidden_files,
-                        show_content_tree)
+                        show_content_tree,
+                        reset_params)
 
         if course_id:
             run_bot(ctx,
@@ -165,6 +182,15 @@ if __name__=='__main__':
                     flatten,
                     flush_after_download,
                     download_hidden_files,
-                    show_content_tree)
+                    show_content_tree,
+                    reset_params)
+
+        if reset_params and not course_id:
+            bot = CanvasBot("0")
+            bot.reset_config()
+            print("No course ID provided. Exiting")
+            exit()
+
+
 
     main()

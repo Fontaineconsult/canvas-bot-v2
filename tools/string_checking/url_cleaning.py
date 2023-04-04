@@ -23,6 +23,9 @@ def shorten_filename_while_keeping_extension(filename: str, max_length: int) -> 
 def sanitize_windows_filename(filename: str, folder=False) -> str:
     # Remove invalid characters
 
+    filename = filename.encode('ascii', errors='ignore').decode('ascii')
+
+
     invalid_chars = r'[,%<>:"/\\|?*\x00-\x1f]'
 
     if folder:

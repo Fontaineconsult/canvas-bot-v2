@@ -74,9 +74,18 @@ def load_config_data_from_appdata():
 
     # set each key in the config data to an environment variable
     for key, value in config_data.items():
-        print(key, value)
         os.environ[key] = value
     return True
 
+def delete_config_file_from_appdata():
+    """
+    Delete the configuration file from the AppData folder.
+    """
+    # Get the AppData folder path
+    appdata_path = os.environ.get("APPDATA")
+    app_folder = os.path.join(appdata_path, "canvas bot")
 
+    # Delete the configuration file
+    config_file_path = os.path.join(app_folder, "config.json")
+    os.remove(config_file_path)
 

@@ -97,8 +97,10 @@ def create_windows_shortcut_from_url(url: str, shortcut_path: str):
     :param url: The URL to create the shortcut from.
     :param shortcut_path: The path to save the shortcut to.
     """
+    print("XX", shortcut_path)
+    encode_path_to_ascii = shortcut_path.encode('ascii', errors='ignore').decode('ascii')
+    shortcut_path = encode_path_to_ascii.split(".")[0] + ".lnk"
     print("ZZ", shortcut_path)
-    shortcut_path = shortcut_path.split(".")[0] + ".lnk"
 
     shell = win32com.client.Dispatch("WScript.Shell")
     shortcut = shell.CreateShortCut(shortcut_path)
