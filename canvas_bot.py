@@ -50,23 +50,6 @@ class CanvasBot(CanvasCourseRoot):
         load_json_config_file_from_appdata()
 
 
-
-
-    def detect_and_set_env_file_in_network_folder(self):
-        """
-        Detects if the .env file is present in the network folder and if it contains the required keys
-        :return:
-        """
-        if detect_valid_env_config():
-
-            print("Valid .env file detected")
-        else:
-            print("No Valid .env file detected")
-            path = collect_env_variables_from_user()
-            print("setting env variables from .env file")
-            load_dotenv(path)
-
-
     def start(self):
         print("Starting Canvas Bot")
         self.detect_and_set_config()
@@ -107,6 +90,8 @@ if __name__=='__main__':
                   help='Downloads files hidden from students. Default is False')
     @click.option('--show_content_tree', is_flag=True,
                   help='Prints a content tree of the course to the console. Default is False')
+    @click.option('--reset_params', is_flag=True,
+                  help='Deletes API key and config file. Default is False')
 
 
     @click.pass_context

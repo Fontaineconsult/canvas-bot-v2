@@ -1,5 +1,5 @@
 import animation
-
+from datetime import datetime
 from network.api import get_assignments, get_assignment
 from resource_nodes.base_node import Node
 
@@ -35,7 +35,12 @@ class Assignment(Node):
             api_dict = get_assignment(root.course_id, api_dict['id'])
 
         if api_dict:
-            super().__init__(parent, root, api_dict['id'])
+            if api_dict.get('due_at'):
+                date_obj = datetime.strptime(api_dict['due_at'], "%Y-%m-%dT%H:%M:%SZ")
+                assignment_title = f"Assignment {api_dict['position']} | Due: {date_obj.strftime('%d-%m-%Y')}"
+            else:
+                assignment_title = f"Assignment {api_dict['position']} | No Due Date Set"
+            super().__init__(parent, root, api_dict['id'], assignment_title)
             self.root.manifest.add_item_to_manifest(self)
             self._expand_api_dict_to_class_attributes(api_dict)
             self.add_data_api_link_to_children(self.description)

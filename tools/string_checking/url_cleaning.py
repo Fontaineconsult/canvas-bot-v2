@@ -23,10 +23,10 @@ def shorten_filename_while_keeping_extension(filename: str, max_length: int) -> 
 def sanitize_windows_filename(filename: str, folder=False) -> str:
     # Remove invalid characters
 
-    invalid_chars = r'[%<>:"/\\|?*\x00-\x1f]'
+    invalid_chars = r'[,%<>:"/\\|?*\x00-\x1f]'
 
     if folder:
-        invalid_chars = r'[\.%<>:"/\\|?*\x00-\x1f]'
+        invalid_chars = r'[,\.%<>:"/\\|?*\x00-\x1f]'
 
     sanitized_filename = re.sub(invalid_chars, "", filename)
 
@@ -105,5 +105,7 @@ def remove_trailing_path_segments(url):
             fixed_paths = [item for item in parsed_url.path.split('/')[:count + 1] if item != '']
             return urlunparse(parsed_url._replace(path=path.join(*fixed_paths)))
 
+    return
 
-print(remove_trailing_path_segments("https://rightslink-prd-copyright-com.s3.amazonaws.com/getitnow/fulfillment/6403289.pdf?X-Amz-Security-Token=IQoJb3JpZ2luX2VjEE4aCXVzLWVhc3QtMSJHMEUCIQD%2BJKf7xmR6WGcLuF1Ee3klr37w7guHC46kkVrUz%2BfQSQIgZkjOSsoaTIOK0zJnbGqpeRO1ebs0SedSogzZMsviGdEqtAMINhACGgwyNzI5MzQ1Njk5NTIiDLm8EX%2FzPKG7k50pXSqRA%2BF48nTMtJlHcC3bC3fZiV8ZdYRak%2BSogL2xhvRVoGgrnFk2NdAUWV7kLj0OA9A9lhUN2OwyruSk5EI9cfsYvFbLd2Bp%2BR1yUWgXHohhJPlQTu32b02FX3Qq86IISs1znjYUHko3dC1udxQcQG109GOG3csr%2F3z17vKxBvRCTow0IMFddRjCvMSb38KSItiQSAd4wWsvqQ2MbUPxIlKpDJjJcSew3Pz%2BvDMASWq0oAHsdKqAmulymSJB0COBOZ2YtZ0NTYHlap%2BKgpMBrHWAc2e1zfhNWAuahthLbt0qKEpepDz8Hyrig3yFtKDFZOMA0L0ef%2FQFsPhxqVZ%2BZhR1ROnU9w4%2F5J73W9ZM8zc%2B3Ar8LFnDqJxSmYvFN55HvT%2FImA32BEZ0hDP5Dq6BpDhuJJlbqMzbDEOyluBouu0ZDnaFPMjhvI83z5tX0vDD0xmOX3KUNUSK5Ee%2FfM267OuEZriIOx1Nqq6i%2BeLahB54h6mWlpllvwBTAU9zAWchH9KW6ro67FihGAB8FaGXr8FNx8P%2FMJes9vkFOusBO25HzRF9qbgO8Xz3J%2F6Wt84mJi1L%2FUKOCtFFOU%2FOKA5Q%2BWc0ct8%2FCYOky65%2FF152mgXXCgz7kgo%2FZKQLuMo25X3rfn0ULEMF7xnzdsLSlGI%2FQO8PY62HWFRWINOKtci9msiUge5RA00%2FnjdW82di2PAL%2FzmVrH4HbG7u025CzcPdDTx1re0YSxcVg%2B8mioFEuM42CNtA5fB0LLZqhhVoHi0lyOIYMWy%2FmoczXR0B1BgU%2FRI3vypJfSBq0pHfe6ZnwyB4Jf866Q08pbFJUgGsErMhkJhgC2e6rSOdt7nwJpvkBiU6sSnAnnw5YQ%3D%3D&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20200819T220224Z&X-Amz-SignedHeaders=host&X-Amz-Expires=86400&X-Amz-Credential=ASIAT7DBLA7QCPHZLCHE%2F20200819%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=2066081be7a1ecb589ecfca5e5f6ac6e7d73a338474fddbd5a0b30313c468597"))
+test = r"https://mailsfsu-my.sharepoint.com/:x:/r/personal/902771381_sfsu_edu/_layouts/15/Doc.aspx?sourcedoc=%7B1548DF10-7D7D-4BD9-9621-E104395C0204%7D&file=BUS%20216%20Section%201%20Presentation%20Signups.xlsx&action=default&mobileredirect=true&DefaultItemOpen=1&login_hint=902771381%40sfsu.edu&ct=1660343161350&wdOrigin=OFFICECOM-WEB.START.EDGEWORTH&cid=34febfe4-ab6a-4f2d-a949-f5e65fda6187"
+print(remove_trailing_path_segments(test))

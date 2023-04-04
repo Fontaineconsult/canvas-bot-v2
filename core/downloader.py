@@ -46,10 +46,16 @@ def derive_filename_from_url(contentnode: BaseContentNode):
     # if check_headers.headers.get('Content-Disposition'):
     #     return check_headers['Content-Disposition'].split('filename=')[1].strip('"')
 
-    return remove_trailing_path_segments(contentnode.url).split('/')[-1]
+    remove_trailing = remove_trailing_path_segments(contentnode.url)
+    if remove_trailing:
+        return remove_trailing.split('/')[-1]
+    else:
+        return f"$$-{contentnode.title[:20]}" # force a filename to a shortcut using $$- as a prefix
 
 
+test = r"https://mailsfsu-my.sharepoint.com/:x:/r/personal/902771381_sfsu_edu/_layouts/15/Doc.aspx?sourcedoc=%7B1548DF10-7D7D-4BD9-9621-E104395C0204%7D&file=BUS%20216%20Section%201%20Presentation%20Signups.xlsx&action=default&mobileredirect=true&DefaultItemOpen=1&login_hint=902771381%40sfsu.edu&ct=1660343161350&wdOrigin=OFFICECOM-WEB.START.EDGEWORTH&cid=34febfe4-ab6a-4f2d-a949-f5e65fda6187"
 
+print(remove_trailing_path_segments(test))
 
 
 def sort_by_date():
@@ -91,6 +97,8 @@ def create_windows_shortcut_from_url(url: str, shortcut_path: str):
     :param url: The URL to create the shortcut from.
     :param shortcut_path: The path to save the shortcut to.
     """
+    print("ZZ", shortcut_path)
+    shortcut_path = shortcut_path.split(".")[0] + ".lnk"
 
     shell = win32com.client.Dispatch("WScript.Shell")
     shortcut = shell.CreateShortCut(shortcut_path)
@@ -176,7 +184,7 @@ class DownloaderMixin:
 
         if force_to_shortcut:
             print(url, filename)
-            return create_windows_shortcut_from_url(url, f"{filename}.lnk")
+            return create_windows_shortcut_from_url(url, filename)
 
 
         try:
@@ -185,7 +193,7 @@ class DownloaderMixin:
             if response.status_code in [401, 402, 403, 404, 405, 406]:
 
                 print(f"Response Error {response.status_code} {response.reason} {url} {filename}\n")
-                return create_windows_shortcut_from_url(url, f"{filename}.lnk")
+                return create_windows_shortcut_from_url(url, filename)
             else:
                 try:
                     print(f"Downloading {url} to {filename}...\n")
@@ -201,11 +209,11 @@ class DownloaderMixin:
 
                 except PermissionError:
                     print(f"Permission Error: {filename}\n")
-                    return create_windows_shortcut_from_url(url, f"{filename}.lnk")
+                    return create_windows_shortcut_from_url(url, filename)
 
         except requests.exceptions.ConnectionError as exc:
             print(f"Connection Error: {exc}, {url}\n")
-            return create_windows_shortcut_from_url(url, f"{filename}.lnk")
+            return create_windows_shortcut_from_url(url, filename)
 
         except MissingSchema as exc:
             print(f"Missing Schema Error: {exc}, {url}\n")
