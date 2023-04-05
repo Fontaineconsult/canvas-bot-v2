@@ -18,9 +18,6 @@ from tools.canvas_tree import CanvasTree
 
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-
-dotenv_path = join(dirname(__file__), '.env')
-load_dotenv(dotenv_path)
 init()
 
 class CanvasCourseRoot(ContentExtractor):
@@ -34,6 +31,7 @@ class CanvasCourseRoot(ContentExtractor):
         self.root_node = True
         self.title = None
         self.exists = False
+        print(os.environ.get('CANVAS_COURSE_PAGE_ROOT'))
         super().__init__(self.manifest, self.course_id, self.course_url, self.title, self.exists)
 
     def __str__(self):
@@ -45,7 +43,6 @@ class CanvasCourseRoot(ContentExtractor):
             self.title = course_api['name'] # name used internally for course
             self.course_name = course_api['name'] # name used for course folder
             self.exists = True
-
             print(f"\nStarting import for {self.title} | {self.course_url}\n")
             self._init_modules_root()
 

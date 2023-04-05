@@ -1,8 +1,9 @@
 /network/.env
-/.idea/
+.idea
 /output/json/*
 /root
 .env
 /dist
 /build
 canvas_bot.spec
+build.cmd

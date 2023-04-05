@@ -74,7 +74,6 @@ def extract_url_query_param(url):
 
     target = parse_qs(urlparse(url).query)['url'][0]
     p = urlparse(target)
-    print(p)
     q = p._replace(path=path.join(path.dirname(path.dirname(p.path)), path.basename(p.path)))
     return urlunparse(q)
 
@@ -109,6 +108,3 @@ def remove_trailing_path_segments(url):
             return urlunparse(parsed_url._replace(path=path.join(*fixed_paths)))
 
     return
-
-test = r"https://mailsfsu-my.sharepoint.com/:x:/r/personal/902771381_sfsu_edu/_layouts/15/Doc.aspx?sourcedoc=%7B1548DF10-7D7D-4BD9-9621-E104395C0204%7D&file=BUS%20216%20Section%201%20Presentation%20Signups.xlsx&action=default&mobileredirect=true&DefaultItemOpen=1&login_hint=902771381%40sfsu.edu&ct=1660343161350&wdOrigin=OFFICECOM-WEB.START.EDGEWORTH&cid=34febfe4-ab6a-4f2d-a949-f5e65fda6187"
-print(remove_trailing_path_segments(test))

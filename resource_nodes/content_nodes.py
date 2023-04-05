@@ -24,9 +24,9 @@ class Document(BaseContentNode):
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
-            return f"{Fore.LIGHTCYAN_EX}({self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.title}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTCYAN_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.title} ){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTCYAN_EX}({self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTCYAN_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
 
 
 class DocumentSite(BaseContentNode):
@@ -41,7 +41,7 @@ class VideoSite(BaseContentNode):
         super().__init__(parent, root, api_dict, url, title, **kwargs)
 
     def __str__(self):
-        return f"{Fore.LIGHTRED_EX}({self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url}){Style.RESET_ALL}"
+        return f"{Fore.LIGHTRED_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
 
 
 class VideoFile(BaseContentNode):
@@ -53,9 +53,9 @@ class VideoFile(BaseContentNode):
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
-            return f"{Fore.LIGHTMAGENTA_EX}({self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.title}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTMAGENTA_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.title} ){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTMAGENTA_EX}({self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTMAGENTA_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
 
 
 class AudioFile(BaseContentNode):
@@ -68,9 +68,9 @@ class AudioFile(BaseContentNode):
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
-            return f"{Fore.LIGHTGREEN_EX}({self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.title}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTGREEN_EX}( {self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.title} ){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTGREEN_EX}({self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.url}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTGREEN_EX}( {self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
 
 
 class AudioSite(BaseContentNode):
@@ -89,9 +89,9 @@ class ImageFile(BaseContentNode):
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
-            return f"{Fore.LIGHTYELLOW_EX}({self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.title}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTYELLOW_EX}( {self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.title} ){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTYELLOW_EX}({self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.url}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTYELLOW_EX}( {self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
 
 
 class FileStorageSite(BaseContentNode):
@@ -112,9 +112,9 @@ class Unsorted(BaseContentNode):
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
-            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.title}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTWHITE_EX}( {self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.title} ){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTWHITE_EX}({self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.url}){Style.RESET_ALL}"
+            return f"{Fore.LIGHTWHITE_EX}( {self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
 
 
 

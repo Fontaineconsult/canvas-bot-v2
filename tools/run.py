@@ -3,7 +3,6 @@ import sys
 def run(course_id):
     bot = CanvasBot(course_id)
     bot.start()
-    print(bot.save_content_as_json())
 
 if __name__ == '__main__':
 

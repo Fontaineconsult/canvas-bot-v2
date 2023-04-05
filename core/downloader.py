@@ -52,12 +52,6 @@ def derive_filename_from_url(contentnode: BaseContentNode):
     else:
         return f"$$-{contentnode.title[:20]}" # force a filename to a shortcut using $$- as a prefix
 
-
-test = r"https://mailsfsu-my.sharepoint.com/:x:/r/personal/902771381_sfsu_edu/_layouts/15/Doc.aspx?sourcedoc=%7B1548DF10-7D7D-4BD9-9621-E104395C0204%7D&file=BUS%20216%20Section%201%20Presentation%20Signups.xlsx&action=default&mobileredirect=true&DefaultItemOpen=1&login_hint=902771381%40sfsu.edu&ct=1660343161350&wdOrigin=OFFICECOM-WEB.START.EDGEWORTH&cid=34febfe4-ab6a-4f2d-a949-f5e65fda6187"
-
-print(remove_trailing_path_segments(test))
-
-
 def sort_by_date():
     return datetime.now().strftime('%d-%m-%Y')
 
@@ -97,10 +91,10 @@ def create_windows_shortcut_from_url(url: str, shortcut_path: str):
     :param url: The URL to create the shortcut from.
     :param shortcut_path: The path to save the shortcut to.
     """
-    print("XX", shortcut_path)
+
     encode_path_to_ascii = shortcut_path.encode('ascii', errors='ignore').decode('ascii')
     shortcut_path = encode_path_to_ascii.split(".")[0] + ".lnk"
-    print("ZZ", shortcut_path)
+
 
     shell = win32com.client.Dispatch("WScript.Shell")
     shortcut = shell.CreateShortCut(shortcut_path)
@@ -150,7 +144,7 @@ class DownloaderMixin:
                 continue
 
             if not has_file_extension(ContentNode.title):
-                print(ContentNode.title, ContentNode.url)
+
                 title = derive_filename_from_url(ContentNode)
             else:
 
@@ -185,7 +179,6 @@ class DownloaderMixin:
             os.makedirs(os.path.dirname(filename))
 
         if force_to_shortcut:
-            print(url, filename)
             return create_windows_shortcut_from_url(url, filename)
 
 
