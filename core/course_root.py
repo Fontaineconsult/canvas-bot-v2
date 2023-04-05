@@ -16,9 +16,9 @@ from resource_nodes.pages import Pages
 from resource_nodes.quizzes import Quizzes
 from tools.canvas_tree import CanvasTree
 
-
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 init()
+
 
 class CanvasCourseRoot(ContentExtractor):
 
@@ -31,7 +31,6 @@ class CanvasCourseRoot(ContentExtractor):
         self.root_node = True
         self.title = None
         self.exists = False
-        print(os.environ.get('CANVAS_COURSE_PAGE_ROOT'))
         super().__init__(self.manifest, self.course_id, self.course_url, self.title, self.exists)
 
     def __str__(self):
@@ -46,7 +45,6 @@ class CanvasCourseRoot(ContentExtractor):
             print(f"\nStarting import for {self.title} | {self.course_url}\n")
             self._init_modules_root()
 
-
         if not course_api:
             print(f"Course ID: {self.course_id} does not exist. Please check the course ID and try again.")
 
@@ -54,27 +52,19 @@ class CanvasCourseRoot(ContentExtractor):
 
         self.canvas_tree.init_node(self)
 
-        print("Importing Modules")
         self.modules = Modules(self.course_id, self)
 
-        print("Importing Quizzes")
         self.quizzes = Quizzes(self.course_id, self)
 
-        print("Importing Assignments")
         self.assignments = Assignments(self.course_id, self)
 
-        print("Importing Announcements")
         self.announcements = Announcements(self.course_id, self)
 
-        print("Importing Discussions")
         self.discussions = Discussions(self.course_id, self)
 
-        print("Importing Pages")
         self.pages = Pages(self.course_id, self)
 
-        print("Importing Canvas Files")
         self.files = CanvasFiles(self.course_id, self)
 
-        print("Importing Media Objects")
         self.media_objects = CanvasMediaObjects(self.course_id, self)
-        print("Import Complete")
+        print("Import Complete\n")

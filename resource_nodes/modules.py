@@ -1,7 +1,5 @@
-import animation
-
+from tools.animation import animate
 from resource_nodes.base_node import Node
-
 from network.api import get_modules, get_module_items, get_url
 
 
@@ -20,7 +18,7 @@ class Modules(Node):
         self.api_request_content = None
         self.get_all_items()
 
-    @animation.wait('spinner')
+    @animate('Importing Modules')
     def get_all_items(self):
 
         api_request = self.api_request(self.course_id)
