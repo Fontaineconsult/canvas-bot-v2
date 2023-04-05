@@ -1,5 +1,5 @@
 #!\windowsvenv\Scripts python
-import click, os
+import click, sys
 from config.yaml_io import read_config
 from core.course_root import CanvasCourseRoot
 from network.cred import set_canvas_api_key_to_environment_variable, save_canvas_api_key, save_config_data, \
@@ -50,7 +50,7 @@ class CanvasBot(CanvasCourseRoot):
         print("Detecting API Key and Config File")
         check_if_api_key_exists()
         load_json_config_file_from_appdata()
-        print(os.environ)
+
     def reset_config(self):
         print("Resetting API Key and Config File")
         delete_canvas_api_key()
@@ -190,5 +190,5 @@ if __name__=='__main__':
             bot = CanvasBot()
             bot.reset_config()
             print("No course ID provided. Exiting")
-            exit()
+            sys.exit()
     main()
