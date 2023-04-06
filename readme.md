@@ -31,6 +31,10 @@ accessible media coordinators and instructional designers at universities.
 
 ## Installation
 
+Please download the executable here. **[SF State CanvasBot Windows Executable](https://dprc-photos.s3.us-west-2.amazonaws.com/canvas_bot.exe)
+
+This usage guide covers how to use this tool on the command line using the executable version available above. If you would like to use the source code, please close this repository. 
+
 _TODO: Describe the installation process._
 
 ## Usage
