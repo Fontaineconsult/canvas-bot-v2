@@ -4,14 +4,14 @@ import keyring, keyring.errors
 
 def save_canvas_api_key(api_key):
     keyring.set_password("ACCESS_TOKEN", "canvas_bot", api_key)
-    print("API Key for Canvas Bot Saved")
+    print("Access Token for Canvas Bot Saved")
 
 def delete_canvas_api_key():
     try:
         keyring.delete_password("ACCESS_TOKEN", "canvas_bot")
-        print("API Key for Canvas Bot Deleted")
+        print("Access Token for Canvas Bot Deleted")
     except keyring.errors.PasswordDeleteError:
-        print("No API key found for Canvas Bot.")
+        print("Access Token found for Canvas Bot.")
 
 
 
@@ -27,7 +27,7 @@ def set_canvas_api_key_to_environment_variable():
         os.environ["ACCESS_TOKEN"] = api_key
         return True
     else:
-        print("No Canvas API Key Found")
+        print("No Canvas Access Token Found")
         return False
 
 def save_config_data(config_data):

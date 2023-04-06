@@ -47,12 +47,12 @@ class CanvasBot(CanvasCourseRoot):
             super().__init__(str(course_id))
 
     def detect_and_set_config(self):
-        print("Detecting API Key and Config File")
+        print("Detecting Access Token and Config File")
         check_if_api_key_exists()
         load_json_config_file_from_appdata()
 
     def reset_config(self):
-        print("Resetting API Key and Config File")
+        print("Resetting Access Token and Config File")
         delete_canvas_api_key()
         delete_config_file_from_appdata()
         self.detect_and_set_config()
@@ -97,7 +97,7 @@ if __name__=='__main__':
     @click.option('--show_content_tree', is_flag=True,
                   help='Prints a content tree of the course to the console. Default is False')
     @click.option('--reset_params', is_flag=True,
-                  help='Resets API key and config file. Default is False')
+                  help='Resets Access Token and config file. Default is False')
 
 
     @click.pass_context
