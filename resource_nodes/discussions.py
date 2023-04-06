@@ -1,8 +1,6 @@
-import animation
-
-
 from network.api import get_discussions, get_discussion
 from resource_nodes.base_node import Node
+from tools.animation import animate
 
 
 class Discussions(Node):
@@ -19,7 +17,7 @@ class Discussions(Node):
         self.api_request_content = None
         self.get_all_items()
 
-    @animation.wait('spinner')
+    @animate('Importing Discussions')
     def get_all_items(self):
 
         api_request = self.api_request(self.course_id)

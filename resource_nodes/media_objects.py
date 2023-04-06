@@ -1,8 +1,8 @@
-import animation
 from core.node_factory import get_content_node
 from network.api import get_media_objects
 
 from resource_nodes.base_node import Node
+from tools.animation import animate
 
 
 class CanvasMediaObjects(Node):
@@ -19,13 +19,12 @@ class CanvasMediaObjects(Node):
         self.api_request_content = None
         self.get_all_items()
 
-    @animation.wait('spinner')
+    @animate('Importing Media Objects')
     def get_all_items(self):
 
         api_dict = self.api_request(self.course_id)
         if api_dict:
             for media_object_dict in api_dict:
-                print(media_object_dict['media_sources'])
                 media_node = get_content_node(None, media_object_dict)
                 self._expand_api_dict_to_class_attributes(media_object_dict)
                 if len(media_object_dict['media_sources']) > 0:

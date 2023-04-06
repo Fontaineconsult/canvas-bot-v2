@@ -1,10 +1,6 @@
-import animation
-
-
-
 from network.api import get_files, get_url
 from resource_nodes.base_node import Node
-
+from tools.animation import animate
 
 
 class CanvasFiles(Node):
@@ -21,7 +17,7 @@ class CanvasFiles(Node):
         self.api_request = get_files
         self.get_all_items()
 
-    @animation.wait('spinner')
+    @animate('Importing Canvas Files')
     def get_all_items(self):
         from core.node_factory import get_content_node
         api_request = self.api_request(self.course_id)

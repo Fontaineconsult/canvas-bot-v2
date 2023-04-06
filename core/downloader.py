@@ -181,7 +181,6 @@ class DownloaderMixin:
         if force_to_shortcut:
             return create_windows_shortcut_from_url(url, filename)
 
-
         try:
             response = requests.get(url, stream=True, verify=True, headers=user_agent)
 

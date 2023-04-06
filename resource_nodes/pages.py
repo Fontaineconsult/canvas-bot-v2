@@ -1,7 +1,6 @@
-import animation
-
 from network.api import get_pages, get_page
 from resource_nodes.base_node import Node
+from tools.animation import animate
 
 
 class Pages(Node):
@@ -18,7 +17,7 @@ class Pages(Node):
         self.api_request_content = None
         self.get_all_items()
 
-    @animation.wait('spinner')
+    @animate('Importing Announcements')
     def get_all_items(self):
 
         api_request = self.api_request(self.course_id)

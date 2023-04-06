@@ -1,7 +1,7 @@
-import animation
 from datetime import datetime
 from network.api import get_assignments, get_assignment
 from resource_nodes.base_node import Node
+from tools.animation import animate
 
 
 class Assignments(Node):
@@ -18,7 +18,7 @@ class Assignments(Node):
         self.api_request_content = None
         self.get_all_items()
 
-    @animation.wait('spinner')
+    @animate('Importing Assignments')
     def get_all_items(self):
 
         api_request = self.api_request(self.course_id)
