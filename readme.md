@@ -27,7 +27,7 @@ accessible media coordinators and instructional designers at universities.
 ## Requirements
 
 - Windows operating system
-- Canvas API key
+- Canvas API Access Token
 
 ## Installation
 
@@ -77,7 +77,9 @@ Default is False</li>
 <li>--reset_params Resets API key and config file. Default is False</li>
 </ul>
 
-### Obtaining a Canvas API key
+### Obtaining a Canvas API Access Token
+
+
 
 _TODO: Provide instructions on how to obtain a Canvas API key._
 
