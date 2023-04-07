@@ -79,9 +79,24 @@ Default is False</li>
 
 ### Obtaining a Canvas API Access Token
 
+Please contact your Canvas LMS campus administrator to enable your account to use the Canvas API.
+Once your account has been enabled, you will need to obtain an API access token.
+This token will be used to authenticate your account when using the SF State CanvasBot.
 
+Canvas Integrations can be accessed in your account settings. <br> Go to Account > Settings > Approved Integrations.
+Click on the New Access Token button to generate a new access token. <br>
+![Canvas Integration](https://dprc-photos.s3.us-west-2.amazonaws.com/AddAPIToken.PNG)
 
-_TODO: Provide instructions on how to obtain a Canvas API key._
+Give a name to your token and click Generate Token. <br>
+![New Access Token](https://dprc-photos.s3.us-west-2.amazonaws.com/NewAccessToken.PNG)
+
+Copy the token. Once copied you won't be able to see it again. <br>
+![Access Token Details](https://dprc-photos.s3.us-west-2.amazonaws.com/AccessTokenDetails.PNG)
+
+Once the token has been generated, you will need to enter it into the SF State CanvasBot.
+When you first run the program you will be prompted.<br>
+![Access Token Details](https://dprc-photos.s3.us-west-2.amazonaws.com/EnterAccessToken.PNG)
+
 
 ### Export Course Data as JSON
 
