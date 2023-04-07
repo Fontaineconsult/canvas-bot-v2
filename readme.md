@@ -50,11 +50,11 @@ There are currently 10 different content types:
 
 ## Installation
 
-Please download the v0.1.0-alpha executable here. **[SF State CanvasBot Windows Executable](https://github.com/Fontaineconsult/canvas-bot-v2/releases/download/v0.1.0-alpha/canvas_bot.exe)
+Please download the v0.1.0-alpha executable here. [SF State CanvasBot Windows Executable](https://github.com/Fontaineconsult/canvas-bot-v2/releases/download/v0.1.0-alpha/canvas_bot.exe)
 
 This usage guide covers how to use this tool on the command line using the executable version available above. If you would like to use the source code, please close this repository. 
 
-_TODO: Describe the installation process._
+This is a standalone executable. You do not need to install Python or any other dependencies.
 
 ## Usage
 
@@ -108,9 +108,6 @@ If you want to download all files into a single folder, you will need to pass th
     canvas_bot.exe --course_id 12345 --download_folder C:\Users\Downloads --flatten
 
 Flattening the course structure makes it easier to work with all the files in a course. 
-
-
-_TODO: Describe how to use the command-line tool, including any necessary flags or options._
 
 ### Export Course Data as JSON
 
@@ -235,6 +232,7 @@ This tool is a work in progress. Please contact me at <fontaine@sfsu.edu> if you
 - [ ] Add GUI interface for easier use
 - [ ] Add the ability to easily customize the filters for what content is tracked.
 - [ ] Logging support
+- [ ] Add better support scraping Box, DropBox, Google Drive, etc.
 
 ### Known Issues
 
