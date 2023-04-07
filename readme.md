@@ -80,9 +80,25 @@ To download files, you will need to specify a download folder. In command prompt
 
     canvas_bot.exe --course_id 12345 --download_folder "C:\Users\Downloads"
 
+
 By default, the program only downloads document-like files, such as PDF and MS Word. If you want to download other file types, such as videos and images, you will need to pass the following flags:
 
     canvas_bot.exe --course_id 12345 --download_folder C:\Users\Downloads --include_video_files --include_audio_files --include_image_files
+
+#### Download Manifest
+
+The bot will track which files have been successfully downloaded. This is done by creating a file called `download_manifest.json` in the same directory as the course specified by `--download_folder`.
+This file contains a list of all the files that have been downloaded. If you want to download all files again, you will need to delete the course folder. The worflow that inspired this project comes
+from student workers. We want the students to be able to run the bot every day any only work on files that have been added since the last time they ran the bot. Consequently, each time the bot runs, a new folder is created with the current date. The bot will only download files that are not in the download manifest.
+If there are no new files to download, the bot will not create a new folder.
+
+
+#### Shortcuts
+
+If for any reason the bot was unable to successfully download a file,
+it will create a shortcut to the URI where the file was found.
+The user can investigate why the resource was unavailable.
+
 
 ### Flattening the Course Structure
 
@@ -91,7 +107,7 @@ If you want to download all files into a single folder, you will need to pass th
 
     canvas_bot.exe --course_id 12345 --download_folder C:\Users\Downloads --flatten
 
-Flattening the course structure makes it easi
+Flattening the course structure makes it easier to work with all the files in a course. 
 
 
 _TODO: Describe how to use the command-line tool, including any necessary flags or options._
