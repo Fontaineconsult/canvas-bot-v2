@@ -56,6 +56,38 @@ This usage guide covers how to use this tool on the command line using the execu
 
 This is a standalone executable. You do not need to install Python or any other dependencies.
 
+### Configuration
+
+
+CanvasBot requires three pieces of information to run:
+
+- Canvas API Access Token
+- Canvas Page Course Root
+- Canvas API URL
+
+#### Canvas API Access Token
+
+The Access Token is a unique string of characters that allows you to access the Canvas API. Please see the obtaining an access token section below for more information.
+
+#### Canvas Page Course Root
+
+The Canvas Page Course Root is the URL of the page that lists all of your courses. This is the page that you see when you log into Canvas. The URL will look something like this:
+
+    https://school.instructure.com/courses
+
+#### Canvas API URL
+
+The Canvas API Url is the URL of the Canvas API. This is the URL that you use to access the Canvas API. The URL will look something like this:
+
+    https://school.instructure.com/api/v1
+
+Please consult with your Canvas administrator if you are unsure of the Canvas API URL.
+
+### Permission Requirements
+
+The CanvasBot only requires read access to a canvas course. It does not require any write access. As a Canvas LMS account holder who is likely providing support services for Faculty, we recommend that you advocate for the creation of a Canvas LMS account that is granted read access to all courses. This account should not be granted write access to any courses.
+
+
 ## Usage
 
 
