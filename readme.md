@@ -14,7 +14,7 @@ A command-line tool for downloading and organizing files from the Canvas LMS pla
 
 ## Overview
 
-The Simple Canvas LMS Downloader is a
+The SF State CanvasBot is a
 Windows-only command-line tool that allows you
 to download all files from your Canvas LMS courses,
 including documents, videos, and images.
