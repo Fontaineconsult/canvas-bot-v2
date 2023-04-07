@@ -228,12 +228,18 @@ When you first run the program you will be prompted.<br>
 
 ## Support
 
-This tool is a work in progress. Please contact me at <fontaine@sfsu.edu> if you have any questions or suggestions.
+This tool is a work in progress. Please contact me at <fontaine@sfsu.edu> if you have any questions, suggestions or bug reports.
 
 ### Future Features
 
 - [ ] Add GUI interface for easier use
 - [ ] Add the ability to easily customize the filters for what content is tracked.
+- [ ] Logging support
+
+### Known Issues
+
+- [ ] Windows is finicky about the directory paths used to create shortcuts. I'm still testing to work out the best way to handle this.
+- [ ] Directory paths can also be very long depending on the title of courses and modules. This can cause issues with Windows.
 
 
 ## License
