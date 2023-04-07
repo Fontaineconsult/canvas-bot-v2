@@ -230,6 +230,12 @@ When you first run the program you will be prompted.<br>
 
 This tool is a work in progress. Please contact me at <fontaine@sfsu.edu> if you have any questions or suggestions.
 
+### Future Features
+
+- [ ] Add GUI interface for easier use
+- [ ] Add the ability to easily customize the filters for what content is tracked.
+
+
 ## License
 
 MIT License
