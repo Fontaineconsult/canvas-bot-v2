@@ -39,6 +39,33 @@ _TODO: Describe the installation process._
 
 ## Usage
 
+
+### Scraping a single course. 
+
+
+To scrape a single course, you will need to know the course ID. In command prompt or powershell, navigate to the directory where you downloaded the executable.
+
+Run the following command:
+
+    canvas_bot.exe --course_id 12345
+
+
+### Scraping multiple courses
+To scrape multiple courses, you will need to create a text file with a list of course IDs. Each course ID should be on a new line. In command prompt or powershell, navigate to the directory where you downloaded the executable.
+
+    canvas_bot.exe --course_id_list course_ids.txt
+
+
+### Downloading Files
+To download files, you will need to specify a download folder. In command prompt or powershell, navigate to the directory where you downloaded the executable. Pass the flag `--download_folder` and the path to the download folder. Make sure to quote your path if it contains spaces.
+
+    canvas_bot.exe --course_id 12345 --download_folder C:\Users\Downloads
+
+By default, the program only downloads document like files, such as PDF and MS Word. If you want to download other file types, such as videos and images, you will need to pass the following flags:
+
+    canvas_bot.exe --course_id 12345 --download_folder C:\Users\Downloads --include_video_files --include_audio_files --include_image_files
+
+
 _TODO: Describe how to use the command-line tool, including any necessary flags or options._
 
 
