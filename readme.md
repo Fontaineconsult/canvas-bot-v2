@@ -88,7 +88,7 @@ By default, the program only downloads document-like files, such as PDF and MS W
 #### Download Manifest
 
 The bot will track which files have been successfully downloaded. This is done by creating a file called `download_manifest.json` in the same directory as the course specified by `--download_folder`.
-This file contains a list of all the files that have been downloaded. If you want to download all files again, you will need to delete the course folder. The worflow that inspired this project comes
+This file contains a list of all the files that have been downloaded. If you want to download all files again, you will need to delete the course folder. The workflow that inspired this project comes
 from student workers. We want the students to be able to run the bot every day any only work on files that have been added since the last time they ran the bot. Consequently, each time the bot runs, a new folder is created with the current date. The bot will only download files that are not in the download manifest.
 If there are no new files to download, the bot will not create a new folder.
 
@@ -188,25 +188,20 @@ The following is an example of a course content tree:
 
 ### Program Flags
 
-<ul>
-<li>--course_id TEXT The course ID to scrape</li>
-<li>--course_id_list TEXT Text file containing a list of course IDs to
-scrape. One per line.</li>
-<li>--download_folder TEXT The Location to download files to.</li>
-<li>--output_as_json TEXT Output the content tree as a JSON file. Pass the
-directory to save the file to.</li>
-<li>--include_video_files Include video files in download. Default is False</li>
-<li>--include_audio_files Include audio files in download. Default is False</li>
-<li>--include_image_files Include image files in download. Default is False</li>
-<li>--flatten Excludes course structure and downloads all files
-to the same directory. Default is False</li>
-<li>--flush_after_download Deletes all files after download. Default is False</li>
-<li>--download_hidden_files Downloads files hidden from students. Default is
-False</li>
-<li>--show_content_tree Prints a content tree of the course to the console.
-Default is False</li>
-<li>--reset_params Resets API key and config file. Default is False</li>
-</ul>
+| Flag                     | Description                                                     | Default |
+|--------------------------|-----------------------------------------------------------------|---------|
+| `--course_id TEXT`       | The course ID to scrape                                         |         |
+| `--course_id_list TEXT`  | Text file containing a list of course IDs to scrape (one per line) |         |
+| `--download_folder TEXT` | The location to download files to                               |         |
+| `--output_as_json TEXT`  | Output the content tree as a JSON file (pass the directory to save the file to) |         |
+| `--include_video_files`  | Include video files in download                                 | False   |
+| `--include_audio_files`  | Include audio files in download                                 | False   |
+| `--include_image_files`  | Include image files in download                                 | False   |
+| `--flatten`              | Excludes course structure and downloads all files to the same directory | False   |
+| `--flush_after_download` | Deletes all files after download                                | False   |
+| `--download_hidden_files`| Downloads files hidden from students                            | False   |
+| `--show_content_tree`    | Prints a content tree of the course to the console              | False   |
+| `--reset_params`         | Resets API key and config file                                  | False   |
 
 ### Obtaining a Canvas API Access Token
 
