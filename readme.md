@@ -222,6 +222,9 @@ Once the token has been generated, you will need to enter it into the SF State C
 When you first run the program you will be prompted.<br>
 ![Access Token Details](https://dprc-photos.s3.us-west-2.amazonaws.com/EnterAccessToken.PNG)
 
+If you've entered the wrong token, you can reset the token by running the program with the `--reset_params` flag.
+
+    canvasbot.exe --reset_params
 
 ## Support
 
