@@ -24,6 +24,25 @@ export this information into a JSON file.
 The primary target audience for this tool are
 accessible media coordinators and instructional designers at universities.
 
+
+There are currently 10 different content types:
+
+<ul>
+<li>Documents</li>
+<li>Image Files</li> 
+<li>Audio Files</li>
+<li>Video Files</li>
+<li>Video Websites</li>
+<li>Audio Websites</li>
+<li>File Storage Sites</li>
+<li>Digital Textbooks</li>
+<li>Document Site</li>
+<li>Unsorted</li>
+</ul>
+
+
+
+
 ## Requirements
 
 - Windows operating system
@@ -59,21 +78,90 @@ To scrape multiple courses, you will need to create a text file with a list of c
 ### Downloading Files
 To download files, you will need to specify a download folder. In command prompt or powershell, navigate to the directory where you downloaded the executable. Pass the flag `--download_folder` and the path to the download folder. Make sure to quote your path if it contains spaces.
 
-    canvas_bot.exe --course_id 12345 --download_folder C:\Users\Downloads
+    canvas_bot.exe --course_id 12345 --download_folder "C:\Users\Downloads"
 
-By default, the program only downloads document like files, such as PDF and MS Word. If you want to download other file types, such as videos and images, you will need to pass the following flags:
+By default, the program only downloads document-like files, such as PDF and MS Word. If you want to download other file types, such as videos and images, you will need to pass the following flags:
 
     canvas_bot.exe --course_id 12345 --download_folder C:\Users\Downloads --include_video_files --include_audio_files --include_image_files
+
+### Flattening the Course Structure
+
+By default, the program will download files into a folder structure that matches the course structure.
+If you want to download all files into a single folder, you will need to pass the `--flatten` flag.
+
+    canvas_bot.exe --course_id 12345 --download_folder C:\Users\Downloads --flatten
+
+Flattening the course structure makes it easi
 
 
 _TODO: Describe how to use the command-line tool, including any necessary flags or options._
 
+### Export Course Data as JSON
+
+All course data can be exported as a JSON file. This file contains all the URLs found in the course,
+categorized by content type.
+
+    canvas_bot.exe --course_id 12345 --output_as_json "C:\Users\Downloads"
+
+
+The following is an example of a JSON file:
+
+    {
+        "course_id": 12345,
+        "course_name": "Course Name",
+        "course_url": "https://canvas.instructure.com/courses/12345",
+        "content": {
+            "documents": [
+                {
+                    "file_type": "pdf",
+                    "is_hidden": false,
+                    "order": 3,
+                    "scan_date": "2023-04-05 10:57:11.526804",
+                    "source_page_type": "Page",
+                    "source_page_url": "https://sfsu.instructure.com/courses/17899/pages/a-course-page",
+                    "title": "a_pdf_file_in_a_course.pdf",
+                    "url": "https://school.instructure.com/files/134695/download?download_frd=1&verifier=3t2tg2tg4g4g34g34g43g"
+
+                }
+            ]
+            "videos":
+                "video_sites": [
+                    {
+                    "is_hidden": false,
+                    "order": 17,
+                    "scan_date": "2023-04-05 10:57:11.527797",
+                    "source_page_type": "Discussion",
+                    "source_page_url": "https://sfsu.instructure.com/courses/17899/discussion_topics/94137",
+                    "title": "How A Folk Singer\u2019s Murder Forced Chile to Confront Its Past",
+                    "url": "https://www.youtube.com/watch?v=j-8nhA-j2yo"
+    
+                    }
+                ]
+                "video_files": [
+                    {
+                        "file_type": "mp4",
+                        "is_hidden": false,
+                        "order": 3,
+                        "scan_date": "2023-04-05 10:57:11.526804",
+                        "source_page_type": "Page",
+                        "source_page_url": "https://sfsu.instructure.com/courses/17899/pages/a-course-page",
+                        "title": "a_video_file_in_a_course.mp4",
+                        "url": "https://school.instructure.com/files/1213695/download?download_frd=1&verifier=3t2tg2tg4g4g34g34g43g"
+    
+                    }
+            ]
+
+        }
+    }
+
+The ability to export a course's instructional material content in JSON is a usefull feature. You can use this data to
+easily build your own accessible media integrations. 
+
 
 ### Course Content Tree
 
-The SF State CanvasBot will generate a content tree of the course you are downloading.
-This tree will show you the structure of the course and the files that are included in each module.
-The tree will also show you the type of file that is included in each module.
+The SF State CanvasBot will generate a visual content tree of the course you are downloading.
+This tree will show you the structure of the course and the files that are included in each module, page etc.
 The following is an example of a course content tree:
 
 
@@ -124,10 +212,6 @@ Once the token has been generated, you will need to enter it into the SF State C
 When you first run the program you will be prompted.<br>
 ![Access Token Details](https://dprc-photos.s3.us-west-2.amazonaws.com/EnterAccessToken.PNG)
 
-
-### Export Course Data as JSON
-
-_TODO: Describe how to export the organized data into a JSON file._
 
 ## Support
 
