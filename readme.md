@@ -188,26 +188,28 @@ The following is an example of a course content tree:
 
 ### Program Flags
 
-| Flag                     | Description                                                     | Default |
-|--------------------------|-----------------------------------------------------------------|---------|
-| `--course_id TEXT`       | The course ID to scrape                                         |         |
-| `--course_id_list TEXT`  | Text file containing a list of course IDs to scrape (one per line) |         |
-| `--download_folder TEXT` | The location to download files to                               |         |
+| Flag                     | Description                                                                     | Default |
+|--------------------------|---------------------------------------------------------------------------------|---------|
+| `--course_id TEXT`       | The course ID to scrape                                                         |         |
+| `--course_id_list TEXT`  | Text file containing a list of course IDs to scrape (one per line)              |         |
+| `--download_folder TEXT` | The location to download files to                                               |         |
 | `--output_as_json TEXT`  | Output the content tree as a JSON file (pass the directory to save the file to) |         |
-| `--include_video_files`  | Include video files in download                                 | False   |
-| `--include_audio_files`  | Include audio files in download                                 | False   |
-| `--include_image_files`  | Include image files in download                                 | False   |
-| `--flatten`              | Excludes course structure and downloads all files to the same directory | False   |
-| `--flush_after_download` | Deletes all files after download                                | False   |
-| `--download_hidden_files`| Downloads files hidden from students                            | False   |
-| `--show_content_tree`    | Prints a content tree of the course to the console              | False   |
-| `--reset_params`         | Resets API key and config file                                  | False   |
+| `--include_video_files`  | Include video files in download                                                 | False   |
+| `--include_audio_files`  | Include audio files in download                                                 | False   |
+| `--include_image_files`  | Include image files in download                                                 | False   |
+| `--flatten`              | Excludes course structure and downloads all files to the same directory         | False   |
+| `--flush_after_download` | Deletes all files after download                                                | False   |
+| `--download_hidden_files`| Downloads files hidden from students                                            | False   |
+| `--show_content_tree`    | Prints a content tree of the course to the console                              | False   |
+| `--reset_params`         | Resets API Token and config file                                                | False   |
 
 ### Obtaining a Canvas API Access Token
 
 Please contact your Canvas LMS campus administrator to enable your account to use the Canvas API.
 Once your account has been enabled, you will need to obtain an API access token.
 This token will be used to authenticate your account when using the SF State CanvasBot.
+
+The API Token is stored as an encrypted password using Windows Credential Vault. 
 
 Canvas Integrations can be accessed in your account settings. <br> Go to Account > Settings > Approved Integrations.
 Click on the New Access Token button to generate a new access token. <br>
