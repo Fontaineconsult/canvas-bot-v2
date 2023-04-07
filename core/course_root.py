@@ -39,7 +39,6 @@ class CanvasCourseRoot(ContentExtractor):
     def initialize_course(self):
         course_api = get_course(self.course_id)
         if course_api:
-            print(course_api)
             self.title = course_api['name'] # name used internally for course
             self.course_name = course_api['course_code'] # name used for course folder
             self.exists = True
