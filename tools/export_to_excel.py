@@ -10,8 +10,6 @@ def create_excel_file(json_data, excel_file_path=None):
     :param excel_file_path:
     :return:
     """
-
-    print(json_data)
     wb = openpyxl.Workbook()
     ws = wb["Sheet"]
     wb.remove(ws)
@@ -61,17 +59,6 @@ def add_header_to_sheet(file_path, sheet_name, header_row):
 
     # Save the workbook
     wb.save(file_path)
-
-
-# def add_sheet_to_excel(file_path, sheet_name, rows, headers):
-#
-#     wb = openpyxl.load_workbook(file_path)
-#     sheet = wb[sheet_name]
-#     for count, header in enumerate(headers):
-#         sheet.cell(row=1, column=count).value = header
-#     for row in rows:
-#         sheet.append(row)
-#     wb.save(file_path)
 
 
 def dicts_to_excel(filename, sheetname, data):
