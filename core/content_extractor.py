@@ -7,6 +7,8 @@ from resource_nodes.content_nodes import *
 from core.downloader import DownloaderMixin
 import shutil
 
+from tools.export_to_excel import save_as_excel
+
 
 class ContentExtractor(DownloaderMixin):
 
@@ -124,11 +126,34 @@ class ContentExtractor(DownloaderMixin):
             if os.path.exists(full_path):
                 os.remove(full_path)
 
+            if not os.path.exists(os.path.dirname(full_path)):
+                os.makedirs(os.path.dirname(full_path))
+
             with open(full_path, 'w') as f:
                 f.write(self.get_all_content_as_json())
                 f.close()
 
             return full_path
+
+
+    def save_content_as_excel(self, directory=None):
+
+        """
+        Saves all content as an excel file.
+        :param directory:
+        :return:
+        """
+        if self.exists:
+            root_download_directory = os.path.join(directory, f"{sanitize_windows_filename(self.course_name)} "
+                                                              f"- {self.course_id}")
+
+            if not os.path.exists(root_download_directory):
+                os.makedirs(root_download_directory)
+
+            json_data = json.loads(self.get_all_content_as_json())
+            save_as_excel(json_data, root_download_directory)
+
+
 
     def download_files(self, directory, *args):
 
