@@ -1,4 +1,6 @@
 import os
+import zipfile
+
 import openpyxl
 
 
@@ -22,6 +24,8 @@ def create_excel_file(json_data, excel_file_path=None):
     wb.create_sheet('Audio Sites')
     wb.create_sheet('Unsorted')
     wb.save(excel_file_path)
+    wb.close()
+
     build_xcel_file(json_data, excel_file_path)
 
 
@@ -59,6 +63,7 @@ def add_header_to_sheet(file_path, sheet_name, header_row):
 
     # Save the workbook
     wb.save(file_path)
+    wb.close()
 
 
 def dicts_to_excel(filename, sheetname, data):
@@ -67,6 +72,7 @@ def dicts_to_excel(filename, sheetname, data):
         wb = openpyxl.load_workbook(filename)
     except FileNotFoundError:
         wb = openpyxl.Workbook()
+
 
     # Create a new sheet with the specified sheet name or get the existing one
     if sheetname in wb:
@@ -81,6 +87,7 @@ def dicts_to_excel(filename, sheetname, data):
 
     # Save the workbook to a file
     wb.save(filename)
+    wb.close()
 
 
 def build_xcel_file(json_data, excel_file_path):
