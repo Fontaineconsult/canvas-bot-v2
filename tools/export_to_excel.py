@@ -18,7 +18,7 @@ def create_excel_file(json_data, excel_file_path=None):
     wb.create_sheet('Image Files')
     wb.create_sheet('Video Files')
     wb.create_sheet('Video Sites')
-    wb.create_sheet('Audio')
+    wb.create_sheet('Audio Files')
     wb.create_sheet('Audio Sites')
     wb.create_sheet('Unsorted')
     wb.save(excel_file_path)
