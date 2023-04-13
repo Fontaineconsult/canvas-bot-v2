@@ -1,6 +1,6 @@
 import os
 import zipfile
-
+from openpyxl.worksheet.table import Table, TableStyleInfo
 import openpyxl
 
 
@@ -23,11 +23,49 @@ def create_excel_file(json_data, excel_file_path=None):
     wb.create_sheet('Audio Files')
     wb.create_sheet('Audio Sites')
     wb.create_sheet('Unsorted')
+
     wb.save(excel_file_path)
     wb.close()
 
     build_xcel_file(json_data, excel_file_path)
 
+
+def apply_sheet_styles(excel_file_path):
+    wb = openpyxl.load_workbook(excel_file_path)
+
+
+
+    for sheet_name in wb.sheetnames:
+
+
+
+        sheet = wb[sheet_name]
+
+        if sheet.dimensions == "A1:A1":
+            continue
+
+        # first_row_values = [cell.value for cell in next(sheet.iter_rows(min_row=1, max_row=1))][0]
+        sheet.column_dimensions['A'].width = 15
+        sheet.column_dimensions['B'].width = 15
+        sheet.column_dimensions['C'].width = 15
+        sheet.column_dimensions['D'].width = 20
+        sheet.column_dimensions['E'].width = 20
+        sheet.column_dimensions['F'].width = 50
+        sheet.column_dimensions['G'].width = 50
+        sheet.column_dimensions['H'].width = 150
+        sheet_name = sheet_name.replace(" ", "-")
+        print(sheet.dimensions)
+
+        table = Table(displayName=sheet_name, ref=sheet.dimensions)
+
+        style = TableStyleInfo(name="TableStyleMedium9", showFirstColumn=False,
+                       showLastColumn=False, showRowStripes=True, showColumnStripes=True)
+
+        table.tableStyleInfo = style
+        sheet.add_table(table)
+        wb.save(excel_file_path)
+
+    wb.close()
 
 def find_key_names(d, path=None):
     if path is None:
@@ -61,6 +99,8 @@ def add_header_to_sheet(file_path, sheet_name, header_row):
         cell = sheet.cell(row=1, column=col_idx+1)
         cell.value = " ".join(word.capitalize() for word in header_name.replace('_', ' ').split(' '))
 
+
+
     # Save the workbook
     wb.save(file_path)
     wb.close()
@@ -84,6 +124,8 @@ def dicts_to_excel(filename, sheetname, data):
     for row_num, item in enumerate(data, 2):  # Start from row 2
         for col_num, key in enumerate(item.keys(), 1):
             ws.cell(row=row_num, column=col_num).value = item.get(key)
+
+
 
     # Save the workbook to a file
     wb.save(filename)
@@ -113,3 +155,4 @@ def save_as_excel(json_data,  file_save_path=None):
     xcel_path = os.path.join(file_save_path, json_data['course_id'] + '.xlsx')
     create_excel_file(json_data, xcel_path)
     build_xcel_file(json_data, xcel_path)
+    apply_sheet_styles(xcel_path)
