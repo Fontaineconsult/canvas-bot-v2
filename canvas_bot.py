@@ -98,6 +98,8 @@ if __name__=='__main__':
                   help='Prints a content tree of the course to the console. Default is False')
     @click.option('--reset_params', is_flag=True,
                   help='Resets Access Token and config file. Default is False')
+    @click.option('--output_as_excel', type=click.STRING,
+                  help='The location to export the course content as an excel file.')
 
 
     @click.pass_context
@@ -106,6 +108,7 @@ if __name__=='__main__':
              course_id_list,
              download_folder,
              output_as_json,
+             output_as_excel,
              include_video_files,
              include_audio_files,
              include_image_files,
@@ -113,12 +116,14 @@ if __name__=='__main__':
              flush_after_download,
              download_hidden_files,
              show_content_tree,
-             reset_params):
+             reset_params,
+             ):
 
         def run_bot(ctx,
                     course_id,
                     download_folder,
                     output_as_json,
+                    output_as_excel,
                     include_video_files=False,
                     include_audio_files=False,
                     include_image_files=False,
@@ -126,7 +131,8 @@ if __name__=='__main__':
                     flush_after_download=False,
                     download_hidden_files=False,
                     show_content_tree=False,
-                    reset_params=False):
+                    reset_params=False,
+                    ):
 
 
             bot = CanvasBot(course_id)
@@ -156,6 +162,9 @@ if __name__=='__main__':
             if ctx.params.get('output_as_json'):
                 bot.save_content_as_json(output_as_json)
 
+            if ctx.params.get('output_as_excel'):
+                bot.save_content_as_excel(output_as_excel)
+
         if course_id_list:
             course_list = read_course_list(course_id_list)
             for course_id in course_list:
@@ -163,6 +172,7 @@ if __name__=='__main__':
                         course_id,
                         download_folder,
                         output_as_json,
+                        output_as_excel,
                         include_video_files,
                         include_audio_files,
                         include_image_files,
@@ -177,6 +187,7 @@ if __name__=='__main__':
                     course_id,
                     download_folder,
                     output_as_json,
+                    output_as_excel,
                     include_video_files,
                     include_audio_files,
                     include_image_files,
