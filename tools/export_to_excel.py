@@ -92,7 +92,6 @@ def build_xcel_file(json_data, excel_file_path):
         for key in path[:-1]:
             sub_dict = sub_dict[key]
         my_list = sub_dict[path[-1]]
-        print(my_list)
         sheet_name = " ".join(word.capitalize() for word in path[-1].replace('_', ' ').split(' '))
 
         try:
