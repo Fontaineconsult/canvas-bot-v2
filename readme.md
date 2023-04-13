@@ -217,20 +217,21 @@ The following is an example of a course content tree:
 
 ### Program Flags
 
-| Flag                     | Description                                                                     | Default |
-|--------------------------|---------------------------------------------------------------------------------|---------|
-| `--course_id TEXT`       | The course ID to scrape                                                         |         |
-| `--course_id_list TEXT`  | Text file containing a list of course IDs to scrape (one per line)              |         |
-| `--download_folder TEXT` | The location to download files to                                               |         |
-| `--output_as_json TEXT`  | Output the content tree as a JSON file (pass the directory to save the file to) |         |
-| `--include_video_files`  | Include video files in download                                                 | False   |
-| `--include_audio_files`  | Include audio files in download                                                 | False   |
-| `--include_image_files`  | Include image files in download                                                 | False   |
-| `--flatten`              | Excludes course structure and downloads all files to the same directory         | False   |
-| `--flush_after_download` | Deletes all files after download                                                | False   |
-| `--download_hidden_files`| Downloads files hidden from students                                            | False   |
-| `--show_content_tree`    | Prints a content tree of the course to the console                              | False   |
-| `--reset_params`         | Resets API Token and config file                                                | False   |
+| Flag                      | Description                                                                     | Default |
+|---------------------------|---------------------------------------------------------------------------------|---------|
+| `--course_id TEXT`        | The course ID to scrape                                                         |         |
+| `--course_id_list TEXT`   | Text file containing a list of course IDs to scrape (one per line)              |         |
+| `--download_folder TEXT`  | The location to download files to                                               |         |
+| `--output_as_json TEXT`   | Output the content tree as a JSON file (pass the directory to save the file to) |         |
+| `--output_as_excel TEXT   | Outputs course content into an excel file sorted by type                        | False   |
+| `--include_video_files`   | Include video files in download                                                 | False   |
+| `--include_audio_files`   | Include audio files in download                                                 | False   |
+| `--include_image_files`   | Include image files in download                                                 | False   |
+| `--flatten`               | Excludes course structure and downloads all files to the same directory         | False   |
+| `--flush_after_download`  | Deletes all files after download                                                | False   |
+| `--download_hidden_files` | Downloads files hidden from students                                            | False   |
+| `--show_content_tree`     | Prints a content tree of the course to the console                              | False   |
+| `--reset_params`          | Resets API Token and config file                                                | False   |
 
 ### Obtaining a Canvas API Access Token
 
