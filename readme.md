@@ -223,7 +223,7 @@ The following is an example of a course content tree:
 | `--course_id_list TEXT`   | Text file containing a list of course IDs to scrape (one per line)              |         |
 | `--download_folder TEXT`  | The location to download files to                                               |         |
 | `--output_as_json TEXT`   | Output the content tree as a JSON file (pass the directory to save the file to) |         |
-| `--output_as_excel TEXT   | Outputs course content into an excel file sorted by type                        | False   |
+| `--output_as_excel TEXT`   | Outputs course content into an excel file sorted by type                        | False   |
 | `--include_video_files`   | Include video files in download                                                 | False   |
 | `--include_audio_files`   | Include audio files in download                                                 | False   |
 | `--include_image_files`   | Include image files in download                                                 | False   |
