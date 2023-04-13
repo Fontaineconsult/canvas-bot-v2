@@ -98,7 +98,6 @@ def build_xcel_file(json_data, excel_file_path):
             add_header_to_sheet(excel_file_path, sheet_name, my_list[0])
             dicts_to_excel(excel_file_path, sheet_name, my_list)
         except IndexError:
-            print("IndexError")
             pass
 
 
