@@ -37,8 +37,6 @@ def apply_sheet_styles(excel_file_path):
 
     for sheet_name in wb.sheetnames:
 
-
-
         sheet = wb[sheet_name]
 
         if sheet.dimensions == "A1:A1":
