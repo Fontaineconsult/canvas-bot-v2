@@ -56,12 +56,7 @@ def sort_by_date():
     return datetime.now().strftime('%d-%m-%Y')
 
 
-def path_constructor(root_directory: str, node: BaseContentNode, flatten: bool):
-    from core.content_scaffolds import is_hidden, build_path
-
-    """
-        Returns the path to the folder that the file should be saved in.
-    """
+def derive_file_name(node):
 
     if not has_file_extension(node.title):
 
@@ -71,6 +66,17 @@ def path_constructor(root_directory: str, node: BaseContentNode, flatten: bool):
             filename = sanitize_windows_filename(file_name_extractor.match(node.title.split('/')[-1]).group(0))
         except AttributeError:
             filename = sanitize_windows_filename(node.title)
+    return filename
+
+
+def path_constructor(root_directory: str, node: BaseContentNode, flatten: bool):
+    from core.content_scaffolds import is_hidden, build_path
+
+    """
+        Returns the path to the folder that the file should be saved in.
+    """
+
+    filename = derive_file_name(node)
 
     node_path = build_path(node, ignore_root=True)
     paths = list()
@@ -86,6 +92,7 @@ def path_constructor(root_directory: str, node: BaseContentNode, flatten: bool):
             paths.append(sanitize_windows_filename(node_.title[:50], folder=True).rstrip() if node_.title else str(node_.__class__.__name__))
 
     constructed_path = os.path.join(root_directory, sort_by_date(), *paths[::-1], f"{node.__class__.__name__}s", filename)
+
     if len(constructed_path) > 260:
 
         filename_, extension = os.path.splitext(filename)

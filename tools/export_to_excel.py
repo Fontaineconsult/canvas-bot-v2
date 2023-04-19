@@ -2,7 +2,8 @@ import os
 import zipfile
 from openpyxl.worksheet.table import Table, TableStyleInfo
 import openpyxl
-
+from openpyxl.worksheet.hyperlink import Hyperlink
+from openpyxl.utils.cell import get_column_letter
 
 def create_excel_file(json_data, excel_file_path=None):
 
@@ -94,8 +95,7 @@ def add_header_to_sheet(file_path, sheet_name, header_row):
 
     # Add the header row to the sheet
     for col_idx, header_name in enumerate(sorted(header_row.keys())):
-        print(header_name)
-        if header_name == "Path":  # skip the path key in the json file
+        if header_name == "path":  # skip the path key in the json file
             continue
         cell = sheet.cell(row=1, column=col_idx+1)
         cell.value = " ".join(word.capitalize() for word in header_name.replace('_', ' ').split(' '))
@@ -126,6 +126,11 @@ def dicts_to_excel(filename, sheetname, data):
         for col_num, key in enumerate(item.keys(), 1):
             if key == "path":  # skip the path key in the json file
                 continue
+            if key == "save_path":
+                print(f"{get_column_letter(col_num)}{row_num}")
+                hyperlink = Hyperlink(ref=f"{get_column_letter(col_num)}{row_num}",
+                                      target=item.get(key), display="Open File")
+                ws.cell(row=row_num, column=col_num).hyperlink = hyperlink
             ws.cell(row=row_num, column=col_num).value = item.get(key)
 
 
@@ -152,7 +157,8 @@ def build_xcel_file(json_data, excel_file_path):
             pass
 
 
-def save_as_excel(json_data,  file_save_path=None):
+def save_as_excel(json_data, file_save_path=None):
+    print(json_data)
 
     xcel_path = os.path.join(file_save_path, json_data['course_id'] + '.xlsx')
     create_excel_file(json_data, xcel_path)

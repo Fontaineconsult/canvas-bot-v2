@@ -142,7 +142,6 @@ class ContentExtractor(DownloaderMixin):
 
     def save_content_as_excel(self, excel_directory, file_download_directory=None, *args):
 
-
         """
         Saves all content as an excel file.
         :param directory:
@@ -152,10 +151,16 @@ class ContentExtractor(DownloaderMixin):
             root_download_directory = os.path.join(excel_directory, f"{sanitize_windows_filename(self.course_name)} "
                                                               f"- {self.course_id}")
 
+            if file_download_directory:
+                root_file_download_directory = os.path.join(file_download_directory, f"{sanitize_windows_filename(self.course_name)} "
+                                                                                     f"- {self.course_id}")
+            else:
+                root_file_download_directory = None
+
             if not os.path.exists(root_download_directory):
                 os.makedirs(root_download_directory)
 
-            json_data = json.loads(self.get_all_content_as_json(file_download_directory, *args))
+            json_data = json.loads(self.get_all_content_as_json(root_file_download_directory, *args))
 
             save_as_excel(json_data, root_download_directory)
 

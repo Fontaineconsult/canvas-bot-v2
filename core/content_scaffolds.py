@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List
 
-from core.downloader import path_constructor
+from core.downloader import path_constructor, derive_file_name
 
 
 def get_source_page_url(node) -> int:
@@ -119,6 +119,7 @@ def document_site_dict(document_site_node):
     document_site_dict = {
 
         "title": getattr(document_site_node, "title", None),
+        "file_name": derive_file_name(document_site_node),
         "url": getattr(document_site_node, "url", None),
         "source_page_type": document_site_node.parent.__class__.__name__,
         "source_page_url": get_source_page_url(document_site_node),
@@ -156,6 +157,7 @@ def video_file_dict(video_file_node, file_download_directory, flatten):
     video_file_dict = {
 
         "title": getattr(video_file_node, "title", None),
+        "file_name": derive_file_name(video_file_node),
         "url": getattr(video_file_node, "url", None),
         "source_page_type": video_file_node.parent.__class__.__name__,
         "source_page_url": get_source_page_url(video_file_node),
@@ -179,6 +181,7 @@ def audio_file_dict(audio_file_node, file_download_directory, flatten):
     audio_file_dict = {
 
         "title": getattr(audio_file_node, "title", None),
+        "file_name": derive_file_name(audio_file_node),
         "url": getattr(audio_file_node, "url", None),
         "source_page_type": audio_file_node.parent.__class__.__name__,
         "source_page_url": get_source_page_url(audio_file_node),
@@ -220,6 +223,7 @@ def image_file_dict(image_file_node, file_download_directory, flatten):
     image_file_dict = {
 
         "title": getattr(image_file_node, "title", None),
+        "file_name": derive_file_name(image_file_node),
         "url": getattr(image_file_node, "url", None),
         "source_page_type": image_file_node.parent.__class__.__name__,
         "source_page_url": get_source_page_url(image_file_node),
