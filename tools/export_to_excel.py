@@ -94,6 +94,9 @@ def add_header_to_sheet(file_path, sheet_name, header_row):
 
     # Add the header row to the sheet
     for col_idx, header_name in enumerate(sorted(header_row.keys())):
+        print(header_name)
+        if header_name == "Path":  # skip the path key in the json file
+            continue
         cell = sheet.cell(row=1, column=col_idx+1)
         cell.value = " ".join(word.capitalize() for word in header_name.replace('_', ' ').split(' '))
 
@@ -121,8 +124,9 @@ def dicts_to_excel(filename, sheetname, data):
     # Write data rows (values from each dictionary)
     for row_num, item in enumerate(data, 2):  # Start from row 2
         for col_num, key in enumerate(item.keys(), 1):
+            if key == "path":  # skip the path key in the json file
+                continue
             ws.cell(row=row_num, column=col_num).value = item.get(key)
-
 
 
     # Save the workbook to a file

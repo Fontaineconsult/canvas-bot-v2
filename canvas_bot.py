@@ -160,7 +160,7 @@ if __name__=='__main__':
                 bot.download_files(download_folder, *flags)
 
             if ctx.params.get('output_as_json'):
-                bot.save_content_as_json(output_as_json)
+                bot.save_content_as_json(output_as_json, download_folder)
 
             if ctx.params.get('output_as_excel'):
                 bot.save_content_as_excel(output_as_excel)

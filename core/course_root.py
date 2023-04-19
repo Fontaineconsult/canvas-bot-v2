@@ -17,7 +17,7 @@ from resource_nodes.quizzes import Quizzes
 from tools.canvas_tree import CanvasTree
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-init()
+init()  # colorama init
 
 
 class CanvasCourseRoot(ContentExtractor):

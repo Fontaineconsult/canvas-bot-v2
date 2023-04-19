@@ -1,5 +1,5 @@
 from colorama import Fore, Style, init
-from core.content_scaffolds import is_hidden
+
 
 init()
 class BaseContentNode:
@@ -58,7 +58,7 @@ class BaseContentNode:
 
 
     def __str__(self):
-
+        from core.content_scaffolds import is_hidden
 
         return f"{Fore.LIGHTWHITE_EX}( {self.__class__.__name__} {'hidden' if is_hidden(self) else 'visible'} {self.url if self.url else self.title} ){Style.RESET_ALL}"
 

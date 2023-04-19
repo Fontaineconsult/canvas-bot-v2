@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import List
 
+from core.downloader import path_constructor
+
 
 def get_source_page_url(node) -> int:
 
@@ -90,7 +92,7 @@ def main_dict(**items) -> dict:
 
 
 
-def document_dict(document_node):
+def document_dict(document_node, file_download_directory, flatten):
 
     document_dict = {
 
@@ -103,10 +105,12 @@ def document_dict(document_node):
         "is_hidden": is_hidden(document_node),
         "file_type": getattr(document_node, "mime_class", None),
         "order": get_order(document_node),
-        # "path": build_path(document_node),
-
-
+        "path": [node.title for node in build_path(document_node, ignore_root=True)],
     }
+
+    if file_download_directory:
+        document_dict["save_path"] = path_constructor(file_download_directory, document_node, flatten)
+
     return document_dict
 
 
@@ -122,7 +126,7 @@ def document_site_dict(document_site_node):
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(document_site_node),
         "order": get_order(document_site_node),
-        # "path": build_path(video_site_node),
+        "path": [node.title for node in build_path(document_site_node, ignore_root=True)],
 
     }
     return document_site_dict
@@ -141,13 +145,13 @@ def video_site_dict(video_site_node):
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(video_site_node),
         "order": get_order(video_site_node),
-        # "path": build_path(video_site_node),
+        "path": [node.title for node in build_path(video_site_node, ignore_root=True)],
 
     }
     return video_site_dict
 
 
-def video_file_dict(video_file_node):
+def video_file_dict(video_file_node, file_download_directory, flatten):
 
     video_file_dict = {
 
@@ -160,13 +164,17 @@ def video_file_dict(video_file_node):
         "is_hidden": is_hidden(video_file_node),
         "file_type": getattr(video_file_node, "mime_class", None),
         "order": get_order(video_file_node),
-        # "path": build_path(document_node),
+        "path": [node.title for node in build_path(video_file_node, ignore_root=True)],
 
     }
+
+    if file_download_directory:
+        video_file_dict["save_path"] = path_constructor(file_download_directory, video_file_node, flatten)
+
     return video_file_dict
 
 
-def audio_file_dict(audio_file_node):
+def audio_file_dict(audio_file_node, file_download_directory, flatten):
 
     audio_file_dict = {
 
@@ -179,8 +187,12 @@ def audio_file_dict(audio_file_node):
         "is_hidden": is_hidden(audio_file_node),
         "file_type": getattr(audio_file_node, "mime_class", None),
         "order": get_order(audio_file_node),
-        # "path": build_path(document_node),
+        "path": [node.title for node in build_path(audio_file_node, ignore_root=True)],
     }
+
+    if file_download_directory:
+        audio_file_dict["save_path"] = path_constructor(file_download_directory, audio_file_node, flatten)
+
     return audio_file_dict
 
 
@@ -196,14 +208,14 @@ def audio_site_dict(audio_site_node):
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(audio_site_node),
         "order": get_order(audio_site_node),
-        # "path": build_path(video_site_node),
+        "path": [node.title for node in build_path(audio_site_node, ignore_root=True)],
 
     }
     return audio_site_dict
 
 
 
-def image_file_dict(image_file_node):
+def image_file_dict(image_file_node, file_download_directory, flatten):
 
     image_file_dict = {
 
@@ -216,8 +228,12 @@ def image_file_dict(image_file_node):
         "is_hidden": is_hidden(image_file_node),
         "file_type": getattr(image_file_node, "mime_class", None),
         "order": get_order(image_file_node),
-        # "path": build_path(document_node),
+        "path": [node.title for node in build_path(image_file_node, ignore_root=True)],
     }
+
+    if file_download_directory:
+        image_file_dict["save_path"] = path_constructor(file_download_directory, image_file_node, flatten)
+
     return image_file_dict
 
 
@@ -234,7 +250,7 @@ def unsorted_dict(unsorted_node):
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(unsorted_node),
         "order": get_order(unsorted_node),
-        # "path": build_path(video_site_node),
+        "path": [node.title for node in build_path(unsorted_node, ignore_root=True)],
 
     }
     return unsorted_dict

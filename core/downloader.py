@@ -19,7 +19,7 @@ config = read_config()
 user_agent = config['requests']['user-agent']
 default_download_path = config['default_download_path']
 
-from core.content_scaffolds import is_hidden, build_path
+
 from tools.string_checking.other_tools import has_file_extension, remove_query_params_from_url
 
 if TYPE_CHECKING:
@@ -56,13 +56,25 @@ def sort_by_date():
     return datetime.now().strftime('%d-%m-%Y')
 
 
-def path_constructor(root_directory: str, node: BaseContentNode, filename: str, flatten: bool):
+def path_constructor(root_directory: str, node: BaseContentNode, flatten: bool):
+    from core.content_scaffolds import is_hidden, build_path
 
     """
         Returns the path to the folder that the file should be saved in.
     """
+
+    if not has_file_extension(node.title):
+
+        filename = derive_filename_from_url(node)
+    else:
+        try:
+            filename = sanitize_windows_filename(file_name_extractor.match(node.title.split('/')[-1]).group(0))
+        except AttributeError:
+            filename = sanitize_windows_filename(node.title)
+
     node_path = build_path(node, ignore_root=True)
     paths = list()
+
     if flatten:
         paths.append(sanitize_windows_filename(node.title[:50], folder=True).rstrip()
                      if node.title else str(node.__class__.__name__))
@@ -108,15 +120,16 @@ class DownloaderMixin:
     A mixin class for the ContentExtractor class that provides methods for downloading files.
     """
 
-    def download(self, content_extractor: ContentExtractor, directory: str, *args):
+    def download(self, content_extractor: ContentExtractor, root_directory: str, *args):
+        from core.content_scaffolds import is_hidden
 
-        download_manifest = read_download_manifest(directory)['downloaded_files']
+        download_manifest = read_download_manifest(root_directory)['downloaded_files']
 
         include_video_files, include_audio_files, include_image_files,\
         flatten, flush_after_download, download_hidden_files = args if args\
             else (False, False, False, False, False, False)  # if no args are passed, set all to False
 
-        if not directory:
+        if not root_directory:
             print(f"Using default download path: {os.path.dirname(os.path.abspath(__file__))}")
             directory = os.path.dirname(os.path.abspath(__file__))
 
@@ -143,27 +156,15 @@ class DownloaderMixin:
                 print(f"Skipping {ContentNode.url} because it has already been downloaded.")
                 continue
 
-            if not has_file_extension(ContentNode.title):
-
-                title = derive_filename_from_url(ContentNode)
-            else:
-
-                try:
-                    title = sanitize_windows_filename(file_name_extractor.match(ContentNode.title.split('/')[-1]).group(0))
-                except AttributeError:
-                    title = sanitize_windows_filename(ContentNode.title)
-
-
-            full_file_path = path_constructor(directory,
+            full_file_path = path_constructor(root_directory,
                                               ContentNode,
-                                              title,
                                               flatten)
 
             self._download_file(ContentNode.url, full_file_path, bool(force_to_shortcut.match(ContentNode.url)))
 
             download_manifest.append(ContentNode.url)
 
-        write_to_download_manifest(directory, "downloaded_files", download_manifest)
+        write_to_download_manifest(root_directory, "downloaded_files", download_manifest)
 
     def _download_file(self, url, filename:str, force_to_shortcut=False):
 

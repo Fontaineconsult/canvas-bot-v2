@@ -56,31 +56,34 @@ class ContentExtractor(DownloaderMixin):
     def get_unsorted_objects(self):
         return [item for item in self.manifest.content_list() if isinstance(item, Unsorted)]
 
-    def build_documents_dict(self):
+    def build_documents_dict(self, file_download_directory, flatten):
 
         return {
-            "documents": [document_dict(document) for document in self.get_document_objects()],
+            "documents": [document_dict(document, file_download_directory, flatten) for document in self.get_document_objects()],
             "document_sites": [document_site_dict(document_site) for document_site in self.get_document_site_objects()],
         }
 
-    def build_videos_dict(self):
+    def build_videos_dict(self, file_download_directory, flatten):
 
         return {
             "video_sites": [video_site_dict(video_site) for video_site in self.get_video_site_objects()],
-            "video_files": [video_file_dict(video_file) for video_file in self.get_video_file_objects()],
+            "video_files": [video_file_dict(video_file, file_download_directory, flatten) for video_file in
+                            self.get_video_file_objects()],
         }
 
-    def build_audio_dict(self):
+    def build_audio_dict(self, file_download_directory, flatten):
 
         return {
             "audio_sites": [audio_site_dict(audio_site) for audio_site in self.get_audio_site_objects()],
-            "audio_files": [audio_file_dict(audio_file) for audio_file in self.get_audio_file_objects()],
+            "audio_files": [audio_file_dict(audio_file, file_download_directory, flatten) for audio_file in
+                            self.get_audio_file_objects()],
         }
 
-    def build_images_dict(self):
+    def build_images_dict(self, file_download_directory, flatten):
 
         return {
-            "image_files": [image_file_dict(image_file) for image_file in self.get_image_file_objects()],
+            "image_files": [image_file_dict(image_file, file_download_directory, flatten) for image_file in
+                            self.get_image_file_objects()],
         }
 
     def build_unsorted_dict(self):
@@ -89,26 +92,27 @@ class ContentExtractor(DownloaderMixin):
             "unsorted": [unsorted_dict(unsorted) for unsorted in self.get_unsorted_objects()],
         }
 
-    def get_all_content(self, **kwargs):
+    def get_all_content(self, file_download_directory=None, *args):
+        flatten = args[3] if args else False
 
         main_dict = {
             "course_id": self.course_id,
             "course_url": self.course_url,
             "course_name": self.course_name,
             "content":{
-                "documents": self.build_documents_dict(),
-                "videos": self.build_videos_dict(),
-                "audio": self.build_audio_dict(),
-                "images": self.build_images_dict(),
+                "documents": self.build_documents_dict(file_download_directory, flatten),
+                "videos": self.build_videos_dict(file_download_directory, flatten),
+                "audio": self.build_audio_dict(file_download_directory, flatten),
+                "images": self.build_images_dict(file_download_directory, flatten),
                 "unsorted": self.build_unsorted_dict()
             }
         }
         return main_dict
 
-    def get_all_content_as_json(self):
-        return json.dumps(self.get_all_content(), indent=4, sort_keys=True, default=str)
+    def get_all_content_as_json(self, file_download_directory, *args):
+        return json.dumps(self.get_all_content(file_download_directory, *args), indent=4, sort_keys=True, default=str)
 
-    def save_content_as_json(self, directory=None):
+    def save_content_as_json(self, json_save_directory, file_download_directory,  *args):
 
         """
         Saves all content as a json file.
@@ -120,8 +124,8 @@ class ContentExtractor(DownloaderMixin):
             dirname = os.path.abspath(__file__ + "/../../")
             full_path = os.path.join(dirname, f'output\\json\\{self.course_id}.json')
 
-            if directory:
-                full_path = os.path.join(directory, f"{self.course_id}.json")
+            if json_save_directory:
+                full_path = os.path.join(json_save_directory, f"{self.course_id}.json")
 
             if os.path.exists(full_path):
                 os.remove(full_path)
@@ -130,13 +134,14 @@ class ContentExtractor(DownloaderMixin):
                 os.makedirs(os.path.dirname(full_path))
 
             with open(full_path, 'w') as f:
-                f.write(self.get_all_content_as_json())
+                f.write(self.get_all_content_as_json(file_download_directory, *args))
                 f.close()
 
             return full_path
 
 
-    def save_content_as_excel(self, directory=None):
+    def save_content_as_excel(self, excel_directory, file_download_directory=None, *args):
+
 
         """
         Saves all content as an excel file.
@@ -144,13 +149,14 @@ class ContentExtractor(DownloaderMixin):
         :return:
         """
         if self.exists:
-            root_download_directory = os.path.join(directory, f"{sanitize_windows_filename(self.course_name)} "
+            root_download_directory = os.path.join(excel_directory, f"{sanitize_windows_filename(self.course_name)} "
                                                               f"- {self.course_id}")
 
             if not os.path.exists(root_download_directory):
                 os.makedirs(root_download_directory)
 
-            json_data = json.loads(self.get_all_content_as_json())
+            json_data = json.loads(self.get_all_content_as_json(file_download_directory, *args))
+
             save_as_excel(json_data, root_download_directory)
 
 
