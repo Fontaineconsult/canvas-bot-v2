@@ -31,6 +31,24 @@ def create_excel_file(json_data, excel_file_path=None):
     build_xcel_file(json_data, excel_file_path)
 
 
+def remove_key_recursively(obj, key_to_remove):
+    if isinstance(obj, dict):
+        result = {}
+        for key, value in obj.items():
+            if key != key_to_remove:
+                result[key] = remove_key_recursively(value, key_to_remove)
+        return result
+    elif isinstance(obj, list):
+        result = []
+        for item in obj:
+            result.append(remove_key_recursively(item, key_to_remove))
+        return result
+    else:
+        return obj
+
+
+
+
 def apply_sheet_styles(excel_file_path):
     wb = openpyxl.load_workbook(excel_file_path)
 
@@ -94,9 +112,11 @@ def add_header_to_sheet(file_path, sheet_name, header_row):
     sheet = wb[sheet_name]
 
     # Add the header row to the sheet
-    for col_idx, header_name in enumerate(sorted(header_row.keys())):
-        if header_name == "path":  # skip the path key in the json file
-            continue
+
+
+
+    for col_idx, header_name in enumerate(header_row):
+
         cell = sheet.cell(row=1, column=col_idx+1)
         cell.value = " ".join(word.capitalize() for word in header_name.replace('_', ' ').split(' '))
 
@@ -122,15 +142,17 @@ def dicts_to_excel(filename, sheetname, data):
         ws = wb.create_sheet(sheetname)
 
     # Write data rows (values from each dictionary)
+    print(data)
     for row_num, item in enumerate(data, 2):  # Start from row 2
+
         for col_num, key in enumerate(item.keys(), 1):
-            if key == "path":  # skip the path key in the json file
-                continue
+
             if key == "save_path":
                 print(f"{get_column_letter(col_num)}{row_num}")
                 hyperlink = Hyperlink(ref=f"{get_column_letter(col_num)}{row_num}",
                                       target=item.get(key), display="Open File")
                 ws.cell(row=row_num, column=col_num).hyperlink = hyperlink
+
             ws.cell(row=row_num, column=col_num).value = item.get(key)
 
 
@@ -161,6 +183,8 @@ def save_as_excel(json_data, file_save_path=None):
     print(json_data)
 
     xcel_path = os.path.join(file_save_path, json_data['course_id'] + '.xlsx')
+    json_data = remove_key_recursively(json_data, 'path')
+
     create_excel_file(json_data, xcel_path)
     build_xcel_file(json_data, xcel_path)
     apply_sheet_styles(xcel_path)
