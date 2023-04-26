@@ -13,7 +13,7 @@ def read_course_list(course_list_file: str):
     :return: A list of course IDs
     """
     with open(course_list_file, 'r') as f:
-        course_list = f.read().splitlines()
+        course_list = [line.strip() for line in f]
     return course_list
 
 
@@ -121,17 +121,17 @@ if __name__=='__main__':
 
         params = {
 
-            download_folder: download_folder,
-            output_as_json: output_as_json,
-            output_as_excel: output_as_excel,
-            include_video_files: include_video_files,
-            include_audio_files: include_audio_files,
-            include_image_files: include_image_files,
-            flatten: flatten,
-            flush_after_download: flush_after_download,
-            download_hidden_files: download_hidden_files,
-            show_content_tree: show_content_tree,
-            reset_params: reset_params,
+            "download_folder": download_folder,
+            "output_as_json": output_as_json,
+            "output_as_excel": output_as_excel,
+            "include_video_files": include_video_files,
+            "include_audio_files": include_audio_files,
+            "include_image_files": include_image_files,
+            "flatten": flatten,
+            "flush_after_download": flush_after_download,
+            "download_hidden_files": download_hidden_files,
+            "show_content_tree": show_content_tree,
+            "reset_params": reset_params,
 
         }
 
