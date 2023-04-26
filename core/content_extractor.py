@@ -92,8 +92,8 @@ class ContentExtractor(DownloaderMixin):
             "unsorted": [unsorted_dict(unsorted) for unsorted in self.get_unsorted_objects()],
         }
 
-    def get_all_content(self, file_download_directory=None, *args):
-        flatten = args[3] if args else False
+    def get_all_content(self, file_download_directory=None, **params):
+        flatten = params.get("flatten", False)
 
         main_dict = {
             "course_id": self.course_id,
@@ -109,10 +109,10 @@ class ContentExtractor(DownloaderMixin):
         }
         return main_dict
 
-    def get_all_content_as_json(self, file_download_directory, *args):
-        return json.dumps(self.get_all_content(file_download_directory, *args), indent=4, sort_keys=True, default=str)
+    def get_all_content_as_json(self, file_download_directory, **params):
+        return json.dumps(self.get_all_content(file_download_directory, **params), indent=4, sort_keys=True, default=str)
 
-    def save_content_as_json(self, json_save_directory, file_download_directory,  *args):
+    def save_content_as_json(self, json_save_directory, file_download_directory,  **params):
 
         """
         Saves all content as a json file.
@@ -134,13 +134,16 @@ class ContentExtractor(DownloaderMixin):
                 os.makedirs(os.path.dirname(full_path))
 
             with open(full_path, 'w') as f:
-                f.write(self.get_all_content_as_json(file_download_directory, *args))
+                f.write(self.get_all_content_as_json(file_download_directory,**params))
                 f.close()
 
             return full_path
 
 
-    def save_content_as_excel(self, excel_directory, file_download_directory=None, *args):
+    def save_content_as_excel(self, excel_directory, **params):
+
+        file_download_directory = params.get("download_folder", None)
+        download_hidden_files = params.get("download_hidden_files", False)
 
         """
         Saves all content as an excel file.
@@ -160,12 +163,13 @@ class ContentExtractor(DownloaderMixin):
             if not os.path.exists(root_download_directory):
                 os.makedirs(root_download_directory)
 
-            json_data = json.loads(self.get_all_content_as_json(root_file_download_directory, *args))
+            json_data = json.loads(self.get_all_content_as_json(root_file_download_directory, **params))
 
-            save_as_excel(json_data, root_download_directory)
+            save_as_excel(json_data, root_download_directory, download_hidden_files)
 
 
-    def download_files(self, directory, *args):
+
+    def download_files(self, directory, **params):
 
         """
         Downloads all files in the course.
@@ -174,15 +178,16 @@ class ContentExtractor(DownloaderMixin):
         :return:
         """
 
+        flush_after_download = params.get("flush_after_download", False)
+
         if self.exists:
             root_download_directory = os.path.join(directory, f"{sanitize_windows_filename(self.course_name)} "
                                                               f"- {self.course_id}")
             create_download_manifest(root_download_directory)
-            self.download(self, root_download_directory, *args)
+            self.download(self, root_download_directory, **params)
 
-            if args:
-                if args[4]:
-                    self.clear_folder_contents(directory)
+            if flush_after_download:
+                self.clear_folder_contents(directory)
 
     def clear_folder_contents(self, directory):
         """

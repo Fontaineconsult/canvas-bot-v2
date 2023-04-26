@@ -127,14 +127,16 @@ class DownloaderMixin:
     A mixin class for the ContentExtractor class that provides methods for downloading files.
     """
 
-    def download(self, content_extractor: ContentExtractor, root_directory: str, *args):
+    def download(self, content_extractor: ContentExtractor, root_directory: str, **params):
         from core.content_scaffolds import is_hidden
 
         download_manifest = read_download_manifest(root_directory)['downloaded_files']
 
-        include_video_files, include_audio_files, include_image_files,\
-        flatten, flush_after_download, download_hidden_files = args if args\
-            else (False, False, False, False, False, False)  # if no args are passed, set all to False
+        include_video_files = params.get('include_video_files', False)
+        include_audio_files = params.get('include_audio_files', False)
+        include_image_files = params.get('include_image_files', False)
+        flatten = params.get('flatten', False)
+        download_hidden_files = params.get('download_hidden_files', False)
 
         if not root_directory:
             print(f"Using default download path: {os.path.dirname(os.path.abspath(__file__))}")

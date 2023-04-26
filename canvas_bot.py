@@ -119,21 +119,26 @@ if __name__=='__main__':
              reset_params,
              ):
 
+        params = {
+
+            download_folder: download_folder,
+            output_as_json: output_as_json,
+            output_as_excel: output_as_excel,
+            include_video_files: include_video_files,
+            include_audio_files: include_audio_files,
+            include_image_files: include_image_files,
+            flatten: flatten,
+            flush_after_download: flush_after_download,
+            download_hidden_files: download_hidden_files,
+            show_content_tree: show_content_tree,
+            reset_params: reset_params,
+
+        }
+
         def run_bot(ctx,
                     course_id,
-                    download_folder,
-                    output_as_json,
-                    output_as_excel,
-                    include_video_files=False,
-                    include_audio_files=False,
-                    include_image_files=False,
-                    flatten=False,
-                    flush_after_download=False,
-                    download_hidden_files=False,
-                    show_content_tree=False,
-                    reset_params=False,
+                    **params
                     ):
-
 
             bot = CanvasBot(course_id)
 
@@ -150,52 +155,25 @@ if __name__=='__main__':
                 bot.print_content_tree()
 
             if ctx.params.get('download_folder'):
-                flags = (include_video_files,
-                         include_audio_files,
-                         include_image_files,
-                         flatten,
-                         flush_after_download,
-                         download_hidden_files)
-
-                bot.download_files(download_folder, *flags)
+                bot.download_files(download_folder, **params)
 
             if ctx.params.get('output_as_json'):
-                bot.save_content_as_json(output_as_json, download_folder)
+                bot.save_content_as_json(output_as_json, download_folder, **params)
 
             if ctx.params.get('output_as_excel'):
-                bot.save_content_as_excel(output_as_excel)
+                bot.save_content_as_excel(output_as_excel, **params)
 
         if course_id_list:
             course_list = read_course_list(course_id_list)
             for course_id in course_list:
                 run_bot(ctx,
                         course_id,
-                        download_folder,
-                        output_as_json,
-                        output_as_excel,
-                        include_video_files,
-                        include_audio_files,
-                        include_image_files,
-                        flatten,
-                        flush_after_download,
-                        download_hidden_files,
-                        show_content_tree,
-                        reset_params)
+                        **params)
 
         if course_id:
             run_bot(ctx,
                     course_id,
-                    download_folder,
-                    output_as_json,
-                    output_as_excel,
-                    include_video_files,
-                    include_audio_files,
-                    include_image_files,
-                    flatten,
-                    flush_after_download,
-                    download_hidden_files,
-                    show_content_tree,
-                    reset_params)
+                    **params)
 
         if reset_params and not course_id:
             bot = CanvasBot()

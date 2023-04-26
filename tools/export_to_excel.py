@@ -29,7 +29,7 @@ def create_excel_file(json_data, excel_file_path=None):
     wb.save(excel_file_path)
     wb.close()
 
-    build_xcel_file(json_data, excel_file_path)
+    # build_xcel_file(json_data, excel_file_path)
 
 
 def remove_key_recursively(obj, key_to_remove):
@@ -70,7 +70,7 @@ def apply_sheet_styles(excel_file_path):
         sheet.column_dimensions['G'].width = 50
         sheet.column_dimensions['H'].width = 150
         sheet_name = sheet_name.replace(" ", "-")
-        print(sheet.dimensions)
+
 
         table = Table(displayName=sheet_name, ref=sheet.dimensions)
 
@@ -127,7 +127,7 @@ def add_header_to_sheet(file_path, sheet_name, header_row):
     wb.close()
 
 
-def dicts_to_excel(filename, sheetname, data):
+def dicts_to_excel(filename, sheetname, data, download_hidden_files):
     # Load an existing Excel workbook or create a new one if it doesn't exist
     try:
         wb = openpyxl.load_workbook(filename)
@@ -142,16 +142,25 @@ def dicts_to_excel(filename, sheetname, data):
         ws = wb.create_sheet(sheetname)
 
     # Write data rows (values from each dictionary)
-    print(data)
+
     for row_num, item in enumerate(data, 2):  # Start from row 2
 
         for col_num, key in enumerate(item.keys(), 1):
 
             if key == "save_path":
-                print(f"{get_column_letter(col_num)}{row_num}")
+                if item['is_hidden'] and not download_hidden_files:
+                    continue
+
+                target = item.get(key)
+                if item['source_page_type'] == 'BoxPage':
+                    print("BOX")
+                    target = item.get("url")
+
+                print(target)
                 hyperlink = Hyperlink(ref=f"{get_column_letter(col_num)}{row_num}",
-                                      target=item.get(key), display="Open File")
+                                      target=target, display="Open File")
                 ws.cell(row=row_num, column=col_num).hyperlink = hyperlink
+                continue
 
             ws.cell(row=row_num, column=col_num).value = item.get(key)
 
@@ -161,7 +170,7 @@ def dicts_to_excel(filename, sheetname, data):
     wb.close()
 
 
-def build_xcel_file(json_data, excel_file_path):
+def build_xcel_file(json_data, excel_file_path, download_hidden_files):
 
     key_paths = find_key_names(json_data)
     for path in key_paths:
@@ -174,17 +183,17 @@ def build_xcel_file(json_data, excel_file_path):
 
         try:
             add_header_to_sheet(excel_file_path, sheet_name, my_list[0])
-            dicts_to_excel(excel_file_path, sheet_name, my_list)
+            dicts_to_excel(excel_file_path, sheet_name, my_list, download_hidden_files)
         except IndexError:
             pass
 
 
-def save_as_excel(json_data, file_save_path=None):
-    print(json_data)
+def save_as_excel(json_data, file_save_path, download_hidden_files):
+
 
     xcel_path = os.path.join(file_save_path, json_data['course_id'] + '.xlsx')
     json_data = remove_key_recursively(json_data, 'path')
 
     create_excel_file(json_data, xcel_path)
-    build_xcel_file(json_data, xcel_path)
+    build_xcel_file(json_data, xcel_path, download_hidden_files)
     apply_sheet_styles(xcel_path)
