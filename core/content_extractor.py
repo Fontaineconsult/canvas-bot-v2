@@ -165,7 +165,6 @@ class ContentExtractor(DownloaderMixin):
             save_as_excel(json_data, root_download_directory)
 
 
-
     def download_files(self, directory, *args):
 
         """
