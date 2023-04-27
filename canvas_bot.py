@@ -13,7 +13,7 @@ def read_course_list(course_list_file: str):
     :return: A list of course IDs
     """
     with open(course_list_file, 'r') as f:
-        course_list = f.read().splitlines()
+        course_list = [line.strip() for line in f]
     return course_list
 
 

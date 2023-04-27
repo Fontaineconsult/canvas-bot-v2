@@ -24,8 +24,6 @@ class ContentExtractor(DownloaderMixin):
         self.course_name = course_name
         self.exists = exists
 
-
-
     def get_document_objects(self):
         return [item for item in self.manifest.content_list() if isinstance(item, Document)]
 
@@ -122,10 +120,10 @@ class ContentExtractor(DownloaderMixin):
 
         if self.exists:
             dirname = os.path.abspath(__file__ + "/../../")
-            full_path = os.path.join(dirname, f'output\\json\\{self.course_id}.json')
+            full_path = os.path.join(dirname, rf'output\\json\\{self.course_id}.json')
 
             if json_save_directory:
-                full_path = os.path.join(json_save_directory, f"{self.course_id}.json")
+                full_path = os.path.join(json_save_directory, rf"{self.course_id}.json")
 
             if os.path.exists(full_path):
                 os.remove(full_path)
@@ -139,7 +137,6 @@ class ContentExtractor(DownloaderMixin):
 
             return full_path
 
-
     def save_content_as_excel(self, excel_directory, **params):
 
         file_download_directory = params.get("download_folder", None)
@@ -151,12 +148,12 @@ class ContentExtractor(DownloaderMixin):
         :return:
         """
         if self.exists:
-            root_download_directory = os.path.join(excel_directory, f"{sanitize_windows_filename(self.course_name)} "
-                                                              f"- {self.course_id}")
+            root_download_directory = os.path.join(excel_directory, rf"{sanitize_windows_filename(self.course_name)} "
+                                                              rf"- {self.course_id}")
 
             if file_download_directory:
-                root_file_download_directory = os.path.join(file_download_directory, f"{sanitize_windows_filename(self.course_name)} "
-                                                                                     f"- {self.course_id}")
+                root_file_download_directory = os.path.join(file_download_directory, rf"{sanitize_windows_filename(self.course_name)} "
+                                                                                     rf"- {self.course_id}")
             else:
                 root_file_download_directory = None
 
@@ -166,8 +163,6 @@ class ContentExtractor(DownloaderMixin):
             json_data = json.loads(self.get_all_content_as_json(root_file_download_directory, **params))
 
             save_as_excel(json_data, root_download_directory, download_hidden_files)
-
-
 
     def download_files(self, directory, **params):
 
@@ -181,8 +176,9 @@ class ContentExtractor(DownloaderMixin):
         flush_after_download = params.get("flush_after_download", False)
 
         if self.exists:
-            root_download_directory = os.path.join(directory, f"{sanitize_windows_filename(self.course_name)} "
-                                                              f"- {self.course_id}")
+            root_download_directory = os.path.join(directory, rf"{sanitize_windows_filename(self.course_name)} "
+                                                              rf"- {self.course_id}")
+            print('SDFSDFSD', root_download_directory, self.course_id)
             create_download_manifest(root_download_directory)
             self.download(self, root_download_directory, **params)
 
@@ -195,8 +191,8 @@ class ContentExtractor(DownloaderMixin):
         directory: The directory containing the course folder to clear.
         """
         if self.exists:
-            root_download_directory = os.path.join(directory, f"{sanitize_windows_filename(self.course_name)} "
-                                                              f"- {self.course_id}")
+            root_download_directory = os.path.join(directory, rf"{sanitize_windows_filename(self.course_name)} "
+                                                              rf"- {self.course_id}")
             for root, dirs, files in os.walk(root_download_directory, topdown=False):
                 for name in files:
                     os.remove(os.path.join(root, name))

@@ -1,4 +1,7 @@
 
+version: "0.1.1-alpha"
+
+
 filters:
   Announcements: {"class": "announcements-v2__wrapper"}
   Announcement: {"class": "ic-item-row ic-announcement-row"} #list

@@ -7,6 +7,7 @@ import openpyxl
 from openpyxl.worksheet.hyperlink import Hyperlink
 from openpyxl.utils.cell import get_column_letter
 
+
 def create_excel_file(json_data, excel_file_path=None):
 
     """
@@ -49,8 +50,6 @@ def remove_key_recursively(obj, key_to_remove):
         return obj
 
 
-
-
 def apply_sheet_styles(excel_file_path):
     wb = openpyxl.load_workbook(excel_file_path)
 
@@ -85,6 +84,7 @@ def apply_sheet_styles(excel_file_path):
 
     wb.save(excel_file_path)
     wb.close()
+
 
 def find_key_names(d, path=None):
     if path is None:
