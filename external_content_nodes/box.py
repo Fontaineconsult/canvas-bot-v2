@@ -9,6 +9,8 @@ from colorama import Style, Fore
 from config.yaml_io import read_config
 
 from resource_nodes.content_nodes import FileStorageSite
+from tools.string_checking.other_tools import get_extension_from_filename
+
 init()
 filters = read_config()['filters']
 
@@ -57,4 +59,5 @@ class BoxPage(FileStorageSite):
                     for item in json_dict['items']:
 
                         content_node = get_content_node(item['name'])
+                        content_node.mime_class = get_extension_from_filename(item['name'])
                         self.children.append(content_node(self, self.root, None, self.url, item['name']))

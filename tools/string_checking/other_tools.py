@@ -1,5 +1,5 @@
 import re
-
+import mimetypes
 from config.yaml_io import read_config
 from sorters.sorters import resource_node_regex
 
@@ -16,3 +16,11 @@ def has_file_extension(filename):
 
 def remove_query_params_from_url(url):
     return url.split('?')[0]
+
+
+def get_extension_from_filename(file_name):
+
+    if not has_file_extension(file_name):
+        return None
+    return file_name.split('.')[-1] or None
+

@@ -1,5 +1,7 @@
 import os
 import zipfile
+
+from openpyxl.styles import PatternFill
 from openpyxl.worksheet.table import Table, TableStyleInfo
 import openpyxl
 from openpyxl.worksheet.hyperlink import Hyperlink
@@ -80,8 +82,8 @@ def apply_sheet_styles(excel_file_path):
 
         table.tableStyleInfo = style
         sheet.add_table(table)
-        wb.save(excel_file_path)
 
+    wb.save(excel_file_path)
     wb.close()
 
 def find_key_names(d, path=None):
@@ -113,14 +115,10 @@ def add_header_to_sheet(file_path, sheet_name, header_row):
 
     # Add the header row to the sheet
 
-
-
     for col_idx, header_name in enumerate(header_row):
 
         cell = sheet.cell(row=1, column=col_idx+1)
         cell.value = " ".join(word.capitalize() for word in header_name.replace('_', ' ').split(' '))
-
-
 
     # Save the workbook
     wb.save(file_path)
@@ -153,13 +151,23 @@ def dicts_to_excel(filename, sheetname, data, download_hidden_files):
 
                 target = item.get(key)
                 if item['source_page_type'] == 'BoxPage':
-                    print("BOX")
                     target = item.get("url")
 
-                print(target)
+
                 hyperlink = Hyperlink(ref=f"{get_column_letter(col_num)}{row_num}",
                                       target=target, display="Open File")
                 ws.cell(row=row_num, column=col_num).hyperlink = hyperlink
+                continue
+
+            if key == "is_hidden":
+                if item.get(key) == True:
+                    fill = PatternFill(start_color='DB3535', end_color='DB3535', fill_type='solid')
+                    ws.cell(row=row_num, column=col_num).fill = fill
+                    ws.cell(row=row_num, column=col_num).value = "Hidden"
+                else:
+                    fill = PatternFill(start_color='92D050', end_color='92D050', fill_type='solid')
+                    ws.cell(row=row_num, column=col_num).fill = fill
+                    ws.cell(row=row_num, column=col_num).value = "Visible"
                 continue
 
             ws.cell(row=row_num, column=col_num).value = item.get(key)
@@ -189,7 +197,6 @@ def build_xcel_file(json_data, excel_file_path, download_hidden_files):
 
 
 def save_as_excel(json_data, file_save_path, download_hidden_files):
-
 
     xcel_path = os.path.join(file_save_path, json_data['course_id'] + '.xlsx')
     json_data = remove_key_recursively(json_data, 'path')
