@@ -139,14 +139,15 @@ class ContentExtractor(DownloaderMixin):
 
     def save_content_as_excel(self, excel_directory, **params):
 
-        file_download_directory = params.get("download_folder", None)
-        download_hidden_files = params.get("download_hidden_files", False)
-
         """
         Saves all content as an excel file.
         :param directory:
         :return:
         """
+        file_download_directory = params.get("download_folder", None)
+        download_hidden_files = params.get("download_hidden_files", False)
+
+
         if self.exists:
             root_download_directory = os.path.join(excel_directory, rf"{sanitize_windows_filename(self.course_name)} "
                                                               rf"- {self.course_id}")
@@ -178,7 +179,6 @@ class ContentExtractor(DownloaderMixin):
         if self.exists:
             root_download_directory = os.path.join(directory, rf"{sanitize_windows_filename(self.course_name)} "
                                                               rf"- {self.course_id}")
-            print('SDFSDFSD', root_download_directory, self.course_id)
             create_download_manifest(root_download_directory)
             self.download(self, root_download_directory, **params)
 

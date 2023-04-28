@@ -20,6 +20,11 @@ user_agent = config['requests']['user-agent']
 default_download_path = config['default_download_path']
 
 
+import logging
+from tools import logger
+log = logging.getLogger(__name__)
+
+
 from tools.string_checking.other_tools import has_file_extension, remove_query_params_from_url
 
 if TYPE_CHECKING:
@@ -33,19 +38,6 @@ def derive_filename_from_url(contentnode: BaseContentNode):
     :return:
 
     """
-    # try:
-    #     check_headers = requests.head(contentnode.url, headers=user_agent)
-    # except SSLError:
-    #     return remove_trailing_path_segments(contentnode.url).split('/')[-1]
-    #
-    # print(check_headers.headers.get('Content-Type'))
-    # if check_headers.headers.get('Content-Type'):
-    #     print(check_headers.headers['Content-Type'])
-    #     if check_headers.headers['Content-Type'].split(";")[0] == 'text/html':
-    #         return "Not a File"
-    # if check_headers.headers.get('Content-Disposition'):
-    #     return check_headers['Content-Disposition'].split('filename=')[1].strip('"')
-
     remove_trailing = remove_trailing_path_segments(contentnode.url)
     if remove_trailing:
         return remove_trailing.split('/')[-1]
@@ -114,12 +106,16 @@ def create_windows_shortcut_from_url(url: str, shortcut_path: str):
     encode_path_to_ascii = shortcut_path.encode('ascii', errors='ignore').decode('ascii')
     shortcut_path = encode_path_to_ascii.split(".")[0] + ".lnk"
 
+    try:
+        shell = win32com.client.Dispatch("WScript.Shell")
+        shortcut = shell.CreateShortCut(shortcut_path)
+        shortcut.Targetpath = url
+        shortcut.save()
+        return shortcut_path
+    except Exception as exc:
+        log.exception(f"Failed to create shortcut for {url} at {shortcut_path} because of {exc}")
+        raise exc
 
-    shell = win32com.client.Dispatch("WScript.Shell")
-    shortcut = shell.CreateShortCut(shortcut_path)
-    shortcut.Targetpath = url
-    shortcut.save()
-    return shortcut_path
 
 
 class DownloaderMixin:
@@ -129,8 +125,9 @@ class DownloaderMixin:
 
     def download(self, content_extractor: ContentExtractor, root_directory: str, **params):
         from core.content_scaffolds import is_hidden
-
         download_manifest = read_download_manifest(root_directory)['downloaded_files']
+
+        log.info(f"Downloading files to {root_directory} with params: {params}")
 
         include_video_files = params.get('include_video_files', False)
         include_audio_files = params.get('include_audio_files', False)
@@ -195,7 +192,7 @@ class DownloaderMixin:
             response = requests.get(url, stream=True, verify=True, headers=user_agent)
 
             if response.status_code in [401, 402, 403, 404, 405, 406]:
-
+                log.warning(f"Response Error {response.status_code} {response.reason} {url} {filename}\n")
                 print(f"Response Error {response.status_code} {response.reason} {url} {filename}\n")
                 return create_windows_shortcut_from_url(url, filename)
             else:
@@ -211,18 +208,22 @@ class DownloaderMixin:
 
                     return filename
 
-                except PermissionError:
+                except PermissionError as exc:
+                    log.exception(f"Permission Error: {exc}, {filename}")
                     print(f"Permission Error: {filename}\n")
                     return create_windows_shortcut_from_url(url, filename)
 
         except requests.exceptions.ConnectionError as exc:
+            log.exception(f"Connection Error: {exc}, {url}")
             print(f"Connection Error: {exc}, {url}\n")
             return create_windows_shortcut_from_url(url, filename)
 
         except MissingSchema as exc:
+            log.exception(f"Missing Schema Error: {exc}, {url}")
             print(f"Missing Schema Error: {exc}, {url}\n")
 
         except InvalidURL as exc:
+            log.exception(f"Invalid URL Error: {exc}, {url}")
             print(f"Invalid URL Error: {exc}, {url}\n")
 
 

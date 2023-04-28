@@ -5,6 +5,9 @@ from core.course_root import CanvasCourseRoot
 from network.cred import set_canvas_api_key_to_environment_variable, save_canvas_api_key, save_config_data, \
     load_config_data_from_appdata, delete_canvas_api_key, delete_config_file_from_appdata
 
+import logging
+from tools import logger
+log = logging.getLogger(__name__)
 
 def read_course_list(course_list_file: str):
     """
@@ -149,7 +152,7 @@ if __name__=='__main__':
                 bot.start()
             else:
                 print("No course ID provided. Exiting")
-                exit()
+                sys.exit()
 
             if show_content_tree:
                 bot.print_content_tree()

@@ -19,6 +19,10 @@ from tools.canvas_tree import CanvasTree
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 init()  # colorama init
 
+import logging
+from tools import logger
+log = logging.getLogger(__name__)
+
 
 class CanvasCourseRoot(ContentExtractor):
 
@@ -39,6 +43,7 @@ class CanvasCourseRoot(ContentExtractor):
     def initialize_course(self):
         course_api = get_course(self.course_id)
         if course_api:
+            log.info(f"Course API: {self.course_id} Exists")
             self.title = course_api['name'] # name used internally for course
             self.course_name = course_api['course_code'] # name used for course folder
             self.exists = True
@@ -46,6 +51,7 @@ class CanvasCourseRoot(ContentExtractor):
             self._init_modules_root()
 
         if not course_api:
+            log.warning(f"Course API: {self.course_id} Doesn't Exist")
             print(f"Course ID: {self.course_id} does not exist. Please check the course ID and try again.")
 
     def _init_modules_root(self):

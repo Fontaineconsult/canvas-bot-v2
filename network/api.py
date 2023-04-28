@@ -7,24 +7,31 @@ from requests.exceptions import MissingSchema
 import json
 import warnings
 
-
+import logging
+from tools import logger
+log = logging.getLogger(__name__)
 
 def response_handler(request_url):
 
     try:
         request = requests.get(request_url)
     except requests.exceptions.ConnectionError as exc:
+        log.exception(f"{exc} {request_url}")
         warnings.warn(f"{exc} {request_url}", UserWarning)
         return False
     except MissingSchema as exc:
+        log.exception(f"{exc} {request_url}")
         warnings.warn(f"{exc} {request_url}", UserWarning)
         return None
     if request.status_code == 200:
+        log.info(f"Request: {request_url} | Status Code: {request.status_code}")
         return json.loads(request.content)
     if request.status_code != 200:
+        log.warning(f"Request: {request_url} | Status Code: {request.status_code}")
         try:
             error_message = json.loads(request.content)
-        except JSONDecodeError:
+        except JSONDecodeError as exc:
+            log.exception(f"{exc} {request_url}")
             error_message = "Failed to load message"
         warning_message = f"{request.status_code} {error_message} {request_url}"
         warnings.warn(warning_message, UserWarning)
@@ -161,4 +168,3 @@ def get_url(url):
 
 if __name__=="__main__":
     load_dotenv("..\\.env")
-    # print(get_media_objects("3070"))

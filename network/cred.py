@@ -2,13 +2,20 @@ import os, json
 import keyring, keyring.errors
 
 
+import logging
+from tools import logger
+log = logging.getLogger(__name__)
+
+
 def save_canvas_api_key(api_key):
     keyring.set_password("ACCESS_TOKEN", "canvas_bot", api_key)
+    log.info("Access Token for Canvas Bot Saved")
     print("Access Token for Canvas Bot Saved")
 
 def delete_canvas_api_key():
     try:
         keyring.delete_password("ACCESS_TOKEN", "canvas_bot")
+        log.info("Access Token for Canvas Bot Deleted")
         print("Access Token for Canvas Bot Deleted")
     except keyring.errors.PasswordDeleteError:
         print("Access Token found for Canvas Bot.")
@@ -25,8 +32,10 @@ def set_canvas_api_key_to_environment_variable():
 
     if api_key:
         os.environ["ACCESS_TOKEN"] = api_key
+        log.info("Access Token for Canvas Bot Set")
         return True
     else:
+        log.info("No Canvas Access Token Found")
         print("No Canvas Access Token Found")
         return False
 
@@ -70,6 +79,7 @@ def load_config_data_from_appdata():
     # Load the configuration data from the JSON file
     config_file_path = os.path.join(app_folder, "config.json")
     with open(config_file_path, "r") as config_file:
+        log.info("Config File Loaded")
         config_data = json.load(config_file)
 
     # set each key in the config data to an environment variable
@@ -88,4 +98,5 @@ def delete_config_file_from_appdata():
     # Delete the configuration file
     config_file_path = os.path.join(app_folder, "config.json")
     os.remove(config_file_path)
+    log.info("Config File Deleted")
 
