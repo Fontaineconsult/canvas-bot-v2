@@ -1,4 +1,6 @@
 import os, json
+import sys
+
 import keyring, keyring.errors
 
 
@@ -39,7 +41,7 @@ def set_canvas_api_key_to_environment_variable():
         print("No Canvas Access Token Found")
         return False
 
-def save_config_data(config_data):
+def save_config_data(config_data=None, folder_only=False):
     """
     Save configuration data to a JSON file in the AppData folder.
 
@@ -52,13 +54,29 @@ def save_config_data(config_data):
     app_folder = os.path.join(appdata_path, "canvas bot")
 
     # Create the application folder if it doesn't exist
-    if not os.path.exists(app_folder):
-        os.makedirs(app_folder)
+    try:
+        if not os.path.exists(app_folder):
+            os.makedirs(app_folder)
+    except OSError as exc:
+        print("Creation of the app data directory %s failed" % app_folder)
+        print("Program can't continue. See log file for details. Exiting now")
+        log.exception("Creation of the app data directory failed with error %s" % exc)
+        sys.exit()
+
+    if folder_only:
+        return app_folder
 
     # Save the configuration data as a JSON file
     config_file_path = os.path.join(app_folder, "config.json")
-    with open(config_file_path, "w") as config_file:
-        json.dump(config_data, config_file, indent=4)
+
+    try:
+        with open(config_file_path, "w") as config_file:
+            json.dump(config_data, config_file, indent=4)
+    except OSError as exc:
+        print("Couldn't write config data to %s" % app_folder)
+        print("Program can't continue. See log file for details. Exiting now")
+        log.exception("Can't write config data %s" % exc)
+        sys.exit()
 
 
 def load_config_data_from_appdata():
