@@ -1,15 +1,17 @@
 import os
 from json import JSONDecodeError
-
+import logging
+import tools.logger
 import requests
 from dotenv import load_dotenv
 from requests.exceptions import MissingSchema
 import json
 import warnings
 
-import logging
-from tools import logger
+
+# set_logger()
 log = logging.getLogger(__name__)
+
 
 def response_handler(request_url):
 

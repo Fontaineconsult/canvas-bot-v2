@@ -21,7 +21,7 @@ default_download_path = config['default_download_path']
 
 
 import logging
-from tools import logger
+import tools.logger
 log = logging.getLogger(__name__)
 
 

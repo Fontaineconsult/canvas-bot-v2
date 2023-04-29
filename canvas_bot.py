@@ -1,13 +1,14 @@
 #!\windowsvenv\Scripts python
-import click, sys
+import click, sys, logging
 from config.yaml_io import read_config
 from core.course_root import CanvasCourseRoot
 from network.cred import set_canvas_api_key_to_environment_variable, save_canvas_api_key, save_config_data, \
     load_config_data_from_appdata, delete_canvas_api_key, delete_config_file_from_appdata
 
-import logging
-from tools import logger
+
+import tools.logger
 log = logging.getLogger(__name__)
+
 
 def read_course_list(course_list_file: str):
     """

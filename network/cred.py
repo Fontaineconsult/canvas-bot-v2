@@ -5,7 +5,7 @@ import keyring, keyring.errors
 
 
 import logging
-from tools import logger
+import tools.logger
 log = logging.getLogger(__name__)
 
 

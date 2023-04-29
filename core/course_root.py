@@ -1,10 +1,9 @@
-import warnings
-from os.path import join, dirname
 from colorama import Fore, Style, init
-from dotenv import load_dotenv
 import os, sys
 from core.content_extractor import ContentExtractor
 from core.manifest import Manifest
+from tools.canvas_tree import CanvasTree
+
 from network.api import get_course
 from resource_nodes.announcements import Announcements
 from resource_nodes.assignments import Assignments
@@ -14,17 +13,19 @@ from resource_nodes.media_objects import CanvasMediaObjects
 from resource_nodes.modules import Modules
 from resource_nodes.pages import Pages
 from resource_nodes.quizzes import Quizzes
-from tools.canvas_tree import CanvasTree
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 init()  # colorama init
 
+
 import logging
-from tools import logger
+import tools.logger
 log = logging.getLogger(__name__)
 
 
+
 class CanvasCourseRoot(ContentExtractor):
+
 
     def __init__(self, course_id):
 
@@ -41,6 +42,7 @@ class CanvasCourseRoot(ContentExtractor):
         return f"<{Fore.GREEN}Canvas Course Root ID: {self.course_id} | {self.course_url}{Style.RESET_ALL}>"
 
     def initialize_course(self):
+
         course_api = get_course(self.course_id)
         if course_api:
             log.info(f"Course API: {self.course_id} Exists")
@@ -48,6 +50,7 @@ class CanvasCourseRoot(ContentExtractor):
             self.course_name = course_api['course_code'] # name used for course folder
             self.exists = True
             print(f"\nStarting import for {self.title} | {self.course_url}\n")
+            log.info(f" ---------- Starting import for {self.title} | {self.course_url} | {self.course_id} ----------")
             self._init_modules_root()
 
         if not course_api:
@@ -55,6 +58,8 @@ class CanvasCourseRoot(ContentExtractor):
             print(f"Course ID: {self.course_id} does not exist. Please check the course ID and try again.")
 
     def _init_modules_root(self):
+
+
 
         self.canvas_tree.init_node(self)
 
