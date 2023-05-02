@@ -186,4 +186,12 @@ if __name__=='__main__':
             bot.reset_config()
             print("No course ID provided. Exiting")
             sys.exit()
-    main()
+
+
+    try:
+        main()
+    except Exception as exc:
+        log.exception(exc)
+        raise exc
+
+
