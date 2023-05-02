@@ -313,7 +313,9 @@ def add_tracking_columns(excel_file_path):
                         sheet.add_data_validation(validation)
 
                         validation.ranges.add(cell_range)
-                        # v.ranges += cell_range
+                        for row in sheet[cell_range]:
+                            for cell in row:
+                                cell.value = "Not Checked"
 
 
                 # Set column width (optional)
