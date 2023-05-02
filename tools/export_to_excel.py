@@ -2,10 +2,99 @@ import os
 import zipfile
 
 from openpyxl.styles import PatternFill
+from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.worksheet.table import Table, TableStyleInfo
 import openpyxl
 from openpyxl.worksheet.hyperlink import Hyperlink
 from openpyxl.utils.cell import get_column_letter
+
+
+
+tracking_columns = {
+    'Documents': [
+        ('Accessible', 15),
+        ('Accessible File Location', 20),
+
+    ],
+    'Document Sites': [
+        ('ColumnA', 12),
+        ('ColumnB', 18),
+    ],
+    'Image Files': [
+        ('Needs Description?', 12),
+    ],
+    'Video Files': [
+        ('Captioned', 15),
+        ('Accessible File Location', 20),
+    ],
+    'Video Sites': [
+        ('Captioned', 15),
+        ('Accessible Video Location', 20),
+    ],
+    'Audio Files': [
+        ('Captioned', 15),
+        ('Accessible File Location', 20),
+    ],
+    'Audio Sites': [
+        ('Transcript', 15),
+        ('Accessible Audio Location', 20),
+    ],
+    'Unsorted': [
+    ],
+}
+
+
+data_validations = {
+    'Accessible': [
+        DataValidation(
+            type='list',
+            formula1='"{}"'.format(','.join(['Not Checked', 'Already Accessible', 'Remediated'])),
+            showDropDown=True)
+    ]
+
+}
+
+
+
+
+def has_data(sheet):
+    # Check if there's data in any cell of the sheet
+    for row in sheet.iter_rows():
+        for cell in row:
+            if cell.value is not None:
+                return True
+    return False
+
+
+
+
+def get_data_cells_range(sheet, column):
+    print(sheet, column)
+    start_row = 2
+    end_row = find_next_empty_row(sheet, 1) - 1
+
+    if end_row < start_row:
+        return None  # No data cells in the column
+
+    start_cell = sheet.cell(row=start_row, column=column)
+    end_cell = sheet.cell(row=end_row, column=column)
+
+    return f"{start_cell.coordinate}:{end_cell.coordinate}"
+
+
+def find_next_empty_column(sheet):
+    col_idx = 1
+    while sheet.cell(row=1, column=col_idx).value is not None:
+        col_idx += 1
+    return col_idx
+
+def find_next_empty_row(sheet, column):
+    row_idx = 1
+    while sheet.cell(row=row_idx, column=column).value is not None:
+        row_idx += 1
+    return row_idx
+
+
 
 
 def create_excel_file(json_data, excel_file_path=None):
@@ -195,6 +284,51 @@ def build_xcel_file(json_data, excel_file_path, download_hidden_files):
         except IndexError:
             pass
 
+def add_tracking_columns(excel_file_path):
+
+
+    wb = openpyxl.load_workbook(excel_file_path)
+
+
+    for sheet_name, columns in tracking_columns.items():
+        sheet = wb[sheet_name]
+
+        # Only update the sheet if it has data
+        if has_data(sheet):
+            start_col_idx = find_next_empty_column(sheet)
+            for col_offset, (col_title, col_width) in enumerate(columns):
+                col_idx = start_col_idx + col_offset
+
+                # Set column title
+                sheet.cell(row=1, column=col_idx, value=col_title)
+
+                # Set data validations
+                validations = data_validations.get(col_title)
+
+                if validations is not None:
+                    for v in validations:
+                        validation = v
+                        cell_range = get_data_cells_range(sheet, col_idx)
+                        print(cell_range)
+                        sheet.add_data_validation(validation)
+
+                        validation.ranges.add(cell_range)
+                        # v.ranges += cell_range
+
+
+                # Set column width (optional)
+                if col_width is not None:
+                    column_letter = openpyxl.utils.get_column_letter(col_idx)
+                    sheet.column_dimensions[column_letter].width = col_width
+
+    wb.save(excel_file_path)
+    wb.close()
+
+
+
+
+
+
 
 def save_as_excel(json_data, file_save_path, download_hidden_files):
 
@@ -203,4 +337,6 @@ def save_as_excel(json_data, file_save_path, download_hidden_files):
 
     create_excel_file(json_data, xcel_path)
     build_xcel_file(json_data, xcel_path, download_hidden_files)
+    add_tracking_columns(xcel_path)
     apply_sheet_styles(xcel_path)
+

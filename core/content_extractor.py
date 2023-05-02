@@ -92,7 +92,7 @@ class ContentExtractor(DownloaderMixin):
 
     def get_all_content(self, file_download_directory=None, **params):
         flatten = params.get("flatten", False)
-
+        print("SDFSDFSDF", file_download_directory)
         main_dict = {
             "course_id": self.course_id,
             "course_url": self.course_url,
@@ -132,6 +132,7 @@ class ContentExtractor(DownloaderMixin):
                 os.makedirs(os.path.dirname(full_path))
 
             with open(full_path, 'w') as f:
+
                 f.write(self.get_all_content_as_json(file_download_directory,**params))
                 f.close()
 
