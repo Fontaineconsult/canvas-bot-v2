@@ -61,10 +61,11 @@ class ContentExtractor(DownloaderMixin):
             "document_sites": [document_site_dict(document_site) for document_site in self.get_document_site_objects()],
         }
 
-    def build_videos_dict(self, file_download_directory, flatten):
+    def build_videos_dict(self, file_download_directory, flatten, check_video_site_caption_status):
 
         return {
-            "video_sites": [video_site_dict(video_site) for video_site in self.get_video_site_objects()],
+            "video_sites": [video_site_dict(video_site, check_video_site_caption_status)
+                            for video_site in self.get_video_site_objects()],
             "video_files": [video_file_dict(video_file, file_download_directory, flatten) for video_file in
                             self.get_video_file_objects()],
         }
@@ -91,15 +92,16 @@ class ContentExtractor(DownloaderMixin):
         }
 
     def get_all_content(self, file_download_directory=None, **params):
+        print(params)
         flatten = params.get("flatten", False)
-        print("SDFSDFSDF", file_download_directory)
+        check_video_site_caption_status = params.get("check_video_site_caption_status", False)
         main_dict = {
             "course_id": self.course_id,
             "course_url": self.course_url,
             "course_name": self.course_name,
             "content":{
                 "documents": self.build_documents_dict(file_download_directory, flatten),
-                "videos": self.build_videos_dict(file_download_directory, flatten),
+                "videos": self.build_videos_dict(file_download_directory, flatten, check_video_site_caption_status),
                 "audio": self.build_audio_dict(file_download_directory, flatten),
                 "images": self.build_images_dict(file_download_directory, flatten),
                 "unsorted": self.build_unsorted_dict()
@@ -108,6 +110,7 @@ class ContentExtractor(DownloaderMixin):
         return main_dict
 
     def get_all_content_as_json(self, file_download_directory, **params):
+        print(params)
         return json.dumps(self.get_all_content(file_download_directory, **params), indent=4, sort_keys=True, default=str)
 
     def save_content_as_json(self, json_save_directory, file_download_directory,  **params):
@@ -161,7 +164,7 @@ class ContentExtractor(DownloaderMixin):
 
             if not os.path.exists(root_download_directory):
                 os.makedirs(root_download_directory)
-
+            print(params)
             json_data = json.loads(self.get_all_content_as_json(root_file_download_directory, **params))
 
             save_as_excel(json_data, root_download_directory, download_hidden_files)

@@ -104,7 +104,8 @@ if __name__=='__main__':
                   help='Resets Access Token and config file. Default is False')
     @click.option('--output_as_excel', type=click.STRING,
                   help='The location to export the course content as an excel file.')
-
+    @click.option('--check_video_site_caption_status', is_flag=True,
+                  help='Where available, checks the if YouTube or Vimeo videos contain captions. Default is False')
 
     @click.pass_context
     def main(ctx,
@@ -121,6 +122,7 @@ if __name__=='__main__':
              download_hidden_files,
              show_content_tree,
              reset_params,
+             check_video_site_caption_status
              ):
 
         params = {
@@ -136,6 +138,7 @@ if __name__=='__main__':
             "download_hidden_files": download_hidden_files,
             "show_content_tree": show_content_tree,
             "reset_params": reset_params,
+            "check_video_site_caption_status": check_video_site_caption_status,
 
         }
 
