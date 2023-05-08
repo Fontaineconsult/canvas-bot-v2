@@ -77,6 +77,7 @@ web_video_resources_regex:
   - .*.atvideo.at.sfsu.edu/player/.*.
   - .*.zoom.us.*.
   - .*.facebook.com/watch/\?v.*.
+  - https:\/\/fb\.watch\/[a-zA-Z0-9_-]+\/
   - .*.smartplayer.captionsync.com.*.
   - .*.instructuremedia.com/embed.*.
   - .*.tiktok.com/embed/.*.
