@@ -68,7 +68,7 @@ def path_constructor(root_directory: str, node: BaseContentNode, flatten: bool):
         Returns the path to the folder that the file should be saved in.
     """
 
-    filename = derive_file_name(node)
+    filename = sanitize_windows_filename(derive_file_name(node))
 
     node_path = build_path(node, ignore_root=True)
     paths = list()

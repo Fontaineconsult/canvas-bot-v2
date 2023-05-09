@@ -48,6 +48,8 @@ def sanitize_windows_filename(filename: str, folder=False) -> str:
     return sanitized_filename
 
 
+
+
 def is_url(string: str) -> bool:
 
     string = string.replace(' ', '')

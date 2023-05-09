@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List
 
 from core.downloader import path_constructor, derive_file_name
+from tools.captioning_check import get_youtube_caption_info
 
 
 def get_source_page_url(node) -> int:
@@ -134,7 +135,7 @@ def document_site_dict(document_site_node):
 
 
 
-def video_site_dict(video_site_node):
+def video_site_dict(video_site_node, check_caption_status):
 
     video_site_dict = {
 
@@ -149,6 +150,11 @@ def video_site_dict(video_site_node):
         "path": [node.title for node in build_path(video_site_node, ignore_root=True)],
 
     }
+    print("ind dict", check_caption_status)
+    if check_caption_status:
+        video_site_dict["caption_status"] = get_youtube_caption_info(getattr(video_site_node, "url", None))
+
+
     return video_site_dict
 
 

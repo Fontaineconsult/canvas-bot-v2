@@ -1,43 +1,56 @@
 import os
 import zipfile
 
+from openpyxl.formatting.rule import CellIsRule
 from openpyxl.styles import PatternFill
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.worksheet.table import Table, TableStyleInfo
 import openpyxl
 from openpyxl.worksheet.hyperlink import Hyperlink
 from openpyxl.utils.cell import get_column_letter
-
+from openpyxl.utils import get_column_letter
+from openpyxl.formatting.rule import FormulaRule
 
 
 tracking_columns = {
     'Documents': [
         ('Accessible', 15),
         ('Accessible File Location', 20),
+        ('Notes', 20),
 
     ],
     'Document Sites': [
         ('ColumnA', 12),
         ('ColumnB', 18),
+        ('Notes', 20),
     ],
     'Image Files': [
         ('Needs Description?', 12),
+        ('Notes', 20),
     ],
     'Video Files': [
-        ('Captioned', 15),
+        # ('Captioned', 15),
         ('Accessible File Location', 20),
+        ('Sent To AST', 20),
+        ('Notes', 20),
     ],
     'Video Sites': [
         ('Captioned', 15),
         ('Accessible Video Location', 20),
+        ('Sent To AST', 20),
+        ('Notes', 20),
     ],
     'Audio Files': [
         ('Captioned', 15),
         ('Accessible File Location', 20),
+        ('Sent To AST', 20),
+        ('Notes', 20),
     ],
     'Audio Sites': [
         ('Transcript', 15),
         ('Accessible Audio Location', 20),
+        ('Sent To AST', 20),
+        ('Notes', 20),
     ],
     'Unsorted': [
     ],
@@ -46,13 +59,42 @@ tracking_columns = {
 
 data_validations = {
     'Accessible': [
-        DataValidation(
+        (DataValidation(
             type='list',
-            formula1='"{}"'.format(','.join(['Not Checked', 'Already Accessible', 'Remediated'])),
-            showDropDown=True)
+            formula1='"{}"'.format(','.join(['Not Checked',
+                                             'Already Accessible',
+                                             'Remediated',
+                                             'Unable to Remediate'])),
+            showDropDown=False),
+         [
+             FormulaRule(formula=['$J2="Not Checked"'],
+                        fill=PatternFill(bgColor='FFFF00', fgColor='FFFF00', fill_type='solid')),
+             FormulaRule(formula=['$J2="Already Accessible"'],
+                        fill=PatternFill(bgColor='92D050', fgColor='FFFF00', fill_type='solid')),
+             FormulaRule(formula=['$J2="Remediated"'],
+                        fill=PatternFill(bgColor='92D050', fgColor='FFFF00', fill_type='solid')),
+             FormulaRule(formula=['$J2="Unable to Remediate"'],
+                         fill=PatternFill(bgColor='DB3535', fgColor='FFFF00', fill_type='solid'))
+         ]
+        )
     ]
 
 }
+
+
+
+
+def replace_column_in_range(range_string, new_column_letter):
+    # Split the range string into its parts
+    start, end = range_string.split(':')
+
+    # Extract the row numbers
+    start_row = ''.join(filter(str.isdigit, start))
+    end_row = ''.join(filter(str.isdigit, end))
+
+    # Replace the column letter in the range string
+    new_range_string = f"{new_column_letter}{start_row}:{new_column_letter}{end_row}"
+    return new_range_string
 
 
 def has_data(sheet):
@@ -64,10 +106,11 @@ def has_data(sheet):
     return False
 
 
+
+
 def get_data_cells_range(sheet, column):
-    print(sheet, column)
     start_row = 2
-    end_row = find_next_empty_row(sheet, 1) - 1
+    end_row = find_next_empty_row(sheet, column) - 1
 
     if end_row < start_row:
         return None  # No data cells in the column
@@ -153,9 +196,9 @@ def apply_sheet_styles(excel_file_path):
         sheet.column_dimensions['C'].width = 15
         sheet.column_dimensions['D'].width = 20
         sheet.column_dimensions['E'].width = 20
-        sheet.column_dimensions['F'].width = 50
-        sheet.column_dimensions['G'].width = 50
-        sheet.column_dimensions['H'].width = 150
+        sheet.column_dimensions['F'].width = 30
+        sheet.column_dimensions['G'].width = 30
+        sheet.column_dimensions['H'].width = 40
         sheet_name = sheet_name.replace(" ", "-")
 
 
@@ -255,6 +298,7 @@ def dicts_to_excel(filename, sheetname, data, download_hidden_files):
                     ws.cell(row=row_num, column=col_num).value = "Visible"
                 continue
 
+
             ws.cell(row=row_num, column=col_num).value = item.get(key)
 
 
@@ -271,9 +315,10 @@ def build_xcel_file(json_data, excel_file_path, download_hidden_files):
         sub_dict = json_data
         for key in path[:-1]:
             sub_dict = sub_dict[key]
+            print(key)
         my_list = sub_dict[path[-1]]
         sheet_name = " ".join(word.capitalize() for word in path[-1].replace('_', ' ').split(' '))
-
+        print(my_list)
         try:
             add_header_to_sheet(excel_file_path, sheet_name, my_list[0])
             dicts_to_excel(excel_file_path, sheet_name, my_list, download_hidden_files)
@@ -303,14 +348,23 @@ def add_tracking_columns(excel_file_path):
 
                 if validations is not None:
                     for v in validations:
-                        validation = v
-                        cell_range = get_data_cells_range(sheet, col_idx)
-                        print(cell_range)
-                        sheet.add_data_validation(validation)
+                        validation = v[0]
+                        formatting_list = v[1]
 
-                        validation.ranges.add(cell_range)
-                        for row in sheet[cell_range]:
+                        cell_range = get_data_cells_range(sheet, 5)
+                        print(cell_range)
+                        validation_cell_range = replace_column_in_range(cell_range, get_column_letter(col_idx))
+
+                        sheet.add_data_validation(validation)
+                        validation.ranges.add(validation_cell_range)
+
+                        for formatting in formatting_list:
+                            formatter = formatting
+                            sheet.conditional_formatting.add(validation_cell_range, formatter)
+
+                        for row in sheet[validation_cell_range]:
                             for cell in row:
+                                print(cell)
                                 cell.value = "Not Checked"
 
 

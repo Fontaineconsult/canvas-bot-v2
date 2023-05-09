@@ -3,16 +3,20 @@ import sys
 
 import keyring, keyring.errors
 
+try:
+    import logging
+    import tools.logger
+    log = logging.getLogger(__name__)
+except (AttributeError, ImportError):
+    print("Can't import log profile. Logging disabled for credentials module.")
 
-import logging
-import tools.logger
-log = logging.getLogger(__name__)
 
 
 def save_canvas_api_key(api_key):
     keyring.set_password("ACCESS_TOKEN", "canvas_bot", api_key)
     log.info("Access Token for Canvas Bot Saved")
     print("Access Token for Canvas Bot Saved")
+
 
 def delete_canvas_api_key():
     try:
@@ -21,7 +25,6 @@ def delete_canvas_api_key():
         print("Access Token for Canvas Bot Deleted")
     except keyring.errors.PasswordDeleteError:
         print("Access Token found for Canvas Bot.")
-
 
 
 def set_canvas_api_key_to_environment_variable():
@@ -40,6 +43,7 @@ def set_canvas_api_key_to_environment_variable():
         log.info("No Canvas Access Token Found")
         print("No Canvas Access Token Found")
         return False
+
 
 def save_config_data(config_data=None, folder_only=False):
     """
@@ -105,6 +109,7 @@ def load_config_data_from_appdata():
         os.environ[key] = value
     return True
 
+
 def delete_config_file_from_appdata():
     """
     Delete the configuration file from the AppData folder.
@@ -117,4 +122,32 @@ def delete_config_file_from_appdata():
     config_file_path = os.path.join(app_folder, "config.json")
     os.remove(config_file_path)
     log.info("Config File Deleted")
+
+
+def save_youtube_api_key(youtube_key):
+
+    keyring.set_password("youtube_for_canvasbot", "youtube_for_canvasbot", youtube_key)
+    log.info("YouTube API Key Saved")
+    print("YouTube API Key Saved")
+
+
+def get_youtube_api_key():
+        return keyring.get_password("youtube_for_canvasbot", "youtube_for_canvasbot")
+
+
+
+
+def save_amara_api_key(amara_api_key):
+
+    keyring.set_password("amara_for_canvasbot", "amara_for_canvasbot", amara_api_key)
+    log.info("Amara API Key Saved")
+    print("Amara API Key Saved")
+
+
+def save_vimeo_api_key(vimeo_api_key):
+
+    keyring.set_password("vimeo_for_canvasbot", "vimeo_for_canvasbot", vimeo_api_key)
+    log.info("Vimeo API Key Saved")
+    print("Vimeo API Key Saved")
+
 
