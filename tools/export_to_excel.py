@@ -1,6 +1,6 @@
 import os
 import zipfile
-
+from collections import namedtuple
 from openpyxl.formatting.rule import CellIsRule
 from openpyxl.styles import PatternFill
 from openpyxl.worksheet.datavalidation import DataValidation
@@ -17,40 +17,47 @@ tracking_columns = {
         ('Accessible', 15),
         ('Accessible File Location', 20),
         ('Notes', 20),
+        ('Ignore', 20),
 
     ],
     'Document Sites': [
         ('ColumnA', 12),
         ('ColumnB', 18),
         ('Notes', 20),
+        ('Ignore', 20),
     ],
     'Image Files': [
         ('Needs Description?', 12),
         ('Notes', 20),
+        ('Ignore', 20),
     ],
     'Video Files': [
         # ('Captioned', 15),
         ('Accessible File Location', 20),
         ('Sent To AST', 20),
         ('Notes', 20),
+        ('Ignore', 20),
     ],
     'Video Sites': [
-        ('Captioned', 15),
+        # ('Captioned', 15),
         ('Accessible Video Location', 20),
         ('Sent To AST', 20),
         ('Notes', 20),
+        ('Ignore', 20),
     ],
     'Audio Files': [
         ('Captioned', 15),
         ('Accessible File Location', 20),
         ('Sent To AST', 20),
         ('Notes', 20),
+        ('Ignore', 20),
     ],
     'Audio Sites': [
         ('Transcript', 15),
         ('Accessible Audio Location', 20),
         ('Sent To AST', 20),
         ('Notes', 20),
+        ('Ignore', 20),
     ],
     'Unsorted': [
     ],
@@ -77,10 +84,39 @@ data_validations = {
                          fill=PatternFill(bgColor='DB3535', fgColor='FFFF00', fill_type='solid'))
          ]
         )
-    ]
+    ],
+    'Caption Status': [
+        (
+            DataValidation(
+                type='list',
+                formula1='"{}"'.format(','.join(['Not Checked',
+                                                 'Captioned',
+                                                 'Auto Caption',])),
+                showDropDown=False),
+         [
+             FormulaRule(formula=['$A2="Not Checked"'],
+                         fill=PatternFill(bgColor='FFFF00', fgColor='FFFF00', fill_type='solid')),
+             FormulaRule(formula=['$A2="Captioned"'],
+                         fill=PatternFill(bgColor='92D050', fgColor='FFFF00', fill_type='solid')),
+             FormulaRule(formula=['$A2="Auto Caption"'],
+                         fill=PatternFill(bgColor='92D050', fgColor='FFFF00', fill_type='solid')),
+
+         ]
+        )
+    ],
+    'Is Hidden': [ ]
 
 }
 
+
+pattern_fills = {
+
+    'is_hidden': [(False, PatternFill(bgColor='92D050', fgColor='92D050', fill_type='solid'), "Visible"),
+                  (True, PatternFill(bgColor='DB3535', fgColor='DB3535', fill_type='solid'), "Hidden"),
+                  ],
+
+
+}
 
 
 
@@ -287,17 +323,18 @@ def dicts_to_excel(filename, sheetname, data, download_hidden_files):
                 ws.cell(row=row_num, column=col_num).hyperlink = hyperlink
                 continue
 
-            if key == "is_hidden":
-                if item.get(key) == True:
-                    fill = PatternFill(start_color='DB3535', end_color='DB3535', fill_type='solid')
-                    ws.cell(row=row_num, column=col_num).fill = fill
-                    ws.cell(row=row_num, column=col_num).value = "Hidden"
-                else:
-                    fill = PatternFill(start_color='92D050', end_color='92D050', fill_type='solid')
-                    ws.cell(row=row_num, column=col_num).fill = fill
-                    ws.cell(row=row_num, column=col_num).value = "Visible"
+            # pattern fills
+            pattern_fill = pattern_fills.get(key)
+            if pattern_fill:
+                for pattern in pattern_fill:
+                    if item.get(key) == pattern[0]:
+                        fill = pattern[1]
+                        ws.cell(row=row_num, column=col_num).fill = fill
+                        ws.cell(row=row_num, column=col_num).value = pattern[2]
                 continue
 
+            # data validations
+            validation = data_validations.get(key)
 
             ws.cell(row=row_num, column=col_num).value = item.get(key)
 
