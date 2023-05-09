@@ -55,8 +55,6 @@ data_validations = {
 }
 
 
-
-
 def has_data(sheet):
     # Check if there's data in any cell of the sheet
     for row in sheet.iter_rows():
@@ -64,8 +62,6 @@ def has_data(sheet):
             if cell.value is not None:
                 return True
     return False
-
-
 
 
 def get_data_cells_range(sheet, column):
