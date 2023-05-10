@@ -34,16 +34,16 @@ tracking_columns = {
     'Video Files': [
         # ('Captioned', 15),
         ('Accessible File Location', 20, None),
-        ('Sent To AST', 20, None),
+        ('Sent To AST', 20, "No"),
         ('Notes', 20, None),
         ('Ignore', 20, None),
     ],
     'Video Sites': [
         # ('Captioned', 15),
         ('Accessible Video Location', 20, None),
-        ('Sent To AST', 20, None),
+        ('Sent To AST', 20, "Zing"),
         ('Notes', 20, None),
-        ('Ignore', 20, None),
+        ('Ignore', 20, "No"),
     ],
     'Audio Files': [
         ('Captioned', 15, None),
@@ -65,6 +65,7 @@ tracking_columns = {
 
 
 data_validations = {
+    # keys are final column names
     'Accessible': [
         (DataValidation(
             type='list',
@@ -85,13 +86,14 @@ data_validations = {
          ]
         )
     ],
-    'caption_status': [
+    'Caption Status': [
         (
             DataValidation(
                 type='list',
                 formula1='"{}"'.format(','.join(['Not Checked',
                                                  'Captioned',
-                                                 'Auto Caption',])),
+                                                 'Auto Caption',
+                                                 'Not Captioned'])),
                 showDropDown=False),
          [
              FormulaRule(formula=['$A2="Not Checked"'],
@@ -99,18 +101,42 @@ data_validations = {
              FormulaRule(formula=['$A2="Captioned"'],
                          fill=PatternFill(bgColor='92D050', fgColor='FFFF00', fill_type='solid')),
              FormulaRule(formula=['$A2="Auto Caption"'],
-                         fill=PatternFill(bgColor='92D050', fgColor='FFFF00', fill_type='solid')),
+                         fill=PatternFill(bgColor='FFA143', fgColor='FFA143', fill_type='solid')),
+             FormulaRule(formula=['$A2="Auto Caption"'],
+                         fill=PatternFill(bgColor='DB3535', fgColor='DB3535', fill_type='solid')),
 
          ]
         )
     ],
+    'Sent To AST': [(DataValidation(
+        type='list',
+        formula1='"{}"'.format(','.join(['Yes',
+                                         'No'])),
+        showDropDown=False),
+                     [
+                         FormulaRule(formula=['$L2="Yes"'],
+                                     fill=PatternFill(bgColor='FFFF00', fgColor='FFFF00', fill_type='solid')),
+                         FormulaRule(formula=['$L2="No"'],
+                                     fill=PatternFill(bgColor='92D050', fgColor='FFFF00', fill_type='solid')),
+                     ])],
+    'Ignore': [(DataValidation(
+        type='list',
+        formula1='"{}"'.format(','.join(['Yes',
+                                         'No'])),
+        showDropDown=False),
+                     [
+                         FormulaRule(formula=['$L2="Yes"'],
+                                     fill=PatternFill(bgColor='FFFF00', fgColor='FFFF00', fill_type='solid')),
+                         FormulaRule(formula=['$L2="No"'],
+                                     fill=PatternFill(bgColor='92D050', fgColor='FFFF00', fill_type='solid')),
+                     ])]
 
 
 }
 
 
 pattern_fills = {
-
+    # key is from data dict
     'is_hidden': [(False, PatternFill(bgColor='92D050', fgColor='92D050', fill_type='solid'), "Visible"),
                   (True, PatternFill(bgColor='DB3535', fgColor='DB3535', fill_type='solid'), "Hidden"),
                   ],
@@ -122,7 +148,7 @@ pattern_fills = {
 
 def add_validation_formatting(sheet, validations, col_idx):
 
-    print(sheet, validations, col_idx)
+
 
     for v in validations:
         validation = v[0]
@@ -190,9 +216,8 @@ def find_next_empty_row(sheet, column):
 
 
 def get_sheet_column_names(sheet):
+    print(sheet)
     print(sheet[1])
-    for cell in sheet[1]:
-        print(cell)
     return [cell.value for cell in sheet[1]]
 
 
@@ -357,11 +382,6 @@ def dicts_to_excel(filename, sheetname, data, download_hidden_files):
                         ws.cell(row=row_num, column=col_num).value = pattern[2]
                 continue
 
-            # data validations
-            # if data_validations.get(key):
-            #     add_validation_formatting(ws, data_validations.get(key), col_num)
-
-
             ws.cell(row=row_num, column=col_num).value = item.get(key)
 
 
@@ -440,8 +460,9 @@ def add_tracking_columns(excel_file_path):
                     sheet.column_dimensions[column_letter].width = col_width
 
                 if default_value is not None:
-                    validation_cell_range = get_data_cells_range(sheet, 5)
-                    for row in sheet[validation_cell_range]:
+                    cell_range = get_data_cells_range(sheet, 5)
+                    tracking_cell_range = replace_column_in_range(cell_range, get_column_letter(col_idx))
+                    for row in sheet[tracking_cell_range]:
                         for cell in row:
                             cell.value = default_value
 
@@ -454,9 +475,9 @@ def add_data_validations(excel_file_path):
 
     wb = openpyxl.load_workbook(excel_file_path)
 
-
     for sheet in wb.sheetnames:
-        col_headers = get_sheet_column_names(sheet)
+        active_sheet = wb[sheet]
+        col_headers = get_sheet_column_names(active_sheet)
         if len(col_headers) > 0:
             for col_idx, col_title in enumerate(col_headers, 1):
                 print(col_idx, col_title)
@@ -468,16 +489,16 @@ def add_data_validations(excel_file_path):
                         validation = v[0]
                         formatting_list = v[1]
 
-                        cell_range = get_data_cells_range(sheet, 5)
+                        cell_range = get_data_cells_range(active_sheet, 5)
 
                         validation_cell_range = replace_column_in_range(cell_range, get_column_letter(col_idx))
 
-                        sheet.add_data_validation(validation)
+                        active_sheet.add_data_validation(validation)
                         validation.ranges.add(validation_cell_range)
 
                         for formatting in formatting_list:
                             formatter = formatting
-                            sheet.conditional_formatting.add(validation_cell_range, formatter)
+                            active_sheet.conditional_formatting.add(validation_cell_range, formatter)
 
 
 
