@@ -6,13 +6,13 @@ log = logging.getLogger(__name__)
 
 def get_youtube_caption_info(link):
 
-    print(link)
+
     # api_key = get_youtube_api_key()
     #
     # if not api_key:
     #     return None
 
-
+    return "TEST"
     youtube_regex = re.compile(r'((?<=(v|V)/)|(?<=be/)|(?<=(\?|\&)v=)|(?<=embed/))([\w-]+)')
     youtube_id_search = youtube_regex.search(link)
 
@@ -29,7 +29,7 @@ def get_youtube_caption_info(link):
         youtube_search = requests.get("https://www.googleapis.com/youtube/v3/captions?", params=payload)
 
         content = json.loads(youtube_search.content.decode('utf-8'))
-        print(content)
+
         if youtube_search.status_code == 403:
             print("Youtube API at Rate Limit")
             log.warning("Youtube API token is invalid")

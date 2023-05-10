@@ -14,50 +14,50 @@ from openpyxl.formatting.rule import FormulaRule
 
 tracking_columns = {
     'Documents': [
-        ('Accessible', 15),
-        ('Accessible File Location', 20),
-        ('Notes', 20),
-        ('Ignore', 20),
+        ('Accessible', 15, 'Not Checked'),
+        ('Accessible File Location', 20, None),
+        ('Notes', 20, None),
+        ('Ignore', 20, None),
 
     ],
     'Document Sites': [
-        ('ColumnA', 12),
-        ('ColumnB', 18),
-        ('Notes', 20),
-        ('Ignore', 20),
+        ('ColumnA', 12, None),
+        ('ColumnB', 18, None),
+        ('Notes', 20, None),
+        ('Ignore', 20, None),
     ],
     'Image Files': [
-        ('Needs Description?', 12),
-        ('Notes', 20),
-        ('Ignore', 20),
+        ('Needs Description?', 12, None),
+        ('Notes', 20, None),
+        ('Ignore', 20, None),
     ],
     'Video Files': [
         # ('Captioned', 15),
-        ('Accessible File Location', 20),
-        ('Sent To AST', 20),
-        ('Notes', 20),
-        ('Ignore', 20),
+        ('Accessible File Location', 20, None),
+        ('Sent To AST', 20, None),
+        ('Notes', 20, None),
+        ('Ignore', 20, None),
     ],
     'Video Sites': [
         # ('Captioned', 15),
-        ('Accessible Video Location', 20),
-        ('Sent To AST', 20),
-        ('Notes', 20),
-        ('Ignore', 20),
+        ('Accessible Video Location', 20, None),
+        ('Sent To AST', 20, None),
+        ('Notes', 20, None),
+        ('Ignore', 20, None),
     ],
     'Audio Files': [
-        ('Captioned', 15),
-        ('Accessible File Location', 20),
-        ('Sent To AST', 20),
-        ('Notes', 20),
-        ('Ignore', 20),
+        ('Captioned', 15, None),
+        ('Accessible File Location', 20, None),
+        ('Sent To AST', 20, None),
+        ('Notes', 20, None),
+        ('Ignore', 20, None),
     ],
     'Audio Sites': [
-        ('Transcript', 15),
-        ('Accessible Audio Location', 20),
-        ('Sent To AST', 20),
-        ('Notes', 20),
-        ('Ignore', 20),
+        ('Transcript', 15, None),
+        ('Accessible Audio Location', 20, None),
+        ('Sent To AST', 20, None),
+        ('Notes', 20, None),
+        ('Ignore', 20, None),
     ],
     'Unsorted': [
     ],
@@ -85,7 +85,7 @@ data_validations = {
          ]
         )
     ],
-    'Caption Status': [
+    'caption_status': [
         (
             DataValidation(
                 type='list',
@@ -104,7 +104,7 @@ data_validations = {
          ]
         )
     ],
-    'Is Hidden': [ ]
+
 
 }
 
@@ -117,6 +117,27 @@ pattern_fills = {
 
 
 }
+
+
+
+def add_validation_formatting(sheet, validations, col_idx):
+
+    print(sheet, validations, col_idx)
+
+    for v in validations:
+        validation = v[0]
+        formatting_list = v[1]
+
+        cell_range = get_data_cells_range(sheet, 5)
+
+        validation_cell_range = replace_column_in_range(cell_range, get_column_letter(col_idx))
+
+        sheet.add_data_validation(validation)
+        validation.ranges.add(validation_cell_range)
+
+        for formatting in formatting_list:
+            formatter = formatting
+            sheet.conditional_formatting.add(validation_cell_range, formatter)
 
 
 
@@ -140,8 +161,6 @@ def has_data(sheet):
             if cell.value is not None:
                 return True
     return False
-
-
 
 
 def get_data_cells_range(sheet, column):
@@ -170,6 +189,11 @@ def find_next_empty_row(sheet, column):
     return row_idx
 
 
+def get_sheet_column_names(sheet):
+    print(sheet[1])
+    for cell in sheet[1]:
+        print(cell)
+    return [cell.value for cell in sheet[1]]
 
 
 def create_excel_file(json_data, excel_file_path=None):
@@ -334,7 +358,9 @@ def dicts_to_excel(filename, sheetname, data, download_hidden_files):
                 continue
 
             # data validations
-            validation = data_validations.get(key)
+            # if data_validations.get(key):
+            #     add_validation_formatting(ws, data_validations.get(key), col_num)
+
 
             ws.cell(row=row_num, column=col_num).value = item.get(key)
 
@@ -352,10 +378,10 @@ def build_xcel_file(json_data, excel_file_path, download_hidden_files):
         sub_dict = json_data
         for key in path[:-1]:
             sub_dict = sub_dict[key]
-            print(key)
+
         my_list = sub_dict[path[-1]]
         sheet_name = " ".join(word.capitalize() for word in path[-1].replace('_', ' ').split(' '))
-        print(my_list)
+
         try:
             add_header_to_sheet(excel_file_path, sheet_name, my_list[0])
             dicts_to_excel(excel_file_path, sheet_name, my_list, download_hidden_files)
@@ -374,22 +400,76 @@ def add_tracking_columns(excel_file_path):
         # Only update the sheet if it has data
         if has_data(sheet):
             start_col_idx = find_next_empty_column(sheet)
-            for col_offset, (col_title, col_width) in enumerate(columns):
+            for col_offset, (col_title, col_width, default_value) in enumerate(columns):
                 col_idx = start_col_idx + col_offset
 
                 # Set column title
                 sheet.cell(row=1, column=col_idx, value=col_title)
 
                 # Set data validations
-                validations = data_validations.get(col_title)
+                # validations = data_validations.get(col_title)
+                # if data_validations.get(col_title):
+                #     add_validation_formatting(sheet, data_validations.get(col_title), col_idx)
 
-                if validations is not None:
-                    for v in validations:
+
+                # if validations is not None:
+                #     for v in validations:
+                #         validation = v[0]
+                #         formatting_list = v[1]
+                #
+                #         cell_range = get_data_cells_range(sheet, 5)
+                #
+                #         validation_cell_range = replace_column_in_range(cell_range, get_column_letter(col_idx))
+                #
+                #         sheet.add_data_validation(validation)
+                #         validation.ranges.add(validation_cell_range)
+                #
+                #         for formatting in formatting_list:
+                #             formatter = formatting
+                #             sheet.conditional_formatting.add(validation_cell_range, formatter)
+                #
+                #         for row in sheet[validation_cell_range]:
+                #             for cell in row:
+                #                 print(cell)
+                #                 cell.value = "Not Checked"
+
+
+                # Set column width (optional)
+                if col_width is not None:
+                    column_letter = openpyxl.utils.get_column_letter(col_idx)
+                    sheet.column_dimensions[column_letter].width = col_width
+
+                if default_value is not None:
+                    validation_cell_range = get_data_cells_range(sheet, 5)
+                    for row in sheet[validation_cell_range]:
+                        for cell in row:
+                            cell.value = default_value
+
+    wb.save(excel_file_path)
+    wb.close()
+
+
+
+def add_data_validations(excel_file_path):
+
+    wb = openpyxl.load_workbook(excel_file_path)
+
+
+    for sheet in wb.sheetnames:
+        col_headers = get_sheet_column_names(sheet)
+        if len(col_headers) > 0:
+            for col_idx, col_title in enumerate(col_headers, 1):
+                print(col_idx, col_title)
+
+                if data_validations.get(col_title):
+                    validation = data_validations.get(col_title)
+
+                    for v in validation:
                         validation = v[0]
                         formatting_list = v[1]
 
                         cell_range = get_data_cells_range(sheet, 5)
-                        print(cell_range)
+
                         validation_cell_range = replace_column_in_range(cell_range, get_column_letter(col_idx))
 
                         sheet.add_data_validation(validation)
@@ -399,24 +479,12 @@ def add_tracking_columns(excel_file_path):
                             formatter = formatting
                             sheet.conditional_formatting.add(validation_cell_range, formatter)
 
-                        for row in sheet[validation_cell_range]:
-                            for cell in row:
-                                print(cell)
-                                cell.value = "Not Checked"
 
 
-                # Set column width (optional)
-                if col_width is not None:
-                    column_letter = openpyxl.utils.get_column_letter(col_idx)
-                    sheet.column_dimensions[column_letter].width = col_width
+
 
     wb.save(excel_file_path)
     wb.close()
-
-
-
-
-
 
 
 def save_as_excel(json_data, file_save_path, download_hidden_files):
@@ -427,5 +495,6 @@ def save_as_excel(json_data, file_save_path, download_hidden_files):
     create_excel_file(json_data, xcel_path)
     build_xcel_file(json_data, xcel_path, download_hidden_files)
     add_tracking_columns(xcel_path)
+    add_data_validations(xcel_path)
     apply_sheet_styles(xcel_path)
 
