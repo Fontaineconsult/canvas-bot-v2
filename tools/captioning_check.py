@@ -12,7 +12,7 @@ def get_youtube_caption_info(link):
     # if not api_key:
     #     return None
 
-    return "Not Checked"
+    # return "Not Checked"
     youtube_regex = re.compile(r'((?<=(v|V)/)|(?<=be/)|(?<=(\?|\&)v=)|(?<=embed/))([\w-]+)')
     youtube_id_search = youtube_regex.search(link)
 

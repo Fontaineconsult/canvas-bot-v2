@@ -14,50 +14,52 @@ from openpyxl.formatting.rule import FormulaRule
 
 tracking_columns = {
     'Documents': [
+        ('Requires OCR', 12, "No"),
         ('Accessible', 15, 'Not Checked'),
         ('Accessible File Location', 20, None),
         ('Notes', 20, None),
-        ('Ignore', 20, None),
+        ('Ignore Doc', 20, "No"),
+
 
     ],
     'Document Sites': [
         ('ColumnA', 12, None),
         ('ColumnB', 18, None),
         ('Notes', 20, None),
-        ('Ignore', 20, None),
+        ('Ignore', 20, "No"),
     ],
     'Image Files': [
         ('Needs Description?', 12, None),
         ('Notes', 20, None),
-        ('Ignore', 20, None),
+        ('Ignore', 20, "No"),
     ],
     'Video Files': [
         # ('Captioned', 15),
         ('Accessible File Location', 20, None),
         ('Sent To AST', 20, "No"),
         ('Notes', 20, None),
-        ('Ignore', 20, None),
+        ('Ignore', 20, "No"),
     ],
     'Video Sites': [
         # ('Captioned', 15),
         ('Accessible Video Location', 20, None),
-        ('Sent To AST', 20, "Zing"),
+        ('Sent To AST', 20, "No"),
         ('Notes', 20, None),
-        ('Ignore', 20, "No"),
+        ('Ignore Video', 20, "No"),
     ],
     'Audio Files': [
         ('Captioned', 15, None),
         ('Accessible File Location', 20, None),
         ('Sent To AST', 20, None),
         ('Notes', 20, None),
-        ('Ignore', 20, None),
+        ('Ignore', 20, "No"),
     ],
     'Audio Sites': [
         ('Transcript', 15, None),
         ('Accessible Audio Location', 20, None),
         ('Sent To AST', 20, None),
         ('Notes', 20, None),
-        ('Ignore', 20, None),
+        ('Ignore', 20, "No"),
     ],
     'Unsorted': [
     ],
@@ -70,19 +72,25 @@ data_validations = {
         (DataValidation(
             type='list',
             formula1='"{}"'.format(','.join(['Not Checked',
+                                             'Not Accessible',
                                              'Already Accessible',
-                                             'Remediated',
+                                             'Remediated to DPRC Minimum (PDF UA Partially Compliant)',
+                                             'Fully Remediated To WCAG 2.0 AA',
                                              'Unable to Remediate'])),
             showDropDown=False),
          [
-             FormulaRule(formula=['$J2="Not Checked"'],
+             FormulaRule(formula=['$K2="Not Checked"'],
                         fill=PatternFill(bgColor='FFFF00', fgColor='FFFF00', fill_type='solid')),
-             FormulaRule(formula=['$J2="Already Accessible"'],
+             FormulaRule(formula=['$K2="Remediated to DPRC Minimum (PDF UA Partially Compliant)"'],
+                        fill=PatternFill(bgColor='FFA143', fgColor='FFFF00', fill_type='solid')),
+             FormulaRule(formula=['$K2="Remediated To WCAG 2.0 AA"'],
                         fill=PatternFill(bgColor='92D050', fgColor='FFFF00', fill_type='solid')),
-             FormulaRule(formula=['$J2="Remediated"'],
-                        fill=PatternFill(bgColor='92D050', fgColor='FFFF00', fill_type='solid')),
-             FormulaRule(formula=['$J2="Unable to Remediate"'],
-                         fill=PatternFill(bgColor='DB3535', fgColor='FFFF00', fill_type='solid'))
+             FormulaRule(formula=['$K2="Unable to Remediate"'],
+                         fill=PatternFill(bgColor='DB3535', fgColor='FFFF00', fill_type='solid')),
+             FormulaRule(formula=['$K2="Not Accessible"'],
+                         fill=PatternFill(bgColor='DB3535', fgColor='FFFF00', fill_type='solid')),
+             FormulaRule(formula=['$K2="Already Accessible"'],
+                         fill=PatternFill(bgColor='92D050', fgColor='FFFF00', fill_type='solid')),
          ]
         )
     ],
@@ -102,7 +110,7 @@ data_validations = {
                          fill=PatternFill(bgColor='92D050', fgColor='FFFF00', fill_type='solid')),
              FormulaRule(formula=['$A2="Auto Caption"'],
                          fill=PatternFill(bgColor='FFA143', fgColor='FFA143', fill_type='solid')),
-             FormulaRule(formula=['$A2="Auto Caption"'],
+             FormulaRule(formula=['$A2="Not Captioned"'],
                          fill=PatternFill(bgColor='DB3535', fgColor='DB3535', fill_type='solid')),
 
          ]
@@ -114,22 +122,44 @@ data_validations = {
                                          'No'])),
         showDropDown=False),
                      [
-                         FormulaRule(formula=['$L2="Yes"'],
+                         FormulaRule(formula=['$J2="Yes"'],
                                      fill=PatternFill(bgColor='FFFF00', fgColor='FFFF00', fill_type='solid')),
-                         FormulaRule(formula=['$L2="No"'],
+                         FormulaRule(formula=['$J2="No"'],
                                      fill=PatternFill(bgColor='92D050', fgColor='FFFF00', fill_type='solid')),
                      ])],
-    'Ignore': [(DataValidation(
+    'Ignore Doc': [(DataValidation(
         type='list',
         formula1='"{}"'.format(','.join(['Yes',
                                          'No'])),
         showDropDown=False),
                      [
-                         FormulaRule(formula=['$L2="Yes"'],
+                         FormulaRule(formula=['$N2="Yes"'],
                                      fill=PatternFill(bgColor='FFFF00', fgColor='FFFF00', fill_type='solid')),
-                         FormulaRule(formula=['$L2="No"'],
+                         FormulaRule(formula=['$N2="No"'],
                                      fill=PatternFill(bgColor='92D050', fgColor='FFFF00', fill_type='solid')),
-                     ])]
+                     ])],
+    'Ignore Video': [(DataValidation(
+        type='list',
+        formula1='"{}"'.format(','.join(['Yes',
+                                         'No'])),
+        showDropDown=False),
+                    [
+                        FormulaRule(formula=['$L2="Yes"'],
+                                    fill=PatternFill(bgColor='FFFF00', fgColor='FFFF00', fill_type='solid')),
+                        FormulaRule(formula=['$L2="No"'],
+                                    fill=PatternFill(bgColor='92D050', fgColor='FFFF00', fill_type='solid')),
+                    ])],
+    'Requires OCR': [(DataValidation(
+        type='list',
+        formula1='"{}"'.format(','.join(['Yes',
+                                         'No'])),
+        showDropDown=False),
+                [
+                    FormulaRule(formula=['$J2="Yes"'],
+                                fill=PatternFill(bgColor='FFFF00', fgColor='FFFF00', fill_type='solid')),
+                    FormulaRule(formula=['$J2="No"'],
+                                fill=PatternFill(bgColor='92D050', fgColor='FFFF00', fill_type='solid')),
+                ])]
 
 
 }

@@ -147,6 +147,7 @@ def video_site_dict(video_site_node, check_caption_status):
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(video_site_node),
         "order": get_order(video_site_node),
+        "caption_status": "Not Checked",
         "path": [node.title for node in build_path(video_site_node, ignore_root=True)],
 
     }
