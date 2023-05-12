@@ -540,7 +540,7 @@ def add_data_validations(excel_file_path):
 
 def save_as_excel(json_data, file_save_path, download_hidden_files):
 
-    xcel_path = os.path.join(file_save_path, json_data['course_id'] + '.xlsx')
+    xcel_path = os.path.join(file_save_path, json_data['course_id'] + '.xlsxm')
     json_data = remove_key_recursively(json_data, 'path')
 
     create_excel_file(json_data, xcel_path)
