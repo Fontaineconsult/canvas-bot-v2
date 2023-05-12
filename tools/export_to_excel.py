@@ -1,7 +1,4 @@
 import os
-import zipfile
-from collections import namedtuple
-from openpyxl.formatting.rule import CellIsRule
 from openpyxl.styles import PatternFill
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.worksheet.table import Table, TableStyleInfo
@@ -10,7 +7,8 @@ from openpyxl.worksheet.hyperlink import Hyperlink
 from openpyxl.utils.cell import get_column_letter
 from openpyxl.utils import get_column_letter
 from openpyxl.formatting.rule import FormulaRule
-
+from openpyxl import load_workbook
+from tools.vba_to_excel import insert_vba
 
 tracking_columns = {
     'Documents': [
@@ -246,12 +244,10 @@ def find_next_empty_row(sheet, column):
 
 
 def get_sheet_column_names(sheet):
-    print(sheet)
-    print(sheet[1])
     return [cell.value for cell in sheet[1]]
 
 
-def create_excel_file(json_data, excel_file_path=None):
+def create_excel_file(excel_file_path=None):
 
     """
     Creates an excel file with the appropriate sheets.
@@ -271,10 +267,10 @@ def create_excel_file(json_data, excel_file_path=None):
     wb.create_sheet('Audio Sites')
     wb.create_sheet('Unsorted')
 
-    wb.save(excel_file_path)
-    wb.close()
+    save_workbook(wb, excel_file_path)
 
-    # build_xcel_file(json_data, excel_file_path)
+
+
 
 
 def remove_key_recursively(obj, key_to_remove):
@@ -325,8 +321,7 @@ def apply_sheet_styles(excel_file_path):
         table.tableStyleInfo = style
         sheet.add_table(table)
 
-    wb.save(excel_file_path)
-    wb.close()
+        save_workbook(wb, excel_file_path)
 
 
 def find_key_names(d, path=None):
@@ -364,9 +359,7 @@ def add_header_to_sheet(file_path, sheet_name, header_row):
         cell.value = " ".join(word.capitalize() for word in header_name.replace('_', ' ').split(' '))
 
     # Save the workbook
-    wb.save(file_path)
-    wb.close()
-
+    save_workbook(wb, file_path)
 
 def dicts_to_excel(filename, sheetname, data, download_hidden_files):
     # Load an existing Excel workbook or create a new one if it doesn't exist
@@ -416,8 +409,7 @@ def dicts_to_excel(filename, sheetname, data, download_hidden_files):
 
 
     # Save the workbook to a file
-    wb.save(filename)
-    wb.close()
+    save_workbook(wb, filename)
 
 
 def build_xcel_file(json_data, excel_file_path, download_hidden_files):
@@ -455,35 +447,6 @@ def add_tracking_columns(excel_file_path):
 
                 # Set column title
                 sheet.cell(row=1, column=col_idx, value=col_title)
-
-                # Set data validations
-                # validations = data_validations.get(col_title)
-                # if data_validations.get(col_title):
-                #     add_validation_formatting(sheet, data_validations.get(col_title), col_idx)
-
-
-                # if validations is not None:
-                #     for v in validations:
-                #         validation = v[0]
-                #         formatting_list = v[1]
-                #
-                #         cell_range = get_data_cells_range(sheet, 5)
-                #
-                #         validation_cell_range = replace_column_in_range(cell_range, get_column_letter(col_idx))
-                #
-                #         sheet.add_data_validation(validation)
-                #         validation.ranges.add(validation_cell_range)
-                #
-                #         for formatting in formatting_list:
-                #             formatter = formatting
-                #             sheet.conditional_formatting.add(validation_cell_range, formatter)
-                #
-                #         for row in sheet[validation_cell_range]:
-                #             for cell in row:
-                #                 print(cell)
-                #                 cell.value = "Not Checked"
-
-
                 # Set column width (optional)
                 if col_width is not None:
                     column_letter = openpyxl.utils.get_column_letter(col_idx)
@@ -496,9 +459,7 @@ def add_tracking_columns(excel_file_path):
                         for cell in row:
                             cell.value = default_value
 
-    wb.save(excel_file_path)
-    wb.close()
-
+    save_workbook(wb, excel_file_path)
 
 
 def add_data_validations(excel_file_path):
@@ -510,7 +471,6 @@ def add_data_validations(excel_file_path):
         col_headers = get_sheet_column_names(active_sheet)
         if len(col_headers) > 0:
             for col_idx, col_title in enumerate(col_headers, 1):
-                print(col_idx, col_title)
 
                 if data_validations.get(col_title):
                     validation = data_validations.get(col_title)
@@ -530,22 +490,39 @@ def add_data_validations(excel_file_path):
                             formatter = formatting
                             active_sheet.conditional_formatting.add(validation_cell_range, formatter)
 
-
-
-
-
     wb.save(excel_file_path)
-    wb.close()
+    save_workbook(wb, excel_file_path)
+
+
+
+def save_workbook(workbook, filename):
+
+    workbook.save(filename)
+    wb1 = load_workbook(filename)
+    wb2 = load_workbook(filename, keep_vba=True)
+    wb2.save(filename)
+    wb2.close()
+
+def create_output_folder(file_save_path):
+
+    if not os.path.exists(os.path.join(file_save_path, "output")):
+        os.makedirs(os.path.join(file_save_path, "output"))
+
+
+
+
+
 
 
 def save_as_excel(json_data, file_save_path, download_hidden_files):
 
-    xcel_path = os.path.join(file_save_path, json_data['course_id'] + '.xlsxm')
+    xcel_path = os.path.join(file_save_path, json_data['course_id'] + '.xlsm')
     json_data = remove_key_recursively(json_data, 'path')
 
-    create_excel_file(json_data, xcel_path)
+    create_excel_file(xcel_path)
     build_xcel_file(json_data, xcel_path, download_hidden_files)
     add_tracking_columns(xcel_path)
     add_data_validations(xcel_path)
     apply_sheet_styles(xcel_path)
-
+    insert_vba(xcel_path)
+    create_output_folder(file_save_path)

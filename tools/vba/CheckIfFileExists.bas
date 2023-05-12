@@ -1,6 +1,3 @@
-Attribute VB_Name = "Module1"
-
-
 Sub CheckIfFileExists()
 
     Dim rng As Range
@@ -12,6 +9,12 @@ Sub CheckIfFileExists()
 
     ' Get the current folder path where the Excel document is located
     folderPath = ThisWorkbook.Path & "\output"
+
+    ' Check if the directory exists
+    If Dir(folderPath, vbDirectory) = "" Then
+        ' If the directory doesn't exist, create it
+        MkDir folderPath
+    End If
 
     ' Assuming values are in Column D, from row 2 to the last non-empty row
     Set rng = ThisWorkbook.Sheets("Documents").Range("D2:D" & ThisWorkbook.Sheets("Documents").Cells(Rows.Count, 4).End(xlUp).Row)
@@ -36,9 +39,9 @@ Sub CheckIfFileExists()
         If isError Then GoTo NextIteration
 
         If Dir(folderPath & "\" & fileName) <> "" Then
-            cell.Offset(0, 8).Value = "File Exists" ' Writes the result in column L of the same row
+            cell.Offset(0, 7).Value = "File Exists" ' Writes the result in column L of the same row
         Else
-            cell.Offset(0, 8).Value = "File Does Not Exist" ' Writes the result in column L of the same row
+            cell.Offset(0, 7).Value = "File Does Not Exist" ' Writes the result in column L of the same row
         End If
 
 NextIteration:
