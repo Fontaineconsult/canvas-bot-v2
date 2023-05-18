@@ -294,14 +294,14 @@ def apply_sheet_styles(excel_file_path):
 
 
 
-    for sheet_name in wb.sheetnames:
+    for count, sheet_name in enumerate(wb.sheetnames):
 
         sheet = wb[sheet_name]
-
+        print(sheet_name)
         if sheet.dimensions == "A1:A1":
             continue
 
-        # first_row_values = [cell.value for cell in next(sheet.iter_rows(min_row=1, max_row=1))][0]
+
         sheet.column_dimensions['A'].width = 15
         sheet.column_dimensions['B'].width = 15
         sheet.column_dimensions['C'].width = 15
@@ -313,7 +313,7 @@ def apply_sheet_styles(excel_file_path):
         sheet_name = sheet_name.replace(" ", "-")
 
 
-        table = Table(displayName=sheet_name, ref=sheet.dimensions)
+        table = Table(displayName=f"Table{count}", ref=sheet.dimensions)
 
         style = TableStyleInfo(name="TableStyleMedium9", showFirstColumn=False,
                        showLastColumn=False, showRowStripes=True, showColumnStripes=True)
@@ -321,7 +321,7 @@ def apply_sheet_styles(excel_file_path):
         table.tableStyleInfo = style
         sheet.add_table(table)
 
-        save_workbook(wb, excel_file_path)
+    save_workbook(wb, excel_file_path)
 
 
 def find_key_names(d, path=None):
@@ -498,7 +498,6 @@ def add_data_validations(excel_file_path):
 def save_workbook(workbook, filename):
 
     workbook.save(filename)
-    wb1 = load_workbook(filename)
     wb2 = load_workbook(filename, keep_vba=True)
     wb2.save(filename)
     wb2.close()
@@ -519,10 +518,10 @@ def save_as_excel(json_data, file_save_path, download_hidden_files):
     xcel_path = os.path.join(file_save_path, json_data['course_id'] + '.xlsm')
     json_data = remove_key_recursively(json_data, 'path')
 
-    create_excel_file(xcel_path)
-    build_xcel_file(json_data, xcel_path, download_hidden_files)
-    add_tracking_columns(xcel_path)
-    add_data_validations(xcel_path)
-    apply_sheet_styles(xcel_path)
+    create_excel_file(xcel_path)  # No error
+    build_xcel_file(json_data, xcel_path, download_hidden_files) # No error
+    add_tracking_columns(xcel_path) # No error
+    add_data_validations(xcel_path) # No error
+    apply_sheet_styles(xcel_path) # error
     insert_vba(xcel_path)
     create_output_folder(file_save_path)

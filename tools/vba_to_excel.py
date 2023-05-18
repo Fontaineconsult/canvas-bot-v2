@@ -7,10 +7,10 @@ from tools.vba.vba_strings import get_vba_modules, get_vba_triggers
 def insert_vba_modules(wb_path):
 
     xl = win32.gencache.EnsureDispatch('Excel.Application')
-    xl.Visible = True
+    xl.Visible = False
 
 
-    ss = xl.Workbooks.Open(wb_path)
+    ss = xl.Workbooks.Open(wb_path, CorruptLoad=1)
 
     sh = ss.ActiveSheet
 
@@ -19,8 +19,9 @@ def insert_vba_modules(wb_path):
 
     for module in get_vba_modules():
         xlmodule.CodeModule.AddFromString(module())
-        ss.Save()
 
+
+    ss.Save()
     ss.Close(True)
 
 
@@ -30,7 +31,7 @@ def insert_sheet_triggers(wb_path):
     xl = win32.gencache.EnsureDispatch('Excel.Application')
     xl.Visible = True
 
-    ss = xl.Workbooks.Open(wb_path)
+    ss = xl.Workbooks.Open(wb_path, CorruptLoad=1)
 
 
     triggers_dict = get_vba_triggers()
@@ -41,8 +42,8 @@ def insert_sheet_triggers(wb_path):
 
         # Add the VBA code to the sheet's code module
         xlmodule.CodeModule.AddFromString(triggers_dict[sheet_name])
-        ss.Save()
 
+    ss.Save()
     ss.Close(True)
 
 
