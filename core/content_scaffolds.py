@@ -151,7 +151,7 @@ def video_site_dict(video_site_node, check_caption_status):
         "path": [node.title for node in build_path(video_site_node, ignore_root=True)],
 
     }
-    print("ind dict", check_caption_status)
+
     if check_caption_status:
         video_site_dict["caption_status"] = get_youtube_caption_info(getattr(video_site_node, "url", None))
 

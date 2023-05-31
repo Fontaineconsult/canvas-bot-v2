@@ -7,12 +7,12 @@ log = logging.getLogger(__name__)
 def get_youtube_caption_info(link):
 
 
-    # api_key = get_youtube_api_key()
-    #
-    # if not api_key:
-    #     return None
+    api_key = get_youtube_api_key()
 
-    # return "Not Checked"
+    if not api_key:
+        return None
+
+
     youtube_regex = re.compile(r'((?<=(v|V)/)|(?<=be/)|(?<=(\?|\&)v=)|(?<=embed/))([\w-]+)')
     youtube_id_search = youtube_regex.search(link)
 
@@ -48,10 +48,8 @@ def get_youtube_caption_info(link):
             for each in content['items']:
 
                 if each.get('snippet').get('trackKind') == "standard":
-                    print("Captioned")
                     return "Captioned"
                 if each.get('snippet').get('trackKind') == "asr":
-                    print("Auto Caption")
                     return "Auto Caption"
         except (IndexError, KeyError):
             return "Not Captioned"

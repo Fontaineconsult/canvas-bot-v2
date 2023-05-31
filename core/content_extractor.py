@@ -92,7 +92,6 @@ class ContentExtractor(DownloaderMixin):
         }
 
     def get_all_content(self, file_download_directory=None, **params):
-        print(params)
         flatten = params.get("flatten", False)
         check_video_site_caption_status = params.get("check_video_site_caption_status", False)
         main_dict = {
@@ -110,7 +109,6 @@ class ContentExtractor(DownloaderMixin):
         return main_dict
 
     def get_all_content_as_json(self, file_download_directory, **params):
-        print(params)
         return json.dumps(self.get_all_content(file_download_directory, **params), indent=4, sort_keys=True, default=str)
 
     def save_content_as_json(self, json_save_directory, file_download_directory,  **params):
