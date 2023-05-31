@@ -5,7 +5,7 @@ from core.course_root import CanvasCourseRoot
 from network.cred import set_canvas_api_key_to_environment_variable, save_canvas_api_key, save_config_data, \
     load_config_data_from_appdata, delete_canvas_api_key, delete_config_file_from_appdata
 
-
+version = read_config()['version']
 import tools.logger
 log = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class CanvasBot(CanvasCourseRoot):
         self.detect_and_set_config()
 
     def start(self):
-        print("Starting Canvas Bot")
+        print(f"Starting Canvas Bot - {version} ")
         self.initialize_course()
 
     def print_content_tree(self):
