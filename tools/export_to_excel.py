@@ -391,7 +391,9 @@ def dicts_to_excel(filename, sheetname, data, download_hidden_files):
 
 
                 hyperlink = Hyperlink(ref=f"{get_column_letter(col_num)}{row_num}",
-                                      target=target, display="Open File")
+                                      target=target,
+                                        display="Open File")
+                ws.cell(row=row_num, column=col_num).value = item.get(key)
                 ws.cell(row=row_num, column=col_num).hyperlink = hyperlink
                 continue
 
@@ -498,7 +500,7 @@ def add_data_validations(excel_file_path):
 def save_workbook(workbook, filename):
 
     workbook.save(filename)
-    wb2 = load_workbook(filename, keep_vba=True)
+    wb2 = load_workbook(filename, read_only=False, keep_vba=True)
     wb2.save(filename)
     wb2.close()
 
@@ -519,6 +521,7 @@ def save_as_excel(json_data, file_save_path, download_hidden_files):
     json_data = remove_key_recursively(json_data, 'path')
 
     create_excel_file(xcel_path)  # No error
+
     build_xcel_file(json_data, xcel_path, download_hidden_files) # No error
     add_tracking_columns(xcel_path) # No error
     add_data_validations(xcel_path) # No error

@@ -39,9 +39,9 @@ Sub CheckIfFileExists()
         If isError Then GoTo NextIteration
 
         If Dir(folderPath & "\" & fileName) <> "" Then
-            cell.Offset(0, 7).Value = "File Exists" ' Writes the result in column L of the same row
+            cell.Offset(0, 8).Value = folderPath & "\" & fileName  ' Writes the full file path in column L of the same row
         Else
-            cell.Offset(0, 7).Value = "File Does Not Exist" ' Writes the result in column L of the same row
+            cell.Offset(0, 8).Value = "" ' Writes the result in column L of the same row
         End If
 
 NextIteration:
