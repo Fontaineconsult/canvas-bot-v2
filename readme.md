@@ -213,25 +213,54 @@ The following is an example of a course content tree:
 ![Canvas Tree](https://dprc-photos.s3.us-west-2.amazonaws.com/CourseTree.PNG)
 
 
+### Logging
+
+The SF State CanvasBot will generate a log file of the course you are downloading. Errors and warnings will be logged to this file.
+
+
+### Excel File
+
+The SF State CanvasBot will generate a macro enabled Excel file of the course you are downloading. You will need to enable
+macro support in Excel to use this feature.
+
+Content is divided into sheets by type:
+
+* Documents
+* Document Sites
+* Image Files
+* Video Files
+* Video Sites
+* Audio Files
+* Audio Sites
+* Unsorted
+
+The Excel file can use the save path of files you download as hyperlinks, making it easy to directly inspect documents.
+
+
+### Video Caption Inspection.
+
+Currently this only supports the YouTube API. setting the `'--check_video_site_caption_status'` flag will tell the bot
+to check if a YouTube vide is captioned. 
 
 
 ### Program Flags
 
-| Flag                      | Description                                                                     | Default |
-|---------------------------|---------------------------------------------------------------------------------|---------|
-| `--course_id TEXT`        | The course ID to scrape                                                         |         |
-| `--course_id_list TEXT`   | Text file containing a list of course IDs to scrape (one per line)              |         |
-| `--download_folder TEXT`  | The location to download files to                                               |         |
-| `--output_as_json TEXT`   | Output the content tree as a JSON file (pass the directory to save the file to) |         |
-| `--output_as_excel TEXT`   | Outputs course content into an excel file sorted by type (pass the directory to save the file to)                      | False   |
-| `--include_video_files`   | Include video files in download                                                 | False   |
-| `--include_audio_files`   | Include audio files in download                                                 | False   |
-| `--include_image_files`   | Include image files in download                                                 | False   |
-| `--flatten`               | Excludes course structure and downloads all files to the same directory         | False   |
-| `--flush_after_download`  | Deletes all files after download                                                | False   |
-| `--download_hidden_files` | Downloads files hidden from students                                            | False   |
-| `--show_content_tree`     | Prints a content tree of the course to the console                              | False   |
-| `--reset_params`          | Resets API Token and config file                                                | False   |
+| Flag                      | Description                                                                                | Default |
+|---------------------------|--------------------------------------------------------------------------------------------|---------|
+| `--course_id TEXT`        | The course ID to scrape                                                                    |         |
+| `--course_id_list TEXT`   | Text file containing a list of course IDs to scrape (one per line)                         |         |
+| `--download_folder TEXT`  | The location to download files to                                                          |         |
+| `--output_as_json TEXT`   | Output the content tree as a JSON file (pass the directory to save the file to)            |         |
+| `--output_as_excel TEXT`   | Outputs course content into an excel file sorted by type (pass the directory to save the file to) | False   |
+| `--include_video_files`   | Include video files in download                                                            | False   |
+| `--include_audio_files`   | Include audio files in download                                                            | False   |
+| `--include_image_files`   | Include image files in download                                                            | False   |
+| `--flatten`               | Excludes course structure and downloads all files to the same directory                    | False   |
+| `--flush_after_download`  | Deletes all files after download                                                           | False   |
+| `--download_hidden_files` | Downloads files hidden from students                                                       | False   |
+| `--show_content_tree`     | Prints a content tree of the course to the console                                         | False   |
+| `--reset_params`          | Resets API Token and config file                                                           | False   |
+| `--check_video_site_caption_status` | Checks if a video has captions (currently only YouTube)                                    | False   |
 
 ### Obtaining a Canvas API Access Token
 
@@ -263,11 +292,21 @@ If you've entered the wrong token, you can reset the token by running the progra
 
 This tool is a work in progress. Please contact me at <fontaine@sfsu.edu> if you have any questions, suggestions or bug reports.
 
+
+
+### Version History
+
+#### 0.1.2
+
+* Added support for macro enabled excel workbook to help view all content in a course. 
+* YouTube API added for video caption inspection.
+* Logging Added
+
+
 ### Future Features
 
 - [ ] Add GUI interface for easier use
 - [ ] Add the ability to easily customize the filters for what content is tracked.
-- [ ] Logging support
 - [ ] Add better support scraping Box, DropBox, Google Drive, etc.
 
 ### Known Issues
