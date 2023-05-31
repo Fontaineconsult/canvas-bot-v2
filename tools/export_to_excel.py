@@ -297,7 +297,6 @@ def apply_sheet_styles(excel_file_path):
     for count, sheet_name in enumerate(wb.sheetnames):
 
         sheet = wb[sheet_name]
-        print(sheet_name)
         if sheet.dimensions == "A1:A1":
             continue
 
