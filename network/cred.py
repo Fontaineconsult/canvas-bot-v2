@@ -1,3 +1,4 @@
+import atexit
 import os, json
 import sys
 
@@ -124,6 +125,11 @@ def delete_config_file_from_appdata():
     log.info("Config File Deleted")
 
 
+def clear_env_settings():
+    del os.environ["ACCESS_TOKEN"]
+
+
+
 def save_youtube_api_key(youtube_key):
 
     keyring.set_password("youtube_for_canvasbot", "youtube_for_canvasbot", youtube_key)
@@ -151,3 +157,4 @@ def save_vimeo_api_key(vimeo_api_key):
     print("Vimeo API Key Saved")
 
 
+atexit.register(clear_env_settings)
