@@ -1,3 +1,4 @@
+
 from tools.animation import animate
 from resource_nodes.base_node import Node
 from network.api import get_modules, get_module_items, get_url
@@ -38,14 +39,30 @@ class Module(Node):
         super().__init__(parent, root, api_dict['id'], api_dict['name'])
         self._expand_api_dict_to_class_attributes(api_dict)
         self.items_url = api_dict['items_url']
+
         self.identify_content()
 
     def identify_content(self):
-        from core.node_factory import get_node
+        from core.node_factory import get_node, get_content_node
         module_items = get_module_items(self.items_url)
         if module_items:
             for item in module_items:
-                ContentNode = get_node(item['type'])
-                if ContentNode:
+                print(item)
+                ResourceNode = get_node(item['type'])
+                if ResourceNode:
                     module_item_dict = get_url(item['url'])
-                    self.children.append(ContentNode(self, self.root, module_item_dict))
+                    self.children.append(ResourceNode(self, self.root, module_item_dict))
+                    continue
+
+                if item.get('url'):
+                    module_item_dict = get_url(item['url'])
+                    ContentNode = get_content_node(module_item_dict['url'], module_item_dict)
+                    if ContentNode:
+                        self.children.append(ContentNode(self, self.root, module_item_dict))
+
+                if item.get('external_url'):
+                    ContentNode = get_content_node(item['external_url'], item)
+                    if ContentNode:
+                        self.children.append(ContentNode(self, self.root, item, item['external_url'], item['title']))
+
+

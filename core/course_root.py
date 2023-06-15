@@ -59,8 +59,6 @@ class CanvasCourseRoot(ContentExtractor):
 
     def _init_modules_root(self):
 
-
-
         self.canvas_tree.init_node(self)
 
         self.modules = Modules(self.course_id, self)

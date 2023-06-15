@@ -7,10 +7,16 @@ from dotenv import load_dotenv
 from requests.exceptions import MissingSchema
 import json
 import warnings
-
+import atexit
+from network.cred import set_canvas_api_key_to_environment_variable, load_config_data_from_appdata
 
 # set_logger()
 log = logging.getLogger(__name__)
+
+
+if __name__=="__main__":
+    set_canvas_api_key_to_environment_variable()
+    load_config_data_from_appdata()
 
 
 def response_handler(request_url):
@@ -44,6 +50,14 @@ def response_decorator(calling_function):
     def wrapper(*args):
         return response_handler(calling_function(*args))
     return wrapper
+
+
+
+@response_decorator
+def get_active_accounts(page):
+    active_account_url = f"{os.environ.get('API_PATH')}/accounts/1/courses?page={page}&per_page=100&access_token={os.environ.get('access_token')}"
+    return active_account_url
+
 
 
 @response_decorator
@@ -150,8 +164,6 @@ def get_media_objects(course_id):
     return media_objects_url
 
 
-
-
 @response_decorator
 def get_module_items(module_items_url):
     module_items_url = f"{module_items_url}?access_token={os.environ.get('access_token')}&per_page=100"
@@ -168,5 +180,5 @@ def get_url(url):
     authenticated_url = f"{url}?access_token={os.environ.get('access_token')}"
     return authenticated_url
 
-if __name__=="__main__":
-    load_dotenv("..\\.env")
+
+
