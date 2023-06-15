@@ -47,7 +47,7 @@ class Module(Node):
         module_items = get_module_items(self.items_url)
         if module_items:
             for item in module_items:
-                print(item)
+
                 ResourceNode = get_node(item['type'])
                 if ResourceNode:
                     module_item_dict = get_url(item['url'])
