@@ -75,5 +75,5 @@ class CanvasCourseRoot(ContentExtractor):
 
         self.files = CanvasFiles(self.course_id, self)
 
-        self.media_objects = CanvasMediaObjects(self.course_id, self)
+        # self.media_objects = CanvasMediaObjects(self.course_id, self) shutting off. leads to duplicates
         print("Import Complete\n")
