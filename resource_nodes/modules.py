@@ -62,7 +62,7 @@ class Module(Node):
                             self.children.append(ContentNode(self, self.root, module_item_dict))
 
                 if item.get('external_url'):
-                    ContentNode = get_content_node(item['external_url'], item)
+                    ContentNode = get_content_node(item['external_url'])
                     if ContentNode:
                         self.children.append(ContentNode(self, self.root, item, item['external_url'], item['title']))
 
