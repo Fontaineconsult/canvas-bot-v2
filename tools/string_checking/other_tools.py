@@ -1,3 +1,4 @@
+import os
 import re
 import mimetypes
 from config.yaml_io import read_config
@@ -24,3 +25,11 @@ def get_extension_from_filename(file_name):
         return None
     return file_name.split('.')[-1] or None
 
+
+def create_long_path_file(long_path):
+    # Convert to absolute path
+    abs_path = os.path.abspath(long_path)
+
+    # Add the \\?\ prefix
+    extended_path = "\\\\?\\" + abs_path
+    return extended_path

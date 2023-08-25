@@ -25,7 +25,7 @@ import tools.logger
 log = logging.getLogger(__name__)
 
 
-from tools.string_checking.other_tools import has_file_extension, remove_query_params_from_url
+from tools.string_checking.other_tools import has_file_extension, remove_query_params_from_url, create_long_path_file
 
 if TYPE_CHECKING:
     from core.content_extractor import ContentExtractor
@@ -181,6 +181,9 @@ class DownloaderMixin:
         :param force_to_shortcut:
         :return:
         """
+
+        if os.name == 'nt':
+            filename = create_long_path_file(filename) # on windows we need to use the long path name
 
         if not os.path.exists(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))

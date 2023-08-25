@@ -23,6 +23,7 @@ class CanvasMediaObjects(Node):
     def get_all_items(self):
 
         api_dict = self.api_request(self.course_id)
+
         if api_dict:
             for media_object_dict in api_dict:
                 media_node = get_content_node(None, media_object_dict)
@@ -30,5 +31,7 @@ class CanvasMediaObjects(Node):
                 if len(media_object_dict['media_sources']) > 0:
                     media_node = media_node(self, self.parent, media_object_dict)
                     media_node.url = media_object_dict['media_sources'][-1]['url']
+                    media_node.item_id = media_object_dict['media_id']
+                    print(media_object_dict)
                     self.children.append(media_node)
 

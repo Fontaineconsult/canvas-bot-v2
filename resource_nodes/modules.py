@@ -44,7 +44,9 @@ class Module(Node):
 
     def identify_content(self):
         from core.node_factory import get_node, get_content_node
+
         module_items = get_module_items(self.items_url)
+
         if module_items:
             for item in module_items:
 
