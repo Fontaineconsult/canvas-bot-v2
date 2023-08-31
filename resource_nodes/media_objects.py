@@ -32,6 +32,5 @@ class CanvasMediaObjects(Node):
                     media_node = media_node(self, self.parent, media_object_dict)
                     media_node.url = media_object_dict['media_sources'][-1]['url']
                     media_node.item_id = media_object_dict['media_id']
-                    print(media_object_dict)
                     self.children.append(media_node)
 
