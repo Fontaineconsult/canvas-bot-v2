@@ -84,6 +84,7 @@ web_video_resources_regex:
   - .*.sfsu.mediasite.com/.*.
   - .*.sfsu.instructure.com/media_objects_iframe/.*.
   - https://www.loom.com/share/.*.
+  - .*.sfsu.instructuremedia.com.*.
 
 
 video_file_resources_regex:
