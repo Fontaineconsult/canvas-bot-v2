@@ -88,3 +88,8 @@ default_download_path: "../downloads"
 required_env_file_keys:
   - CANVAS_COURSE_PAGE_ROOT
   - API_PATH
+
+canvas_studio_config_keys:
+  - CANVAS_STUDIO_AUTHENTICATION_URL
+  - CANVAS_STUDIO_TOKEN_URL
+  - CANVAS_STUDIO_CALLBACK_URL

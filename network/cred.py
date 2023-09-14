@@ -4,6 +4,8 @@ import sys
 
 import keyring, keyring.errors
 
+from network.studio_api import refresh_studio_token
+
 try:
     import logging
     import tools.logger
@@ -19,6 +21,24 @@ def save_canvas_api_key(api_key):
     print("Access Token for Canvas Bot Saved")
 
 
+def save_canvas_studio_client_keys(studio_client_id, studio_client_secret):
+    keyring.set_password("STUDIO_CLIENT_ID", "canvas_bot", studio_client_id)
+    keyring.set_password("STUDIO_CLIENT_SECRET", "canvas_bot", studio_client_secret)
+    print("Canvas Studio Client Keys Saved")
+
+
+
+def delete_canvas_studio_client_keys():
+    try:
+        keyring.delete_password("STUDIO_CLIENT_ID", "canvas_bot")
+        keyring.delete_password("STUDIO_CLIENT_SECRET", "canvas_bot")
+        log.info("Studio Client Keys for Canvas Bot Deleted")
+        print("Studio Client Keys for Canvas Bot Deleted")
+    except keyring.errors.PasswordDeleteError:
+        print("Studio Client Keys found for Canvas Bot.")
+
+
+
 def delete_canvas_api_key():
     try:
         keyring.delete_password("ACCESS_TOKEN", "canvas_bot")
@@ -26,6 +46,8 @@ def delete_canvas_api_key():
         print("Access Token for Canvas Bot Deleted")
     except keyring.errors.PasswordDeleteError:
         print("Access Token found for Canvas Bot.")
+
+
 
 
 def set_canvas_api_key_to_environment_variable():
@@ -46,13 +68,31 @@ def set_canvas_api_key_to_environment_variable():
         return False
 
 
+def get_canvas_studio_client_credentials():
+    """
+    Load and set the Canvas Studio Client Keys to environment variables.
+    :return:
+    """
+
+    studio_client_id = keyring.get_password("STUDIO_CLIENT_ID", "canvas_bot")
+    studio_client_secret = keyring.get_password("STUDIO_CLIENT_SECRET", "canvas_bot")
+
+    if studio_client_id and studio_client_secret:
+        return studio_client_id, studio_client_secret
+    else:
+        log.info("No Studio Client Keys Found")
+        print("No Studio Client Keys Found")
+        return False
+
+
+
+
 def save_config_data(config_data=None, folder_only=False):
     """
     Save configuration data to a JSON file in the AppData folder.
 
     Args:
     config_data (dict): A dictionary containing the configuration data.
-    app_name (str): The name of your application.
     """
     # Get the AppData folder path
     appdata_path = os.environ.get("APPDATA")
@@ -74,11 +114,18 @@ def save_config_data(config_data=None, folder_only=False):
     # Save the configuration data as a JSON file
     config_file_path = os.path.join(app_folder, "config.json")
 
+    # If config.json exists, read its content and merge with new data
+    if os.path.exists(config_file_path):
+        with open(config_file_path, "r") as config_file:
+            existing_data = json.load(config_file)
+            existing_data.update(config_data)  # Merge new data with existing data
+        config_data = existing_data
+
     try:
         with open(config_file_path, "w") as config_file:
             json.dump(config_data, config_file, indent=4)
     except OSError as exc:
-        print("Couldn't write config data to %s" % app_folder)
+        print("Couldn't write config data to %s" % config_file_path)
         print("Program can't continue. See log file for details. Exiting now")
         log.exception("Can't write config data %s" % exc)
         sys.exit()
@@ -139,7 +186,6 @@ def save_youtube_api_key(youtube_key):
 
 def get_youtube_api_key():
         return keyring.get_password("youtube_for_canvasbot", "youtube_for_canvasbot")
-
 
 
 

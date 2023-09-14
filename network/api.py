@@ -67,6 +67,19 @@ def get_course(course_id):
 
 
 @response_decorator
+def get_users_in_account(account_id):
+    course_url = f"{os.environ.get('API_PATH')}/accounts/{account_id}/users?access_token={os.environ.get('access_token')}"
+    return course_url
+
+
+@response_decorator
+def get_users_scope(account_id):
+    course_url = f"{os.environ.get('API_PATH')}/accounts/self/scopes?access_token={os.environ.get('access_token')}"
+    return course_url
+
+
+
+@response_decorator
 def get_announcements(course_id):
 
     announcement_url = f"{os.environ.get('API_PATH')}/announcements?context_codes=course_" \

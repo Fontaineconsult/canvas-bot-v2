@@ -3,7 +3,9 @@ import click, sys, logging
 from config.yaml_io import read_config
 from core.course_root import CanvasCourseRoot
 from network.cred import set_canvas_api_key_to_environment_variable, save_canvas_api_key, save_config_data, \
-    load_config_data_from_appdata, delete_canvas_api_key, delete_config_file_from_appdata
+    load_config_data_from_appdata, delete_canvas_api_key, delete_config_file_from_appdata, \
+    save_canvas_studio_client_keys
+from network.studio_api import get_new_studio_token, authorize_studio_token
 
 version = read_config()['version']
 import tools.logger
@@ -28,6 +30,8 @@ def check_if_api_key_exists():
         set_canvas_api_key_to_environment_variable()
 
 
+
+
 def load_json_config_file_from_appdata():
 
     if not load_config_data_from_appdata():
@@ -39,6 +43,28 @@ def load_json_config_file_from_appdata():
             app_config_dict[key] = input(f"Enter {key}: ")
         save_config_data(app_config_dict)
         load_config_data_from_appdata()
+
+
+def configure_canvas_studio_api_key():
+
+    client_id = input("Enter your Canvas Studio Client ID (enter nothing to skip): ")
+
+    if client_id:
+        client_secret = input("Enter your Canvas Studio Client Secret: ")
+        callback_url = input("Enter your Canvas Studio Callback URL: ")
+
+        if client_id and client_secret and callback_url:
+            save_canvas_studio_client_keys(client_id, client_secret)
+            canvas_studio_config_keys = read_config()['canvas_studio_config_keys']
+            canvas_studio_config_dict = {}
+            for key in canvas_studio_config_keys:
+                canvas_studio_config_dict[key] = input(f"Enter {key}: ")
+
+            save_config_data(canvas_studio_config_dict)
+
+
+    print("Skipping Canvas Studio API Key Configuration. Canvas Studio access will not be available")
+
 
 
 class CanvasBot(CanvasCourseRoot):
@@ -54,6 +80,7 @@ class CanvasBot(CanvasCourseRoot):
         print("Detecting Access Token and Config File")
         check_if_api_key_exists()
         load_json_config_file_from_appdata()
+        configure_canvas_studio_api_key()
 
     def reset_config(self):
         print("Resetting Access Token and Config File")
