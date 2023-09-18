@@ -3,18 +3,7 @@ import os
 
 import requests
 
-from network.cred import get_canvas_studio_client_credentials, load_config_data_from_appdata
 
-# access_token = "-jj7mrzSn8agkTl0YhhSGi8fzezDL2ORSfHPIenBMf4"
-# TokenType = "Bearer"
-# expires_in = "7200"
-# refresh_token = "g8nf3fu778NwDFxAB3_T3qErqMoMGukpZprgMOTxPbg"
-# created_at = "1693587319"
-# auth_url = "https://sfsu.instructuremedia.com/api/public/oauth/authorize"
-# access_token_url = "https://sfsu.instructuremedia.com/api/public/oauth/token"
-# client_id = "AwcmL_ig_gCsDeWVQUPw3Cw_BhP7R4k-z6Gtru4bzu8"
-# client_secret = "4PY0DtFQHwzkQBytckdTvvigjPOFGx3WZJZMyljbMa8"
-# timestamp = 1693587320015
 
 
 
@@ -22,14 +11,11 @@ def authorize_studio_token():
 
     import requests
     import webbrowser
-
+    from network.cred import get_canvas_studio_client_credentials, load_config_data_from_appdata
 
     # Step 1: Redirect user to authorization URL
     load_config_data_from_appdata()
     studio_client_credentials = get_canvas_studio_client_credentials()
-
-
-
 
     if studio_client_credentials:
         client_id, client_secret = studio_client_credentials
@@ -59,7 +45,7 @@ def authorize_studio_token():
         token_payload = {
             'grant_type': 'authorization_code',
             'code': auth_code,
-            'redirect_uri': os.environ['STUDIO_CALLBACK_URL'],
+            'redirect_uri': os.environ['CANVAS_STUDIO_CALLBACK_URL'],
             'client_id': client_id,
             'client_secret': client_secret
         }
@@ -69,29 +55,42 @@ def authorize_studio_token():
         if response.status_code == 200:
             access_token = token_data['access_token']
             refresh_token = token_data['refresh_token']
+            print("Access Token:", access_token, "refresh token:", refresh_token)
             return access_token, refresh_token
 
 
         else:
             print("Error obtaining tokens:", token_data)
 
-
-
-
-
-
 def refresh_studio_token(old_refresh_token: str,
                          client_id: str,
-                         client_secret: str):
+                         ):
+
+    from network.cred import load_config_data_from_appdata, get_canvas_studio_client_credentials
+
+    studio_client_id, studio_client_secret = get_canvas_studio_client_credentials()
+
+    if not studio_client_id or not studio_client_secret:
+        print("Error: Canvas Studio Client ID or Client Secret not found. Can't refresh token")
+        return None
 
     payload = {
         'grant_type': 'refresh_token',
         'refresh_token': old_refresh_token,
-        'client_id': client_id,
-        'client_secret': client_secret
+        # 'client_id': client_id,
+        # 'client_secret': studio_client_secret
     }
+    print(payload)
 
-    response = requests.post(access_token_url, data=payload)
+    load_config_data_from_appdata()
+    try:
+        CANVAS_STUDIO_TOKEN_URL = os.environ['CANVAS_STUDIO_TOKEN_URL']
+
+    except KeyError:
+        print("Error: Canvas Studio Token URL not found")
+        return None
+
+    response = requests.post(CANVAS_STUDIO_TOKEN_URL, data=payload)
     response_data = response.json()
 
     if response.status_code == 200:
@@ -99,7 +98,10 @@ def refresh_studio_token(old_refresh_token: str,
         new_refresh_token = response_data['refresh_token']
         return new_access_token, new_refresh_token
     else:
+
         print("Error refreshing token:", response_data)
+        print("Reauthorizing token")
+        authorize_studio_token()
     return None
 
 
@@ -107,7 +109,7 @@ def response_handler(request_url):
 
 
     headers = {"accept": "application/json",
-               "Authorization": f"Bearer {access_token}"}
+               "Authorization": f"Bearer {os.environ['CANVAS_STUDIO_TOKEN']}"}
 
     request = requests.get(request_url, headers=headers)
     return json.loads(request.content)
@@ -116,7 +118,7 @@ def response_handler(request_url):
 def download_handler(request_url):
 
     headers = {"accept": "application/json",
-               "Authorization": f"Bearer {access_token}"}
+               "Authorization": f"Bearer {os.environ['CANVAS_STUDIO_TOKEN']}"}
 
     request = requests.get(request_url, headers=headers)
     print(request)
@@ -140,7 +142,7 @@ def get_course(course_id):
     course_url = f"https://sfsu.instructuremedia.com/api/public/v1/courses/{course_id}"
     return course_url
 
-print(get_course('4345'))
+
 @response_decorator
 def get_collection_media(collection_id):
     course_url = f"https://sfsu.instructuremedia.com/api/public/v1/collections/{collection_id}/media"
