@@ -2,6 +2,7 @@ from colorama import Fore, Style, init
 import os, sys
 from core.content_extractor import ContentExtractor
 from core.manifest import Manifest
+from network.cred import set_canvas_studio_api_key_to_environment_variable
 from resource_nodes.canvas_studio import CanvasStudio
 from tools.canvas_tree import CanvasTree
 
@@ -78,5 +79,6 @@ class CanvasCourseRoot(ContentExtractor):
 
         self.media_objects = CanvasMediaObjects(self.course_id, self)
 
-        self.canvas_studio = CanvasStudio(self.course_id, self)
+        if set_canvas_studio_api_key_to_environment_variable():
+            self.canvas_studio = CanvasStudio(self.course_id, self)
         print("Import Complete\n")

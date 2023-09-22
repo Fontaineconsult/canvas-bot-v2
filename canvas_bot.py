@@ -4,8 +4,8 @@ from config.yaml_io import read_config
 from core.course_root import CanvasCourseRoot
 from network.cred import set_canvas_api_key_to_environment_variable, save_canvas_api_key, save_config_data, \
     load_config_data_from_appdata, delete_canvas_api_key, delete_config_file_from_appdata, \
-    save_canvas_studio_client_keys
-from network.studio_api import get_new_studio_token, authorize_studio_token
+    save_canvas_studio_client_keys, save_canvas_studio_tokens, get_canvas_studio_tokens
+from network.studio_api import authorize_studio_token, refresh_studio_token
 
 version = read_config()['version']
 import tools.logger
@@ -47,6 +47,13 @@ def load_json_config_file_from_appdata():
 
 def configure_canvas_studio_api_key():
 
+    token, reauth = get_canvas_studio_tokens()
+    if token and reauth:
+
+        print("Canvas Studio API tokens found")
+        refresh_studio_token(token, reauth)
+        return
+
     client_id = input("Enter your Canvas Studio Client ID (enter nothing to skip): ")
 
     if client_id:
@@ -58,13 +65,17 @@ def configure_canvas_studio_api_key():
             canvas_studio_config_keys = read_config()['canvas_studio_config_keys']
             canvas_studio_config_dict = {}
             for key in canvas_studio_config_keys:
+
                 canvas_studio_config_dict[key] = input(f"Enter {key}: ")
 
             save_config_data(canvas_studio_config_dict)
 
+            token, re_auth_token = authorize_studio_token()
 
-    print("Skipping Canvas Studio API Key Configuration. Canvas Studio access will not be available")
-
+            if token and re_auth_token:
+                save_canvas_studio_tokens(token, re_auth_token)
+    else:
+        print("Skipping Canvas Studio API Key Configuration. Canvas Studio access will not be available")
 
 
 class CanvasBot(CanvasCourseRoot):

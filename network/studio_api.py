@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 
@@ -34,6 +35,7 @@ def authorize_studio_token():
 
 
         authorization_redirect_url = CANVAS_STUDIO_AUTHENTICATION_URL + '?' + '&'.join([f"{k}={v}" for k, v in auth_params.items()])
+
         webbrowser.open(authorization_redirect_url)
 
         # Get the authorization code from the callback URL
@@ -51,6 +53,7 @@ def authorize_studio_token():
         }
         response = requests.post(CANVAS_STUDIO_TOKEN_URL, data=token_payload)
         token_data = response.json()
+        print(token_data)
 
         if response.status_code == 200:
             access_token = token_data['access_token']
@@ -62,9 +65,7 @@ def authorize_studio_token():
         else:
             print("Error obtaining tokens:", token_data)
 
-def refresh_studio_token(old_refresh_token: str,
-                         client_id: str,
-                         ):
+def refresh_studio_token(old_token: str, reauth_token: str):
 
     from network.cred import load_config_data_from_appdata, get_canvas_studio_client_credentials
 
@@ -74,31 +75,37 @@ def refresh_studio_token(old_refresh_token: str,
         print("Error: Canvas Studio Client ID or Client Secret not found. Can't refresh token")
         return None
 
+    # Generate the Authorization header value
+    credentials = f"{studio_client_id}:{studio_client_secret}"
+    encoded_credentials = base64.b64encode(credentials.encode()).decode()
+    headers = {
+        "Authorization": f"Basic {encoded_credentials}",
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+
     payload = {
         'grant_type': 'refresh_token',
-        'refresh_token': old_refresh_token,
-        # 'client_id': client_id,
-        # 'client_secret': studio_client_secret
+        'refresh_token': reauth_token
     }
-    print(payload)
 
+    print(payload)
     load_config_data_from_appdata()
     try:
         CANVAS_STUDIO_TOKEN_URL = os.environ['CANVAS_STUDIO_TOKEN_URL']
-
     except KeyError:
         print("Error: Canvas Studio Token URL not found")
         return None
 
-    response = requests.post(CANVAS_STUDIO_TOKEN_URL, data=payload)
+    response = requests.post(CANVAS_STUDIO_TOKEN_URL, data=payload, headers=headers)
     response_data = response.json()
 
     if response.status_code == 200:
         new_access_token = response_data['access_token']
         new_refresh_token = response_data['refresh_token']
+        print(new_access_token, new_refresh_token)
+
         return new_access_token, new_refresh_token
     else:
-
         print("Error refreshing token:", response_data)
         print("Reauthorizing token")
         authorize_studio_token()

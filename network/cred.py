@@ -4,7 +4,6 @@ import sys
 
 import keyring, keyring.errors
 
-from network.studio_api import refresh_studio_token
 
 try:
     import logging
@@ -68,6 +67,23 @@ def set_canvas_api_key_to_environment_variable():
         return False
 
 
+def set_canvas_studio_api_key_to_environment_variable():
+
+    studio_token, studio_re_auth_token = get_canvas_studio_tokens()
+
+
+
+    if studio_token and studio_re_auth_token:
+        os.environ["CANVAS_STUDIO_TOKEN"] = studio_token
+        os.environ["CANVAS_STUDIO_RE_AUTH_TOKEN"] = studio_re_auth_token
+        log.info("Studio Tokens for Canvas Bot Set")
+        return True
+    else:
+        log.info("No Studio Tokens Found")
+        print("No Studio Tokens Found")
+        return False
+
+
 def get_canvas_studio_client_credentials():
     """
     Load and set the Canvas Studio Client Keys to environment variables.
@@ -85,6 +101,35 @@ def get_canvas_studio_client_credentials():
         return False
 
 
+def save_canvas_studio_tokens(canvas_studio_token, canvas_studio_re_auth_token):
+    """
+    Save the Canvas Studio tokens to the environment variables.
+    :param token:
+    :param re_auth_token:
+    :return:
+    """
+    keyring.set_password("CANVAS_STUDIO_TOKEN", "canvas_bot", canvas_studio_token)
+    keyring.set_password("CANVAS_STUDIO_RE_AUTH_TOKEN", "canvas_bot", canvas_studio_re_auth_token)
+    log.info("Studio Tokens for Canvas Bot Saved")
+    print("Studio Tokens for Canvas Bot Saved")
+
+
+
+def get_canvas_studio_tokens():
+    """
+    Save the Canvas Studio tokens to the environment variables.
+    :param token:
+    :param re_auth_token:
+    :return:
+    """
+    studio_token = keyring.get_password("CANVAS_STUDIO_TOKEN", "canvas_bot")
+    studio_re_auth_token = keyring.get_password("CANVAS_STUDIO_RE_AUTH_TOKEN", "canvas_bot")
+    if studio_token and studio_re_auth_token:
+        return studio_token, studio_re_auth_token
+    else:
+        log.info("No Studio Client Keys Found")
+        print("No Studio Client Keys Found")
+        return False
 
 
 def save_config_data(config_data=None, folder_only=False):
@@ -154,6 +199,7 @@ def load_config_data_from_appdata():
 
     # set each key in the config data to an environment variable
     for key, value in config_data.items():
+        print(key, value)
         os.environ[key] = value
     return True
 
@@ -173,8 +219,12 @@ def delete_config_file_from_appdata():
 
 
 def clear_env_settings():
-    del os.environ["ACCESS_TOKEN"]
-
+    try:
+        del os.environ["ACCESS_TOKEN"]
+        del os.environ["CANVAS_STUDIO_TOKEN"]
+        del os.environ["CANVAS_STUDIO_RE_AUTH_TOKEN"]
+    except KeyError:
+        pass
 
 
 def save_youtube_api_key(youtube_key):
