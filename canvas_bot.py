@@ -4,7 +4,8 @@ from config.yaml_io import read_config
 from core.course_root import CanvasCourseRoot
 from network.cred import set_canvas_api_key_to_environment_variable, save_canvas_api_key, save_config_data, \
     load_config_data_from_appdata, delete_canvas_api_key, delete_config_file_from_appdata, \
-    save_canvas_studio_client_keys, save_canvas_studio_tokens, get_canvas_studio_tokens
+    save_canvas_studio_client_keys, save_canvas_studio_tokens, get_canvas_studio_tokens, \
+    set_canvas_studio_api_key_to_environment_variable
 from network.studio_api import authorize_studio_token, refresh_studio_token
 
 version = read_config()['version']
@@ -51,7 +52,9 @@ def configure_canvas_studio_api_key():
     if token and reauth:
 
         print("Canvas Studio API tokens found")
-        refresh_studio_token(token, reauth)
+        token, reauth = refresh_studio_token(reauth)
+        save_canvas_studio_tokens(token, reauth)
+        set_canvas_studio_api_key_to_environment_variable()
         return
 
     client_id = input("Enter your Canvas Studio Client ID (enter nothing to skip): ")
@@ -207,8 +210,6 @@ if __name__=='__main__':
 
             if ctx.params.get('output_as_excel'):
                 bot.save_content_as_excel(output_as_excel, **params)
-
-
 
         if course_id_list:
             course_list = read_course_list(course_id_list)

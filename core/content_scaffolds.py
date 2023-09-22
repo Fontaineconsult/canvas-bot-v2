@@ -147,7 +147,7 @@ def video_site_dict(video_site_node, check_caption_status):
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(video_site_node),
         "order": get_order(video_site_node),
-        "caption_status": "Not Checked",
+        "is_captioned": getattr(video_site_node, "captioned", False),
         "path": [node.title for node in build_path(video_site_node, ignore_root=True)],
 
     }
@@ -173,6 +173,7 @@ def video_file_dict(video_file_node, file_download_directory, flatten):
         "is_hidden": is_hidden(video_file_node),
         "file_type": getattr(video_file_node, "mime_class", None),
         "order": get_order(video_file_node),
+        "is_captioned": getattr(video_file_node, "captioned", False),
         "path": [node.title for node in build_path(video_file_node, ignore_root=True)],
 
     }

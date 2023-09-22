@@ -162,7 +162,6 @@ class ContentExtractor(DownloaderMixin):
 
             if not os.path.exists(root_download_directory):
                 os.makedirs(root_download_directory)
-            print(params)
             json_data = json.loads(self.get_all_content_as_json(root_file_download_directory, **params))
 
             save_as_excel(json_data, root_download_directory, download_hidden_files)

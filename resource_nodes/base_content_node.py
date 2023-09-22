@@ -9,12 +9,18 @@ class BaseContentNode:
     Examples include, documents, videos, and links.
     """
 
-    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+    def __init__(self, parent, root,
+                 api_dict=None,
+                 url=None,
+                 title=None,
+                 captioned=False,
+                 **kwargs):
         self.api_dict = api_dict
         self.is_canvas_file = False
         self.url = url
         self.title = title
         self.parent = parent
+        self.captioned = captioned
         self.root = root
         self.children = list()
         self.is_content = True

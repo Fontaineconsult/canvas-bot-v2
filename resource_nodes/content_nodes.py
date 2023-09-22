@@ -15,6 +15,13 @@ def visible():
     return f"{Fore.LIGHTGREEN_EX} Visible {Style.RESET_ALL}"
 
 
+def captioned():
+    return f"{Fore.LIGHTGREEN_EX} Captioned {Style.RESET_ALL}"
+
+
+def not_captioned():
+    return f"{Fore.RED} Not Captioned {Style.RESET_ALL}"
+
 class Document(BaseContentNode):
 
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
@@ -37,34 +44,37 @@ class DocumentSite(BaseContentNode):
 
 class VideoSite(BaseContentNode):
 
-    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
-        super().__init__(parent, root, api_dict, url, title, **kwargs)
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, captioned=False, **kwargs):
+        super().__init__(parent, root, api_dict, url, title, captioned, **kwargs)
+        self.captioned = False
 
     def __str__(self):
-        return f"{Fore.LIGHTRED_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
+        return f"{Fore.LIGHTRED_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {captioned() if self.captioned else not_captioned()} {self.url}  ){Style.RESET_ALL}"
 
 
 class VideoFile(BaseContentNode):
 
-    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, captioned=False, **kwargs):
+
         if api_dict is None and is_url(title) is True:
             title = sanitize_windows_filename(url.split('/')[-1])
-        super().__init__(parent, root, api_dict, url, title, **kwargs)
+        super().__init__(parent, root, api_dict, url, title, captioned,  **kwargs)
+
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
             return f"{Fore.LIGHTMAGENTA_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.title} ){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTMAGENTA_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
+            return f"{Fore.LIGHTMAGENTA_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {captioned() if self.captioned else not_captioned()} {self.url} ){Style.RESET_ALL}"
 
 
 class AudioFile(BaseContentNode):
 
-    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, captioned=False, **kwargs):
 
         if api_dict is None and is_url(title) is True:
             title = sanitize_windows_filename(url.split('/')[-1])
-        super().__init__(parent, root, api_dict, url, title, **kwargs)
+        super().__init__(parent, root, api_dict, url, title, captioned, **kwargs)
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':

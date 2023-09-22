@@ -1,13 +1,13 @@
 import base64
 import json
+import logging
 import os
+import warnings
 
 import requests
+from requests.exceptions import MissingSchema, JSONDecodeError
 
-
-
-
-
+log = logging.getLogger(__name__)
 def authorize_studio_token():
 
     import requests
@@ -51,21 +51,21 @@ def authorize_studio_token():
             'client_id': client_id,
             'client_secret': client_secret
         }
+
         response = requests.post(CANVAS_STUDIO_TOKEN_URL, data=token_payload)
         token_data = response.json()
-        print(token_data)
+
 
         if response.status_code == 200:
             access_token = token_data['access_token']
             refresh_token = token_data['refresh_token']
-            print("Access Token:", access_token, "refresh token:", refresh_token)
             return access_token, refresh_token
 
 
         else:
             print("Error obtaining tokens:", token_data)
 
-def refresh_studio_token(old_token: str, reauth_token: str):
+def refresh_studio_token(reauth_token: str):
 
     from network.cred import load_config_data_from_appdata, get_canvas_studio_client_credentials
 
@@ -88,8 +88,8 @@ def refresh_studio_token(old_token: str, reauth_token: str):
         'refresh_token': reauth_token
     }
 
-    print(payload)
     load_config_data_from_appdata()
+
     try:
         CANVAS_STUDIO_TOKEN_URL = os.environ['CANVAS_STUDIO_TOKEN_URL']
     except KeyError:
@@ -100,10 +100,10 @@ def refresh_studio_token(old_token: str, reauth_token: str):
     response_data = response.json()
 
     if response.status_code == 200:
+        print("Studio Token Refresh Successful")
         new_access_token = response_data['access_token']
         new_refresh_token = response_data['refresh_token']
-        print(new_access_token, new_refresh_token)
-
+        print(new_refresh_token, new_access_token)
         return new_access_token, new_refresh_token
     else:
         print("Error refreshing token:", response_data)
@@ -118,17 +118,36 @@ def response_handler(request_url):
     headers = {"accept": "application/json",
                "Authorization": f"Bearer {os.environ['CANVAS_STUDIO_TOKEN']}"}
 
-    request = requests.get(request_url, headers=headers)
-    return json.loads(request.content)
+    try:
+        request = requests.get(request_url, headers=headers)
+    except requests.exceptions.ConnectionError as exc:
+        log.exception(f"{exc} {request_url}")
+        warnings.warn(f"{exc} {request_url}", UserWarning)
+        return False
+    except MissingSchema as exc:
+        log.exception(f"{exc} {request_url}")
+        warnings.warn(f"{exc} {request_url}", UserWarning)
+        return None
+    if request.status_code == 200:
+        log.info(f"Request: {request_url} | Status Code: {request.status_code}")
+        return json.loads(request.content)
+    if request.status_code != 200:
+        log.warning(f"Request: {request_url} | Status Code: {request.status_code}")
+        try:
+            error_message = json.loads(request.content)
+        except JSONDecodeError as exc:
+            log.exception(f"{exc} {request_url}")
+            error_message = "Failed to load message"
+        warning_message = f"{request.status_code} {error_message} {request_url}"
+        warnings.warn(warning_message, UserWarning)
+        return None
 
 
 def download_handler(request_url):
 
     headers = {"accept": "application/json",
                "Authorization": f"Bearer {os.environ['CANVAS_STUDIO_TOKEN']}"}
-
     request = requests.get(request_url, headers=headers)
-    print(request)
     return request.content
 
 
