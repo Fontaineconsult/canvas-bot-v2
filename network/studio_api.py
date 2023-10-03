@@ -17,15 +17,12 @@ def authorize_studio_token():
     # Step 1: Redirect user to authorization URL
     load_config_data_from_appdata()
     studio_client_credentials = get_canvas_studio_client_credentials()
-
     if studio_client_credentials:
         client_id, client_secret = studio_client_credentials
-
 
         CANVAS_STUDIO_AUTHENTICATION_URL = os.environ['CANVAS_STUDIO_AUTHENTICATION_URL']
         CANVAS_STUDIO_TOKEN_URL = os.environ['CANVAS_STUDIO_TOKEN_URL']
         CANVAS_STUDIO_CALLBACK_URL = os.environ['CANVAS_STUDIO_CALLBACK_URL']
-
 
         auth_params = {
             'client_id': client_id,
@@ -43,7 +40,6 @@ def authorize_studio_token():
 
         # Step 2: Exchange the authorization code for an access token and refresh token
 
-
         token_payload = {
             'grant_type': 'authorization_code',
             'code': auth_code,
@@ -55,15 +51,14 @@ def authorize_studio_token():
         response = requests.post(CANVAS_STUDIO_TOKEN_URL, data=token_payload)
         token_data = response.json()
 
-
         if response.status_code == 200:
             access_token = token_data['access_token']
             refresh_token = token_data['refresh_token']
             return access_token, refresh_token
 
-
         else:
             print("Error obtaining tokens:", token_data)
+            return False, False
 
 def refresh_studio_token(reauth_token: str):
 
@@ -103,7 +98,7 @@ def refresh_studio_token(reauth_token: str):
         print("Studio Token Refresh Successful")
         new_access_token = response_data['access_token']
         new_refresh_token = response_data['refresh_token']
-        print(new_refresh_token, new_access_token)
+        print(new_access_token, new_refresh_token)
         return new_access_token, new_refresh_token
     else:
         print("Error refreshing token:", response_data)
@@ -131,6 +126,7 @@ def response_handler(request_url):
     if request.status_code == 200:
         log.info(f"Request: {request_url} | Status Code: {request.status_code}")
         return json.loads(request.content)
+
     if request.status_code != 200:
         log.warning(f"Request: {request_url} | Status Code: {request.status_code}")
         try:

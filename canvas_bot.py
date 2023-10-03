@@ -1,15 +1,16 @@
 #!\windowsvenv\Scripts python
+import os
+
 import click, sys, logging
 from config.yaml_io import read_config
 from core.course_root import CanvasCourseRoot
 from network.cred import set_canvas_api_key_to_environment_variable, save_canvas_api_key, save_config_data, \
     load_config_data_from_appdata, delete_canvas_api_key, delete_config_file_from_appdata, \
-    save_canvas_studio_client_keys, save_canvas_studio_tokens, get_canvas_studio_tokens, \
-    set_canvas_studio_api_key_to_environment_variable
+    save_canvas_studio_client_keys, get_canvas_studio_tokens, \
+    set_canvas_studio_api_key_to_environment_variable, delete_canvas_studio_client_keys, delete_canvas_studio_tokens
 from network.studio_api import authorize_studio_token, refresh_studio_token
 
 version = read_config()['version']
-import tools.logger
 log = logging.getLogger(__name__)
 
 
@@ -31,8 +32,6 @@ def check_if_api_key_exists():
         set_canvas_api_key_to_environment_variable()
 
 
-
-
 def load_json_config_file_from_appdata():
 
     if not load_config_data_from_appdata():
@@ -46,40 +45,78 @@ def load_json_config_file_from_appdata():
         load_config_data_from_appdata()
 
 
-def configure_canvas_studio_api_key():
+def configure_canvas_studio_api_key(force_studio_config=True):
 
-    token, reauth = get_canvas_studio_tokens()
-    if token and reauth:
+    """
+    refreshes saved tokens if they exist. If not, prompts user to authorize and save tokens.
+     Sets new tokens to env variables
+    :return:
+    """
+    print("ZUMP")
+    if os.environ['studio_enabled'] == 'True':
 
-        print("Canvas Studio API tokens found")
-        token, reauth = refresh_studio_token(reauth)
-        save_canvas_studio_tokens(token, reauth)
-        set_canvas_studio_api_key_to_environment_variable()
+        token, re_auth = get_canvas_studio_tokens()
+
+        if token and re_auth:
+            token, re_auth = refresh_studio_token(re_auth)
+            print(token, re_auth)
+            set_canvas_studio_api_key_to_environment_variable(token, re_auth)
+        else:
+            print("Canvas Studio Enabled but no tokens found.")
+            # Collect client ID and Client Secret and Save them
+            set_canvas_studio_config(force_studio_config)
+            # get new tokens using client ID and Client Secret
+            token, re_auth = authorize_studio_token()
+
+            if token and re_auth:
+                set_canvas_studio_api_key_to_environment_variable(token, re_auth)
+
+    else:
+        print("Canvas Studio Integration Disabled")
+
+
+def set_canvas_studio_config(force_config=False):
+
+    """
+    saves canvas studio client keys to env variables
+    :param force_config:
+    :return:
+    """
+
+    if os.environ['studio_enabled'] == 'True' and force_config is False:
+        configure_canvas_studio_api_key()
         return
 
-    client_id = input("Enter your Canvas Studio Client ID (enter nothing to skip): ")
+    if os.environ['studio_enabled'] == 'False' and force_config is False:
+        return
 
-    if client_id:
-        client_secret = input("Enter your Canvas Studio Client Secret: ")
-        callback_url = input("Enter your Canvas Studio Callback URL: ")
+    while True:
+        response = input("Would you like to enable the canvas studio integration?").strip().lower()
+        if response == "yes":
 
-        if client_id and client_secret and callback_url:
-            save_canvas_studio_client_keys(client_id, client_secret)
             canvas_studio_config_keys = read_config()['canvas_studio_config_keys']
             canvas_studio_config_dict = {}
-            for key in canvas_studio_config_keys:
 
+            client_id = input("Enter your Canvas Studio Client ID: ")
+            client_secret = input("Enter your Canvas Studio Client Secret: ")
+
+            if client_id and client_secret:
+                print("saving client keys")
+                save_canvas_studio_client_keys(client_id, client_secret)
+
+            for key in canvas_studio_config_keys:
                 canvas_studio_config_dict[key] = input(f"Enter {key}: ")
 
+            canvas_studio_config_dict['studio_enabled'] = True
             save_config_data(canvas_studio_config_dict)
+            load_json_config_file_from_appdata()
+            return True
 
-            token, re_auth_token = authorize_studio_token()
-
-            if token and re_auth_token:
-                save_canvas_studio_tokens(token, re_auth_token)
-    else:
-        print("Skipping Canvas Studio API Key Configuration. Canvas Studio access will not be available")
-
+        elif response == "no":
+            save_config_data({'studio_enabled': False})
+            return False
+        else:
+            print("Invalid input. Please enter 'Yes' or 'No'.")
 
 class CanvasBot(CanvasCourseRoot):
     """
@@ -94,13 +131,24 @@ class CanvasBot(CanvasCourseRoot):
         print("Detecting Access Token and Config File")
         check_if_api_key_exists()
         load_json_config_file_from_appdata()
-        configure_canvas_studio_api_key()
+        set_canvas_studio_config()
+
 
     def reset_config(self):
         print("Resetting Access Token and Config File")
         delete_canvas_api_key()
         delete_config_file_from_appdata()
         self.detect_and_set_config()
+
+
+    def reset_canvas_studio_config(self):
+        print("Resetting Canvas Studio Config")
+        delete_canvas_studio_client_keys()
+        delete_canvas_studio_tokens()
+        set_canvas_studio_config(force_config=True)
+
+
+
 
     def start(self):
         print(f"Starting Canvas Bot - {version} ")
@@ -141,8 +189,10 @@ if __name__=='__main__':
                   help='Downloads files hidden from students. Default is False')
     @click.option('--show_content_tree', is_flag=True,
                   help='Prints a content tree of the course to the console. Default is False')
-    @click.option('--reset_params', is_flag=True,
-                  help='Resets Access Token and config file. Default is False')
+    @click.option('--reset_canvas_params', is_flag=True,
+                  help='Resets Access Tokens and config file. Default is False')
+    @click.option('--reset_canvas_studio_params', is_flag=True,
+                  help='Resets config variables for canvas studio. Default is False')
     @click.option('--output_as_excel', type=click.STRING,
                   help='The location to export the course content as an excel file.')
     @click.option('--check_video_site_caption_status', is_flag=True,
@@ -162,7 +212,8 @@ if __name__=='__main__':
              flush_after_download,
              download_hidden_files,
              show_content_tree,
-             reset_params,
+             reset_canvas_params,
+             reset_canvas_studio_params,
              check_video_site_caption_status
              ):
 
@@ -178,8 +229,9 @@ if __name__=='__main__':
             "flush_after_download": flush_after_download,
             "download_hidden_files": download_hidden_files,
             "show_content_tree": show_content_tree,
-            "reset_params": reset_params,
+            "reset_params": reset_canvas_params,
             "check_video_site_caption_status": check_video_site_caption_status,
+            "reset_canvas_studio_params": reset_canvas_studio_params
 
         }
 
@@ -190,7 +242,10 @@ if __name__=='__main__':
 
             bot = CanvasBot(course_id)
 
-            if reset_params:
+            if reset_canvas_params:
+                bot.reset_config()
+
+            if reset_canvas_params:
                 bot.reset_config()
 
             if course_id:
@@ -223,7 +278,7 @@ if __name__=='__main__':
                     course_id,
                     **params)
 
-        if reset_params and not course_id:
+        if reset_canvas_params and not course_id:
             bot = CanvasBot()
             bot.reset_config()
             print("No course ID provided. Exiting")

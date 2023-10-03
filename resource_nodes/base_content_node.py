@@ -45,7 +45,6 @@ class BaseContentNode:
                 Warning(f"Can't derive ID {self}",)
 
 
-
     def add_node_to_tree(self):
 
         if self.root.root_node:

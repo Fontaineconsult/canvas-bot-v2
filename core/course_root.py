@@ -46,6 +46,7 @@ class CanvasCourseRoot(ContentExtractor):
     def initialize_course(self):
 
         course_api = get_course(self.course_id)
+
         if course_api:
             log.info(f"Course API: {self.course_id} Exists")
             self.title = course_api['name'] # name used internally for course
@@ -81,4 +82,6 @@ class CanvasCourseRoot(ContentExtractor):
 
         if set_canvas_studio_api_key_to_environment_variable():
             self.canvas_studio = CanvasStudio(self.course_id, self)
+        else:
+            print("Canvas Studio API Key Not Found. Skipping Canvas Studio Import")
         print("Import Complete\n")

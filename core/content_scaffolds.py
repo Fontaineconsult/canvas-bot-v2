@@ -54,6 +54,7 @@ def is_hidden(node) -> bool:
         return False
 
 
+
 def build_path(node, ignore_root=False) -> List:
 
     """
@@ -176,10 +177,14 @@ def video_file_dict(video_file_node, file_download_directory, flatten):
         "is_captioned": getattr(video_file_node, "captioned", False),
         "path": [node.title for node in build_path(video_file_node, ignore_root=True)],
 
+
     }
 
     if file_download_directory:
         video_file_dict["save_path"] = path_constructor(file_download_directory, video_file_node, flatten)
+
+    if video_file_node.parent.__class__.__name__ == "CanvasStudio":
+        video_file_dict["canvas_studio_id"] = getattr(video_file_node, "id", None)
 
     return video_file_dict
 

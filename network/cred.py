@@ -4,7 +4,6 @@ import sys
 
 import keyring, keyring.errors
 
-
 try:
     import logging
     import tools.logger
@@ -33,8 +32,9 @@ def delete_canvas_studio_client_keys():
         keyring.delete_password("STUDIO_CLIENT_SECRET", "canvas_bot")
         log.info("Studio Client Keys for Canvas Bot Deleted")
         print("Studio Client Keys for Canvas Bot Deleted")
-    except keyring.errors.PasswordDeleteError:
-        print("Studio Client Keys found for Canvas Bot.")
+    except keyring.errors.PasswordDeleteError as exc:
+        print(exc)
+
 
 
 
@@ -56,7 +56,6 @@ def set_canvas_api_key_to_environment_variable():
     """
 
     api_key = keyring.get_password("ACCESS_TOKEN", "canvas_bot")
-
     if api_key:
         os.environ["ACCESS_TOKEN"] = api_key
         log.info("Access Token for Canvas Bot Set")
@@ -67,11 +66,14 @@ def set_canvas_api_key_to_environment_variable():
         return False
 
 
-def set_canvas_studio_api_key_to_environment_variable():
+
+
+def set_canvas_studio_api_key_to_environment_variable(token=None, re_auth=None):
+
+    if token and re_auth:
+        save_canvas_studio_tokens(token, re_auth)
 
     studio_token, studio_re_auth_token = get_canvas_studio_tokens()
-
-
 
     if studio_token and studio_re_auth_token:
         os.environ["CANVAS_STUDIO_TOKEN"] = studio_token
@@ -129,7 +131,17 @@ def get_canvas_studio_tokens():
     else:
         log.info("No Studio Client Keys Found")
         print("No Studio Client Keys Found")
-        return False
+        return False, False
+
+
+def delete_canvas_studio_tokens():
+    try:
+        keyring.delete_password("CANVAS_STUDIO_TOKEN", "canvas_bot")
+        keyring.delete_password("CANVAS_STUDIO_RE_AUTH_TOKEN", "canvas_bot")
+        log.info("Access Token for Canvas Bot Deleted")
+        print("Access Token for Canvas Bot Deleted")
+    except keyring.errors.PasswordDeleteError as exc:
+        print(exc)
 
 
 def save_config_data(config_data=None, folder_only=False):
@@ -199,8 +211,7 @@ def load_config_data_from_appdata():
 
     # set each key in the config data to an environment variable
     for key, value in config_data.items():
-        print(key, value)
-        os.environ[key] = value
+        os.environ[key] = str(value)
     return True
 
 
@@ -214,8 +225,11 @@ def delete_config_file_from_appdata():
 
     # Delete the configuration file
     config_file_path = os.path.join(app_folder, "config.json")
-    os.remove(config_file_path)
-    log.info("Config File Deleted")
+    try:
+        os.remove(config_file_path)
+        log.info("Config File Deleted")
+    except FileNotFoundError:
+        log.exception("Config File Not Found -- Not Deleting")
 
 
 def clear_env_settings():

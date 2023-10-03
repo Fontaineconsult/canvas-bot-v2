@@ -16,6 +16,7 @@ class CanvasStudio(Node):
     @animate('Importing Canvas Studio Media')
     def get_all_items(self):
         from core.node_factory import get_content_node
+
         course = get_course(self.course_id)
 
         if course:
@@ -26,9 +27,12 @@ class CanvasStudio(Node):
                     captions = get_captions_by_media_id(media['id'])
 
                     media_source = get_media_sources_by_id(media['id'])
+
                     if media_source:
+                        print(media_source)
                         for source in media_source['sources']:
-                            if source['definition'] == "low":
+
+                            if source.get('definition') == "low": # we just want the smallest file size
                                 url = source['url']
                             else:
                                 url = media_source['sources'][0]["url"]
