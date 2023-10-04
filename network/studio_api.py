@@ -139,6 +139,33 @@ def response_handler(request_url):
         return None
 
 
+
+def post_handler(args):
+
+
+    post_url, headers, file_data = args
+    # print(post_url, headers, file_data)
+
+    headers['Authorization'] = f"Bearer {os.environ['CANVAS_STUDIO_TOKEN']}"
+    # print(headers)
+
+    caption_post = requests.post(post_url, headers=headers, files=file_data)
+    if caption_post.status_code == 201:
+        log.info(f"Request: {post_url} | Status Code: {caption_post.status_code}")
+        print("Caption file successfully uploaded to Canvas Studio")
+        return json.loads(caption_post.content)
+    else:
+        log.warning(f"Request: {post_url} | Status Code: {caption_post.status_code}")
+        try:
+            error_message = json.loads(caption_post.content)
+        except JSONDecodeError as exc:
+            log.exception(f"{exc} {post_url}")
+            error_message = "Failed to load message"
+        warning_message = f"{caption_post.status_code} {error_message} {post_url}"
+        warnings.warn(warning_message, UserWarning)
+        return None
+
+
 def download_handler(request_url):
 
     headers = {"accept": "application/json",
@@ -156,6 +183,14 @@ def response_decorator(calling_function):
 def download_decorator(calling_function):
     def wrapper(*args):
         return download_handler(calling_function(*args))
+    return wrapper
+
+
+def post_decorator(calling_function):
+    def wrapper(*args):
+        print("sdsds", *args)
+        return post_handler(calling_function(*args))
+
     return wrapper
 
 
@@ -226,3 +261,17 @@ def get_captions_by_media_id(media_id):
 def download_caption_by_caption_file_id(caption_file_id):
     course_url = f"https://sfsu.instructuremedia.com/api/public/v1/caption_files/{caption_file_id}/download"
     return course_url
+
+
+
+
+
+@post_decorator
+def post_caption_file(media_id, caption_file_name, caption_file_data):
+
+    headers = {"accept": "application/json"}
+    file = {"caption_file": (caption_file_name, caption_file_data)}
+    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/media/{media_id}/caption_files?srclang=eng"
+
+    return course_url, headers, file
+

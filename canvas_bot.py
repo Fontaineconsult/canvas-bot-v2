@@ -4,10 +4,10 @@ import os
 import click, sys, logging
 from config.yaml_io import read_config
 from core.course_root import CanvasCourseRoot
-from network.cred import set_canvas_api_key_to_environment_variable, save_canvas_api_key, save_config_data, \
-    load_config_data_from_appdata, delete_canvas_api_key, delete_config_file_from_appdata, \
+from network.cred import set_canvas_api_key_to_environment_variable, save_canvas_api_key, load_config_data_from_appdata, delete_canvas_api_key, delete_config_file_from_appdata, \
     save_canvas_studio_client_keys, get_canvas_studio_tokens, \
     set_canvas_studio_api_key_to_environment_variable, delete_canvas_studio_client_keys, delete_canvas_studio_tokens
+from network.set_config import save_config_data
 from network.studio_api import authorize_studio_token, refresh_studio_token
 
 version = read_config()['version']

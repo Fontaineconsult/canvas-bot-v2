@@ -1,7 +1,7 @@
 import logging.config
-import os, importlib
+import os
 import logging
-from network.cred import save_config_data
+from network.set_config import save_config_data
 
 log_save_location = save_config_data(folder_only=True)
 
