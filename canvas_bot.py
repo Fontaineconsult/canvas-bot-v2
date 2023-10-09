@@ -83,40 +83,50 @@ def set_canvas_studio_config(force_config=False):
     :return:
     """
 
-    if os.environ['studio_enabled'] == 'True' and force_config is False:
-        configure_canvas_studio_api_key()
-        return
+    def config_input():
+        while True:
+            response = input("Would you like to enable the canvas studio integration?").strip().lower()
+            if response == "yes":
 
-    if os.environ['studio_enabled'] == 'False' and force_config is False:
-        return
+                canvas_studio_config_keys = read_config()['canvas_studio_config_keys']
+                canvas_studio_config_dict = {}
 
-    while True:
-        response = input("Would you like to enable the canvas studio integration?").strip().lower()
-        if response == "yes":
+                client_id = input("Enter your Canvas Studio Client ID: ")
+                client_secret = input("Enter your Canvas Studio Client Secret: ")
 
-            canvas_studio_config_keys = read_config()['canvas_studio_config_keys']
-            canvas_studio_config_dict = {}
+                if client_id and client_secret:
+                    print("saving client keys")
+                    save_canvas_studio_client_keys(client_id, client_secret)
 
-            client_id = input("Enter your Canvas Studio Client ID: ")
-            client_secret = input("Enter your Canvas Studio Client Secret: ")
+                for key in canvas_studio_config_keys:
+                    canvas_studio_config_dict[key] = input(f"Enter {key}: ")
 
-            if client_id and client_secret:
-                print("saving client keys")
-                save_canvas_studio_client_keys(client_id, client_secret)
+                canvas_studio_config_dict['studio_enabled'] = True
+                save_config_data(canvas_studio_config_dict)
+                load_json_config_file_from_appdata()
+                return True
 
-            for key in canvas_studio_config_keys:
-                canvas_studio_config_dict[key] = input(f"Enter {key}: ")
+            elif response == "no":
+                save_config_data({'studio_enabled': False})
+                return False
+            else:
+                print("Invalid input. Please enter 'Yes' or 'No'.")
 
-            canvas_studio_config_dict['studio_enabled'] = True
-            save_config_data(canvas_studio_config_dict)
-            load_json_config_file_from_appdata()
-            return True
 
-        elif response == "no":
-            save_config_data({'studio_enabled': False})
-            return False
-        else:
-            print("Invalid input. Please enter 'Yes' or 'No'.")
+
+    try:
+        if os.environ['studio_enabled'] == 'True' and force_config is False:
+            configure_canvas_studio_api_key()
+            return
+
+        if os.environ['studio_enabled'] == 'False' and force_config is False:
+            return
+    except KeyError:
+        config_input()
+    config_input()
+
+
+
 
 class CanvasBot(CanvasCourseRoot):
     """
