@@ -304,6 +304,12 @@ This tool is a work in progress. Please contact me at <fontaine@sfsu.edu> if you
 * Logging Added
 
 
+#### 0.1.5
+
+* Many bug fixes
+* Added support for canvas studio
+
+
 ### Future Features
 
 - [ ] Add GUI interface for easier use
