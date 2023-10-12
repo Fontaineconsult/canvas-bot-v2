@@ -12,9 +12,9 @@ def get_source_page_url(node) -> int:
     :param node:
     :return:
     """
-
     if getattr(node.parent, "html_url", None):
         return getattr(node.parent, "html_url")
+
     else:
         return getattr(node.parent, "url", None)
 
@@ -69,11 +69,13 @@ def build_path(node, ignore_root=False) -> List:
     def get_parent(node_):
 
         if hasattr(node_, "root_node"):
+
             if not ignore_root:
                 pass
             else:
                 path_list.append(node_)
         if not hasattr(node_, "root_node"):
+
             path_list.append(node_)
             get_parent(node_.parent)
     get_parent(node)
@@ -185,6 +187,13 @@ def video_file_dict(video_file_node, file_download_directory, flatten):
 
     if video_file_node.parent.__class__.__name__ == "CanvasStudio":
         video_file_dict["canvas_studio_id"] = getattr(video_file_node, "id", None)
+
+        if getattr(video_file_node, "provider", None):
+            if video_file_node["provider"] == 'notorious':
+                video_file_dict["machine_captioned"] = True
+            else:
+                video_file_dict["machine_captioned"] = False
+
 
     return video_file_dict
 
