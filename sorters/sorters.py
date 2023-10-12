@@ -26,6 +26,8 @@ audio_file_content_regex = re_combiner(expressions["audio_file_resources_regex"]
 
 web_document_applications_regex = re_combiner(expressions["web_document_applications_regex"])
 
+canvas_studio_embed = re_combiner(expressions["canvas_studio_embed"])
+
 file_storage_regex = re_combiner(expressions["file_storage_regex"])
 
 ignore_list_regex = re_combiner(expressions['ignore_list_regex'])

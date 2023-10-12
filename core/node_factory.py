@@ -11,7 +11,7 @@ from resource_nodes.pages import Page
 from resource_nodes.quizzes import Quiz
 from sorters.sorters import resource_node_regex, document_content_regex, image_content_regex, web_video_content_regex, \
     video_file_content_regex, web_audio_content_regex, audio_file_content_regex, web_document_applications_regex, \
-    file_storage_regex, ignore_list_regex
+    file_storage_regex, ignore_list_regex, canvas_studio_embed
 from resource_nodes.content_nodes import *
 
 
@@ -122,6 +122,7 @@ def get_content_node(content_url, api_dict=None, **kwargs) -> Union[Type[Documen
             "audioSite": AudioSite,
             "imageFile": ImageFile,
             "filestorage": BoxPage,
+            "canvasStudioEmbed": CanvasStudioEmbed,
 
         }
 
@@ -166,3 +167,5 @@ def identify_content_url(content_url, **kwargs) -> str:
     if file_storage_regex.match(content_url):
         return "filestorage"
 
+    if canvas_studio_embed.match(content_url):
+        return "canvasStudioEmbed"

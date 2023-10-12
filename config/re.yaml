@@ -79,13 +79,14 @@ web_video_resources_regex:
   - .*.facebook.com/watch/\?v.*.
   - https:\/\/fb\.watch\/[a-zA-Z0-9_-]+\/
   - .*.smartplayer.captionsync.com.*.
-  - .*.instructuremedia.com/embed.*.
   - .*.tiktok.com/embed/.*.
   - .*.sfsu.mediasite.com/.*.
   - .*.sfsu.instructure.com/media_objects_iframe/.*.
   - https://www.loom.com/share/.*.
 
 
+canvas_studio_embed:
+  - .*.sfsu.instructuremedia.com.*.
 
 
 video_file_resources_regex:
@@ -154,3 +155,7 @@ force_to_shortcut:
   - .*.sfsu.box.com/s/.*.
   - .*.docusign.*.
   - $$.*.
+
+
+canvas_embed_uuid_regex:
+  - ([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})-(\d{1,6})
