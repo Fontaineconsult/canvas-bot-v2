@@ -42,3 +42,6 @@ class Manifest:
         for item in self.manifest:
             print(item, self.manifest[item])
 
+
+    def get_content_nodes(self, node_class_name):
+        return [self.manifest[key][0] for key in self.keys() if self.manifest[key][0].__class__.__name__ == node_class_name]
