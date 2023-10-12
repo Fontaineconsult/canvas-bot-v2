@@ -38,7 +38,6 @@ def load_json_config_file_from_appdata():
 
         required_config_file_keys = read_config()['required_env_file_keys']
         app_config_dict = {}
-
         for key in required_config_file_keys:
             app_config_dict[key] = input(f"Enter {key}: ")
         save_config_data(app_config_dict)
@@ -52,14 +51,13 @@ def configure_canvas_studio_api_key(force_studio_config=True):
      Sets new tokens to env variables
     :return:
     """
-    print("ZUMP")
+
     if os.environ['studio_enabled'] == 'True':
 
         token, re_auth = get_canvas_studio_tokens()
 
         if token and re_auth:
             token, re_auth = refresh_studio_token(re_auth)
-            print(token, re_auth)
             set_canvas_studio_api_key_to_environment_variable(token, re_auth)
         else:
             print("Canvas Studio Enabled but no tokens found.")
