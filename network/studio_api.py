@@ -98,7 +98,6 @@ def refresh_studio_token(reauth_token: str):
         print("Studio Token Refresh Successful")
         new_access_token = response_data['access_token']
         new_refresh_token = response_data['refresh_token']
-        print(new_access_token, new_refresh_token)
         return new_access_token, new_refresh_token
     else:
         print("Error refreshing token:", response_data)
@@ -261,9 +260,6 @@ def get_captions_by_media_id(media_id):
 def download_caption_by_caption_file_id(caption_file_id):
     course_url = f"https://sfsu.instructuremedia.com/api/public/v1/caption_files/{caption_file_id}/download"
     return course_url
-
-
-
 
 
 @post_decorator
