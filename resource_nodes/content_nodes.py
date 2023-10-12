@@ -1,10 +1,17 @@
+import re
+
 from colorama import Fore, Style, init
 
 from core.content_scaffolds import is_hidden
 from resource_nodes.base_content_node import BaseContentNode
 from tools.string_checking.url_cleaning import is_url, sanitize_windows_filename
 
-init()
+from config.yaml_io import read_re
+
+expressions = read_re()
+
+
+init()  # colorama
 
 
 def hidden():
@@ -65,7 +72,7 @@ class VideoFile(BaseContentNode):
         if self.parent.__class__.__name__ == 'BoxPage':
             return f"{Fore.LIGHTMAGENTA_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.title} ){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTMAGENTA_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {captioned() if self.captioned else not_captioned()} {self.url} ){Style.RESET_ALL}"
+            return f"{Fore.LIGHTMAGENTA_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {captioned() if self.captioned else not_captioned()} {self.title} {self.url} ){Style.RESET_ALL}"
 
 
 class AudioFile(BaseContentNode):
@@ -127,4 +134,17 @@ class Unsorted(BaseContentNode):
             return f"{Fore.LIGHTWHITE_EX}( {self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
 
 
+class CanvasStudioEmbed(BaseContentNode):
 
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+
+        if api_dict:
+            canvas_studio_id = re.search(re.compile(expressions['canvas_embed_uuid_regex'][0]), api_dict['external_url']).group(2)
+        else:
+            canvas_studio_id = re.search(re.compile(expressions['canvas_embed_uuid_regex'][0]), url).group(2)
+
+        super().__init__(parent, root, api_dict, url, title, **kwargs)
+        self.canvas_studio_id = canvas_studio_id
+
+    def __str__(self):
+        return f"{Fore.LIGHTRED_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {captioned() if self.captioned else not_captioned()} {self.title} {self.url}  ){Style.RESET_ALL}"
