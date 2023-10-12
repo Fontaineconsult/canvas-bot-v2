@@ -185,15 +185,18 @@ def video_file_dict(video_file_node, file_download_directory, flatten):
     if file_download_directory:
         video_file_dict["save_path"] = path_constructor(file_download_directory, video_file_node, flatten)
 
-    if video_file_node.parent.__class__.__name__ == "CanvasStudio":
-        video_file_dict["canvas_studio_id"] = getattr(video_file_node, "id", None)
+    video_file_dict["canvas_studio_id"] = getattr(video_file_node, "id", None)
 
-        if getattr(video_file_node, "provider", None):
-            if video_file_node["provider"] == 'notorious':
+    if getattr(video_file_node, "captions_list", None):
+
+        if len(video_file_node.captions_list) == 1:
+
+            if video_file_node.captions_list[0]["provider"] == 'notorious':
                 video_file_dict["machine_captioned"] = True
             else:
                 video_file_dict["machine_captioned"] = False
-
+        else:
+            video_file_dict["machine_captioned"] = False
 
     return video_file_dict
 
