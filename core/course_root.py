@@ -64,21 +64,21 @@ class CanvasCourseRoot(ContentExtractor):
 
         self.canvas_tree.init_node(self)
 
-        # self.modules = Modules(self.course_id, self)
+        self.modules = Modules(self.course_id, self)
+
+        self.quizzes = Quizzes(self.course_id, self)
+
+        self.assignments = Assignments(self.course_id, self)
+
+        self.announcements = Announcements(self.course_id, self)
+
+        self.discussions = Discussions(self.course_id, self)
         #
-        # self.quizzes = Quizzes(self.course_id, self)
-        #
-        # self.assignments = Assignments(self.course_id, self)
-        #
-        # self.announcements = Announcements(self.course_id, self)
-        #
-        # self.discussions = Discussions(self.course_id, self)
-        #
-        # self.pages = Pages(self.course_id, self)
-        #
-        # self.files = CanvasFiles(self.course_id, self)
-        #
-        # self.media_objects = CanvasMediaObjects(self.course_id, self)
+        self.pages = Pages(self.course_id, self)
+
+        self.files = CanvasFiles(self.course_id, self)
+
+        self.media_objects = CanvasMediaObjects(self.course_id, self)
 
         if set_canvas_studio_api_key_to_environment_variable():
             self.canvas_studio = CanvasStudio(self.course_id, self)
