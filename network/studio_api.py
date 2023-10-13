@@ -251,6 +251,13 @@ def get_media_shares(media_id):
 
 
 @response_decorator
+def get_media_perspectives_by_id(media_id):
+    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/media/{media_id}/perspectives"
+    return course_url
+
+
+
+@response_decorator
 def get_captions_by_media_id(media_id):
     course_url = f"https://sfsu.instructuremedia.com/api/public/v1/media/{media_id}/caption_files"
     return course_url
