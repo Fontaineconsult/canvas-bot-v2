@@ -93,3 +93,9 @@ canvas_studio_config_keys:
   - CANVAS_STUDIO_AUTHENTICATION_URL
   - CANVAS_STUDIO_TOKEN_URL
   - CANVAS_STUDIO_CALLBACK_URL
+
+
+source_url_configs:
+  instructure_media: instructuremedia.com/
+  instructure_perspectives: https://sfsu.instructuremedia.com/perspectives/
+  canvas: instructure.com/
