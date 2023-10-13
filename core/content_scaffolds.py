@@ -109,7 +109,7 @@ def document_dict(document_node, file_download_directory, flatten):
         "is_hidden": is_hidden(document_node),
         "file_type": getattr(document_node, "mime_class", None),
         "order": get_order(document_node),
-        "path": [node.title for node in build_path(document_node, ignore_root=True)],
+        "path": [node.title for node in build_path(document_node, ignore_root=True) if node.title is not None],
     }
 
     if file_download_directory:
@@ -131,7 +131,7 @@ def document_site_dict(document_site_node):
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(document_site_node),
         "order": get_order(document_site_node),
-        "path": [node.title for node in build_path(document_site_node, ignore_root=True)],
+        "path": [node.title for node in build_path(document_site_node, ignore_root=True) if node.title is not None],
 
     }
     return document_site_dict
@@ -151,7 +151,7 @@ def video_site_dict(video_site_node, check_caption_status):
         "is_hidden": is_hidden(video_site_node),
         "order": get_order(video_site_node),
         "is_captioned": getattr(video_site_node, "captioned", False),
-        "path": [node.title for node in build_path(video_site_node, ignore_root=True)],
+        "path": [node.title for node in build_path(video_site_node, ignore_root=True) if node.title is not None],
 
     }
 
@@ -177,7 +177,8 @@ def video_file_dict(video_file_node, file_download_directory, flatten):
         "file_type": getattr(video_file_node, "mime_class", None),
         "order": get_order(video_file_node),
         "is_captioned": getattr(video_file_node, "captioned", False),
-        "path": [node.title for node in build_path(video_file_node, ignore_root=True)],
+        "download_url": getattr(video_file_node, "download_url", getattr(video_file_node, "url", None)),
+        "path": [node.title for node in build_path(video_file_node, ignore_root=True) if node.title is not None],
 
 
     }
@@ -215,7 +216,7 @@ def audio_file_dict(audio_file_node, file_download_directory, flatten):
         "is_hidden": is_hidden(audio_file_node),
         "file_type": getattr(audio_file_node, "mime_class", None),
         "order": get_order(audio_file_node),
-        "path": [node.title for node in build_path(audio_file_node, ignore_root=True)],
+        "path": [node.title for node in build_path(audio_file_node, ignore_root=True) if node.title is not None],
     }
 
     if file_download_directory:
@@ -236,7 +237,7 @@ def audio_site_dict(audio_site_node):
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(audio_site_node),
         "order": get_order(audio_site_node),
-        "path": [node.title for node in build_path(audio_site_node, ignore_root=True)],
+        "path": [node.title for node in build_path(audio_site_node, ignore_root=True) if node.title is not None],
 
     }
     return audio_site_dict
@@ -257,7 +258,7 @@ def image_file_dict(image_file_node, file_download_directory, flatten):
         "is_hidden": is_hidden(image_file_node),
         "file_type": getattr(image_file_node, "mime_class", None),
         "order": get_order(image_file_node),
-        "path": [node.title for node in build_path(image_file_node, ignore_root=True)],
+        "path": [node.title for node in build_path(image_file_node, ignore_root=True) if node.title is not None],
     }
 
     if file_download_directory:
@@ -279,7 +280,7 @@ def unsorted_dict(unsorted_node):
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(unsorted_node),
         "order": get_order(unsorted_node),
-        "path": [node.title for node in build_path(unsorted_node, ignore_root=True)],
+        "path": [node.title for node in build_path(unsorted_node, ignore_root=True) if node.title is not None],
 
     }
     return unsorted_dict
