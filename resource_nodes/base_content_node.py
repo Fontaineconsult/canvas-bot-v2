@@ -18,6 +18,7 @@ class BaseContentNode:
         self.api_dict = api_dict
         self.is_canvas_file = False
         self.url = url
+        self.download_url = None
         self.title = title
         self.parent = parent
         self.captioned = captioned
