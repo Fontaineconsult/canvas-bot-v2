@@ -3,6 +3,7 @@ from network.studio_api import get_captions_by_media_id, post_caption_file, get_
 from network.cred import set_canvas_studio_api_key_to_environment_variable, load_config_data_from_appdata, \
     get_canvas_studio_tokens
 import logging
+
 log = logging.getLogger(__name__)
 
 
@@ -13,17 +14,18 @@ if __name__=="__main__":
     load_config_data_from_appdata()
 
 
-def add_caption_to_canvas_studio_video(course_id, media_id, caption_file_location):
+def add_caption_to_canvas_studio_video(course_id, caption_file_location, media_id):
 
     course = get_course(course_id)
     collection_id = course['course']['id']
     collection = get_collection_media(collection_id)
-
     for item in collection['media']:
-        if item['id'] == media_id:
+
+        if str(item['id']) == str(media_id):
             break
     else:
-        return False, "Media ID not found in collection."
+        print("Media ID not found in collection. Check if it is imported into the canvas course")
+        return False
 
     current_captions = get_captions_by_media_id(media_id)
 
@@ -32,7 +34,8 @@ def add_caption_to_canvas_studio_video(course_id, media_id, caption_file_locatio
             if captions['status'] == "generated":
                 break
         else:
-            return False, "Media already has a generated caption file"
+            print("Media already has a generated caption file")
+            return False
 
     try:
         with open(caption_file_location, 'rb') as caption_file:
@@ -41,6 +44,7 @@ def add_caption_to_canvas_studio_video(course_id, media_id, caption_file_locatio
             post_caption_file(media_id, caption_file_name, caption_file_data)
     except FileNotFoundError as exc:
         log.exception(exc)
-        return False, exc
+        print(exc)
+        return False
 
 

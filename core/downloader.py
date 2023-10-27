@@ -50,14 +50,25 @@ def sort_by_date():
 
 def derive_file_name(node):
 
+    # if getattr(node, "download_url", None):
+    #     return sanitize_windows_filename(file_name_extractor.match(node.download_url.split('/')[-1]).group(0))
+
+    print(has_file_extension(node.title), node.title)
     if not has_file_extension(node.title):
+        print(node.__dict__)
+        print("ZUMP", getattr(node, "mime_class", None) )
+        if getattr(node, "mime_class", None):
+            print(getattr(node, "mime_class", None))
+            return f"{node.title}.{node.mime_class}"
 
         filename = derive_filename_from_url(node)
-    else:
-        try:
-            filename = sanitize_windows_filename(file_name_extractor.match(node.title.split('/')[-1]).group(0))
-        except AttributeError:
-            filename = sanitize_windows_filename(node.title)
+        return filename
+
+    try:
+        filename = sanitize_windows_filename(file_name_extractor.match(node.title.split('/')[-1]).group(0))
+    except AttributeError:
+        filename = sanitize_windows_filename(node.title)
+
     return filename
 
 

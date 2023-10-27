@@ -158,7 +158,6 @@ def video_site_dict(video_site_node, check_caption_status):
     if check_caption_status:
         video_site_dict["caption_status"] = get_youtube_caption_info(getattr(video_site_node, "url", None))
 
-
     return video_site_dict
 
 
@@ -185,6 +184,7 @@ def video_file_dict(video_file_node, file_download_directory, flatten):
 
     if file_download_directory:
         video_file_dict["save_path"] = path_constructor(file_download_directory, video_file_node, flatten)
+
 
     video_file_dict["canvas_studio_id"] = getattr(video_file_node, "id", None)
 

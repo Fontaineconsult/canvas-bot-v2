@@ -9,6 +9,7 @@ from network.cred import set_canvas_api_key_to_environment_variable, save_canvas
     set_canvas_studio_api_key_to_environment_variable, delete_canvas_studio_client_keys, delete_canvas_studio_tokens
 from network.set_config import save_config_data
 from network.studio_api import authorize_studio_token, refresh_studio_token
+from tools.canvas_studio_caption_upload import add_caption_to_canvas_studio_video
 
 version = read_config()['version']
 log = logging.getLogger(__name__)
@@ -156,6 +157,8 @@ class CanvasBot(CanvasCourseRoot):
         set_canvas_studio_config(force_config=True)
 
 
+    def upload_caption_file_to_cavas_studio(self):
+        add_caption_to_canvas_studio_video(course_id, media_id, caption_file_location)
 
 
     def start(self):
@@ -178,7 +181,8 @@ if __name__=='__main__':
 
 
     @click.option('--course_id', type=click.STRING, help='The course ID to scrape')
-    @click.option('--course_id_list', type=click.STRING, help='Text file containing a list of course IDs to scrape.'
+    @click.option('--course_id_list', type=click.STRING, help='Text file containing a list'
+                                                              ' of course IDs to scrape.'
                                                               ' One per line.')
     @click.option('--download_folder', type=click.STRING, help='The Location to download files to.')
     @click.option('--output_as_json', type=click.STRING,
@@ -205,6 +209,12 @@ if __name__=='__main__':
                   help='The location to export the course content as an excel file.')
     @click.option('--check_video_site_caption_status', is_flag=True,
                   help='Where available, checks the if YouTube or Vimeo videos contain captions. Default is False')
+    @click.option('--caption_file_location', type=click.STRING,
+                  help='Pass the location of a caption file to upload to Canvas Studio.'
+                       ' Must also include the canvas studio media id "--media_id" flag')
+    @click.option('--canvas_studio_media_id', type=click.STRING,
+                  help='Pass the Canvas Studio media ID of the item to add a caption file to.'
+                       'Must also include the "--caption_file_location" flag')
 
     @click.pass_context
     def main(ctx,
@@ -222,7 +232,9 @@ if __name__=='__main__':
              show_content_tree,
              reset_canvas_params,
              reset_canvas_studio_params,
-             check_video_site_caption_status
+             check_video_site_caption_status,
+             caption_file_location,
+             canvas_studio_media_id
              ):
 
         params = {
@@ -239,7 +251,9 @@ if __name__=='__main__':
             "show_content_tree": show_content_tree,
             "reset_params": reset_canvas_params,
             "check_video_site_caption_status": check_video_site_caption_status,
-            "reset_canvas_studio_params": reset_canvas_studio_params
+            "reset_canvas_studio_params": reset_canvas_studio_params,
+            "caption_file_location": caption_file_location,
+            "canvas_studio_media_id": canvas_studio_media_id
 
         }
 
@@ -250,11 +264,24 @@ if __name__=='__main__':
 
             bot = CanvasBot(course_id)
 
+
+            if ctx.params.get('caption_file_location') or ctx.params.get('canvas_studio_media_id'):
+                if caption_file_location and canvas_studio_media_id:
+                    add_caption_to_canvas_studio_video(course_id,
+                                                       params['caption_file_location'],
+                                                       params['canvas_studio_media_id'])
+                    sys.exit()
+            else:
+                click.echo("Must include both caption file location and canvas studio media id")
+                input()
+                sys.exit()
+
             if reset_canvas_params:
                 bot.reset_config()
 
             if reset_canvas_params:
                 bot.reset_config()
+
 
             if course_id:
                 bot.start()
@@ -273,6 +300,9 @@ if __name__=='__main__':
 
             if ctx.params.get('output_as_excel'):
                 bot.save_content_as_excel(output_as_excel, **params)
+
+
+
 
         if course_id_list:
             course_list = read_course_list(course_id_list)

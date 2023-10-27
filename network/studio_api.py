@@ -141,7 +141,7 @@ def response_handler(request_url):
 
 def post_handler(args):
 
-
+    print(args)
     post_url, headers, file_data = args
     # print(post_url, headers, file_data)
 
@@ -149,6 +149,7 @@ def post_handler(args):
     # print(headers)
 
     caption_post = requests.post(post_url, headers=headers, files=file_data)
+    print(caption_post.status_code, caption_post.content)
     if caption_post.status_code == 201:
         log.info(f"Request: {post_url} | Status Code: {caption_post.status_code}")
         print("Caption file successfully uploaded to Canvas Studio")
