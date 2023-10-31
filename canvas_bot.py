@@ -157,10 +157,6 @@ class CanvasBot(CanvasCourseRoot):
         set_canvas_studio_config(force_config=True)
 
 
-    def upload_caption_file_to_cavas_studio(self):
-        add_caption_to_canvas_studio_video(course_id, media_id, caption_file_location)
-
-
     def start(self):
         print(f"Starting Canvas Bot - {version} ")
         self.initialize_course()
@@ -264,17 +260,18 @@ if __name__=='__main__':
 
             bot = CanvasBot(course_id)
 
-
             if ctx.params.get('caption_file_location') or ctx.params.get('canvas_studio_media_id'):
+
                 if caption_file_location and canvas_studio_media_id:
                     add_caption_to_canvas_studio_video(course_id,
                                                        params['caption_file_location'],
                                                        params['canvas_studio_media_id'])
                     sys.exit()
-            else:
-                click.echo("Must include both caption file location and canvas studio media id")
-                input()
-                sys.exit()
+
+                else:
+                    click.echo("Must include both caption file location and canvas studio media id")
+                    input()
+                    sys.exit()
 
             if reset_canvas_params:
                 bot.reset_config()
