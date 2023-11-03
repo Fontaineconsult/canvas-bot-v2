@@ -26,6 +26,10 @@ def get_extension_from_filename(file_name):
     return file_name.split('.')[-1] or None
 
 
+def get_extension_from_mime_type(mime_type):
+    return mimetypes.guess_extension(mime_type)
+
+
 def create_long_path_file(long_path):
     # Convert to absolute path
     abs_path = os.path.abspath(long_path)

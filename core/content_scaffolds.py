@@ -18,6 +18,25 @@ def get_source_page_url(node) -> int:
     else:
         return getattr(node.parent, "url", None)
 
+def return_node_of_type(node, node_type):
+
+    """
+    recursively check if the node is of the node_type
+    :param node:
+    :param node_type:
+    :return:
+    """
+    print(node)
+    if hasattr(node, "root_node"):
+        return False
+
+    if node.__class__.__name__ == node_type:
+        return node
+    else:
+        if node.parent:
+            return return_node_of_type(node.parent, node_type)
+        else:
+            return False
 
 def get_order(node) -> int:
 
@@ -185,8 +204,8 @@ def video_file_dict(video_file_node, file_download_directory, flatten):
     if file_download_directory:
         video_file_dict["save_path"] = path_constructor(file_download_directory, video_file_node, flatten)
 
-
-    video_file_dict["canvas_studio_id"] = getattr(video_file_node, "id", None)
+    if video_file_node.is_canvas_studio_file:
+        video_file_dict["canvas_studio_id"] = getattr(video_file_node, 'id', None)
 
     if getattr(video_file_node, "captions_list", None):
 

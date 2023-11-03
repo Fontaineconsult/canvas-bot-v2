@@ -17,6 +17,7 @@ class BaseContentNode:
                  **kwargs):
         self.api_dict = api_dict
         self.is_canvas_file = False
+        self.is_canvas_studio_file = False
         self.url = url
         self.download_url = None
         self.title = title
@@ -56,8 +57,10 @@ class BaseContentNode:
     def _expand_api_dict_to_class_attributes(self):
         if self.api_dict:
             self.is_canvas_file = True
+
             for key in self.api_dict:
                 setattr(self, key, self.api_dict[key])
+
             self.item_id = self.api_dict['id'] if self.api_dict.get('id') else self.api_dict['media_id']
             self.title = self.api_dict['filename'] if self.api_dict.get('filename') else self.api_dict['title']
 

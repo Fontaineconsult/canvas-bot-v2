@@ -44,29 +44,32 @@ class CanvasStudio(Node):
 
                             if source.get('definition') == "low": # we just want the smallest file size
                                 download_url = source['url']
+                                mime_type = source['mime_type']
                             else:
                                 download_url = media_source['sources'][0]["url"]
+                                mime_type = media_source['sources'][0]['mime_type']
 
                         content_node = get_content_node(download_url)
 
                         url = f"{instructure_perspectives_url}{media_uuid}"
 
                         if len(captions['caption_files']) > 0:
-
+                            media['mime_type'] = mime_type
                             node_to_append = content_node(self, self.root, media, url,
                                                           media['title'], captioned=True)
 
                             node_to_append.captions_list = captions['caption_files']
                             node_to_append.download_url = download_url
-
-
+                            node_to_append.is_canvas_studio_file = True
 
                             rectify_studio_embeds(self, media['id'], node_to_append)
 
                         else:
+                            media['mime_type'] = mime_type
                             node_to_append = content_node(self, self.root, media, url,
                                                           media['title'])
                             node_to_append.download_url = download_url
+                            node_to_append.is_canvas_studio_file = True
                             rectify_studio_embeds(self, media['id'], node_to_append)
 
                         if content_node:
