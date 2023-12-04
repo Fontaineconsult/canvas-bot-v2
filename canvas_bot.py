@@ -263,9 +263,11 @@ if __name__=='__main__':
             if ctx.params.get('caption_file_location') or ctx.params.get('canvas_studio_media_id'):
 
                 if caption_file_location and canvas_studio_media_id:
-                    add_caption_to_canvas_studio_video(course_id,
+                    caption_status = add_caption_to_canvas_studio_video(course_id,
                                                        params['caption_file_location'],
                                                        params['canvas_studio_media_id'])
+                    if caption_status is False:
+                        return sys.exit(3) # failure
                     sys.exit()
 
                 else:
