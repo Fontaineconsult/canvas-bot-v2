@@ -64,6 +64,11 @@ class CanvasCourseRoot(ContentExtractor):
 
         self.canvas_tree.init_node(self)
 
+        if set_canvas_studio_api_key_to_environment_variable():
+            self.canvas_studio = CanvasStudio(self.course_id, self)
+        else:
+            print("Canvas Studio API Key Not Found. Skipping Canvas Studio Import")
+
         self.modules = Modules(self.course_id, self)
 
         self.quizzes = Quizzes(self.course_id, self)
@@ -80,8 +85,5 @@ class CanvasCourseRoot(ContentExtractor):
 
         self.media_objects = CanvasMediaObjects(self.course_id, self)
 
-        if set_canvas_studio_api_key_to_environment_variable():
-            self.canvas_studio = CanvasStudio(self.course_id, self)
-        else:
-            print("Canvas Studio API Key Not Found. Skipping Canvas Studio Import")
+
         print("Import Complete\n")

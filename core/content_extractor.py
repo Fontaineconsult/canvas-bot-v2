@@ -28,7 +28,8 @@ class ContentExtractor(DownloaderMixin):
         return [item for item in self.manifest.content_list() if isinstance(item, Document)]
 
     def get_video_file_objects(self):
-        return [item for item in self.manifest.content_list() if isinstance(item, VideoFile)]
+        return [item for item in self.manifest.content_list() if isinstance(item, VideoFile)
+                or isinstance(item, CanvasStudioEmbed)]
 
     def get_video_site_objects(self):
         return [item for item in self.manifest.content_list() if isinstance(item, VideoSite)]

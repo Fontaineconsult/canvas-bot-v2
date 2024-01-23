@@ -29,7 +29,6 @@ class CanvasStudio(Node):
             collection_id = course['course']['id']
             collection = get_collection_media(collection_id)
 
-
             if collection['meta']['total_count'] > 0:
                 for media in collection['media']:
 
@@ -80,9 +79,10 @@ def rectify_studio_embeds(self, media_id, node_to_append):
 
     embeds = self.root.manifest.get_content_nodes("CanvasStudioEmbed")
 
-    for item in embeds:
-        if str(item.canvas_studio_id) == str(media_id):
-            node_to_append.parent = item.parent
+    for embed_item in embeds:
+
+        if str(embed_item.id) == str(media_id):
+            node_to_append.parent = embed_item.parent
 
 
 

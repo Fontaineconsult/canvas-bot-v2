@@ -3,6 +3,8 @@ import re
 from colorama import Fore, Style, init
 
 from core.content_scaffolds import is_hidden
+from network.studio_api import get_media_by_id, get_media_sources_by_id, get_media_perspectives_by_id, \
+    get_captions_by_media_id
 from resource_nodes.base_content_node import BaseContentNode
 from tools.string_checking.url_cleaning import is_url, sanitize_windows_filename
 
@@ -137,14 +139,31 @@ class Unsorted(BaseContentNode):
 class CanvasStudioEmbed(BaseContentNode):
 
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
-
         if api_dict:
             canvas_studio_id = re.search(re.compile(expressions['canvas_embed_uuid_regex'][0]), api_dict['external_url']).group(2)
         else:
             canvas_studio_id = re.search(re.compile(expressions['canvas_embed_uuid_regex'][0]), url).group(2)
 
         super().__init__(parent, root, api_dict, url, title, **kwargs)
-        self.canvas_studio_id = canvas_studio_id
+        self.id = canvas_studio_id
+        media = get_media_by_id(canvas_studio_id)
+        self.title = media['media']['title']
+        media_source = get_media_sources_by_id(self.id)
+
+        captions = get_captions_by_media_id(self.id)
+        if len(captions['caption_files']) > 0:
+            self.captioned = True
+            self.captions_list = captions['caption_files']
+        if media_source:
+            for source in media_source['sources']:
+
+                if source.get('definition') == "low": # we just want the smallest file size
+                    self.download_url = source['url']
+                    self.mime_type = source['mime_type']
+                else:
+                    self.download_url = media_source['sources'][0]["url"]
+                    self.mime_type = media_source['sources'][0]['mime_type']
+        self.is_canvas_studio_file = True
 
     def __str__(self):
         return f"{Fore.LIGHTRED_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {captioned() if self.captioned else not_captioned()} {self.title} {self.url}  ){Style.RESET_ALL}"

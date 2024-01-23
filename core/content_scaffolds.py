@@ -109,7 +109,9 @@ def main_dict(**items) -> dict:
         "course_id": items.get("course_id"),
         "course_url": items.get("course_url"),
         "content": list(),
-        "count": items.get("count")
+        "count": items.get("count"),
+        "amount:": items.get("amount"),
+
     }
     return main_dict
 
