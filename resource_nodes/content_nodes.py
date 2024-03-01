@@ -149,23 +149,26 @@ class CanvasMediaEmbed(BaseContentNode):
             pattern = canvas_file_embed.match(url).group(1)
 
             file_dict = get_file(root.course_id ,pattern)
-
-            id = file_dict['media_entry_id']
-            api_dict = file_dict
-            download_url = file_dict['url']
-            file_name = file_dict['filename']
+            if file_dict:
+                id = file_dict['media_entry_id']
+                api_dict = file_dict
+                download_url = file_dict['url']
+                file_name = file_dict['filename']
 
         if canvas_media_embed.match(url) is not None:
 
             pattern = canvas_media_embed.match(url).group(1)
             media_objects = get_media_objects(root.course_id)
-            for media_object in media_objects:
-                if media_object['media_id'] == f"m-{pattern}":
 
-                    id = media_object['media_id']
-                    api_dict = media_object
-                    file_name = media_object['title']
-                    download_url = media_object["media_sources"][0]['url']
+            if media_objects:
+
+                for media_object in media_objects:
+                    if media_object['media_id'] == f"m-{pattern}":
+
+                        id = media_object['media_id']
+                        api_dict = media_object
+                        file_name = media_object['title']
+                        download_url = media_object["media_sources"][0]['url']
 
 
         super().__init__(parent, root, api_dict, url, title, **kwargs)
