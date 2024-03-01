@@ -88,6 +88,12 @@ web_video_resources_regex:
 canvas_studio_embed:
   - .*.sfsu.instructuremedia.com.*.
 
+canvas_file_embed:
+  - .*.sfsu.instructure.com/media_attachments_iframe/([0-9]{0,9}).*
+
+canvas_media_embed:
+  - .*.sfsu.instructure.com/courses/[0-9]{0,9}/media_download\?entryId=m-(.{32}).*
+
 
 video_file_resources_regex:
   - .*\.mp4

@@ -5,6 +5,8 @@ from core.downloader import path_constructor, derive_file_name
 from tools.captioning_check import get_youtube_caption_info
 
 
+
+
 def get_source_page_url(node) -> int:
 
     """
@@ -26,7 +28,7 @@ def return_node_of_type(node, node_type):
     :param node_type:
     :return:
     """
-    print(node)
+
     if hasattr(node, "root_node"):
         return False
 
@@ -173,6 +175,8 @@ def video_site_dict(video_site_node, check_caption_status):
         "order": get_order(video_site_node),
         "is_captioned": getattr(video_site_node, "captioned", False),
         "path": [node.title for node in build_path(video_site_node, ignore_root=True) if node.title is not None],
+        "class": video_site_node.__class__.__name__,
+
 
     }
 
@@ -184,6 +188,8 @@ def video_site_dict(video_site_node, check_caption_status):
 
 def video_file_dict(video_file_node, file_download_directory, flatten):
 
+    # check_if_canvas_media_in_shell(video_file_node)
+
     video_file_dict = {
 
         "title": getattr(video_file_node, "title", None),
@@ -194,14 +200,22 @@ def video_file_dict(video_file_node, file_download_directory, flatten):
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(video_file_node),
-        "file_type": getattr(video_file_node, "mime_class", None),
+        "file_type": getattr(video_file_node, "mime_class", None) if hasattr(video_file_node, "mime_class") else getattr(video_file_node, "mime_type", None),
         "order": get_order(video_file_node),
         "is_captioned": getattr(video_file_node, "captioned", False),
         "download_url": getattr(video_file_node, "download_url", getattr(video_file_node, "url", None)),
         "path": [node.title for node in build_path(video_file_node, ignore_root=True) if node.title is not None],
+        "class": video_file_node.__class__.__name__,
 
 
     }
+
+    if getattr(video_file_node, "media_entry_id", None):
+        video_file_dict['canvas_media_id'] = video_file_node.media_entry_id
+
+
+    if getattr(video_file_node, "media_id", None):
+        video_file_dict['canvas_media_id'] = video_file_node.media_id
 
     if file_download_directory:
         video_file_dict["save_path"] = path_constructor(file_download_directory, video_file_node, flatten)

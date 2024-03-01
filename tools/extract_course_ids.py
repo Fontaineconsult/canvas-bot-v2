@@ -6,7 +6,8 @@ from network.cred import set_canvas_api_key_to_environment_variable, load_config
 
 semester_key = {
 
-    "2237": 'fa23'
+    "2237": 'fa23',
+    "2243": 'sp24'
 
 }
 
@@ -38,7 +39,7 @@ def get_all_course_ids(offset=0):
                         course_section = course_codes[3]
 
                     course_gen_id = f"{semester}{course}{course_number}{course_section}".replace(" ", "")
-                    print(course_gen_id)
+
 
                     writer.writerow([course_gen_id, course_id["id"],f"{semester}", course_id["name"]])
 

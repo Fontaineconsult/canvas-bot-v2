@@ -38,11 +38,18 @@ def derive_filename_from_url(contentnode: BaseContentNode):
     :return:
 
     """
-    remove_trailing = remove_trailing_path_segments(contentnode.url)
+
+    url_to_search = contentnode.url if getattr(contentnode, "download_url", None) is None else contentnode.download_url
+
+
+    remove_trailing = remove_trailing_path_segments(url_to_search)
     if remove_trailing:
         return remove_trailing.split('/')[-1]
     else:
         return f"$$-{contentnode.title[:20]}" # force a filename to a shortcut using $$- as a prefix
+
+
+
 
 def sort_by_date():
     return datetime.now().strftime('%d-%m-%Y')
@@ -52,6 +59,12 @@ def derive_file_name(node):
 
     # if getattr(node, "download_url", None):
     #     return sanitize_windows_filename(file_name_extractor.match(node.download_url.split('/')[-1]).group(0))
+
+    if node.file_name:
+        return node.file_name
+
+    if getattr(node, "filename", None):
+        return getattr(node, "filename")
 
     if not has_file_extension(node.title):
 
@@ -71,6 +84,7 @@ def derive_file_name(node):
         filename = sanitize_windows_filename(node.title)
 
     return filename
+
 
 
 def path_constructor(root_directory: str, node: BaseContentNode, flatten: bool):

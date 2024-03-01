@@ -19,6 +19,7 @@ class BaseContentNode:
         self.is_canvas_file = False
         self.is_canvas_studio_file = False
         self.url = url
+        self.file_name = None
         self.download_url = None
         self.title = title
         self.parent = parent

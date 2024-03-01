@@ -26,6 +26,7 @@ class CanvasMediaObjects(Node):
 
         if api_dict:
             for media_object_dict in api_dict:
+
                 media_node = get_content_node(None, media_object_dict)
                 self._expand_api_dict_to_class_attributes(media_object_dict)
                 if len(media_object_dict['media_sources']) > 0:

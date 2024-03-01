@@ -3,9 +3,11 @@ import re
 from colorama import Fore, Style, init
 
 from core.content_scaffolds import is_hidden
+from network.api import get_file, get_media_object, get_media_objects
 from network.studio_api import get_media_by_id, get_media_sources_by_id, get_media_perspectives_by_id, \
     get_captions_by_media_id
 from resource_nodes.base_content_node import BaseContentNode
+from sorters.sorters import canvas_file_embed, canvas_media_embed
 from tools.string_checking.url_cleaning import is_url, sanitize_windows_filename
 
 from config.yaml_io import read_re
@@ -136,6 +138,49 @@ class Unsorted(BaseContentNode):
             return f"{Fore.LIGHTWHITE_EX}( {self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
 
 
+class CanvasMediaEmbed(BaseContentNode):
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+
+        id = None
+        download_url = None
+        file_name = None
+
+        if canvas_file_embed.match(url) is not None:
+            pattern = canvas_file_embed.match(url).group(1)
+
+            file_dict = get_file(root.course_id ,pattern)
+
+            id = file_dict['media_entry_id']
+            api_dict = file_dict
+            download_url = file_dict['url']
+            file_name = file_dict['filename']
+
+        if canvas_media_embed.match(url) is not None:
+
+            pattern = canvas_media_embed.match(url).group(1)
+            media_objects = get_media_objects(root.course_id)
+            for media_object in media_objects:
+                if media_object['media_id'] == f"m-{pattern}":
+
+                    id = media_object['media_id']
+                    api_dict = media_object
+                    file_name = media_object['title']
+                    download_url = media_object["media_sources"][0]['url']
+
+
+        super().__init__(parent, root, api_dict, url, title, **kwargs)
+
+        if id:
+            self.id = id
+        if download_url:
+            self.download_url = download_url
+        if file_name:
+            self.file_name = file_name
+
+
+    def __str__(self):
+        return f"{Fore.LIGHTRED_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {captioned() if self.captioned else not_captioned()} {self.title} {self.url}  ){Style.RESET_ALL}"
+
 class CanvasStudioEmbed(BaseContentNode):
 
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
@@ -147,7 +192,12 @@ class CanvasStudioEmbed(BaseContentNode):
         super().__init__(parent, root, api_dict, url, title, **kwargs)
         self.id = canvas_studio_id
         media = get_media_by_id(canvas_studio_id)
-        self.title = media['media']['title']
+
+
+        try:
+            self.title = media['media']['title']
+        except TypeError:
+            self.title = None
         media_source = get_media_sources_by_id(self.id)
 
         captions = get_captions_by_media_id(self.id)

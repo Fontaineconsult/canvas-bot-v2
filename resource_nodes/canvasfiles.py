@@ -21,6 +21,7 @@ class CanvasFiles(Node):
     def get_all_items(self):
         from core.node_factory import get_content_node
         api_request = self.api_request(self.course_id)
+
         if api_request:
             for file_dict in api_request:
                 if not self.root.manifest.id_exists(file_dict['id']):

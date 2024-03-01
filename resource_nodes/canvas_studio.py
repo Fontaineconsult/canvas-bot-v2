@@ -33,7 +33,10 @@ class CanvasStudio(Node):
                 for media in collection['media']:
 
                     captions = get_captions_by_media_id(media['id'])
+
                     media_source = get_media_sources_by_id(media['id'])
+
+
                     perspective = get_media_perspectives_by_id(media['id'])
 
                     media_uuid = perspective['perspectives'][0]['uuid']
@@ -60,6 +63,7 @@ class CanvasStudio(Node):
                             node_to_append.captions_list = captions['caption_files']
                             node_to_append.download_url = download_url
                             node_to_append.is_canvas_studio_file = True
+
 
                             rectify_studio_embeds(self, media['id'], node_to_append)
 

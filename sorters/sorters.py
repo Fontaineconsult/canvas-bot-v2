@@ -4,7 +4,7 @@ from config.yaml_io import read_re
 expressions = read_re()
 
 
-def re_combiner(re_list):
+def re_combiner(re_list) -> re.compile:
 
     raw_string = "|".join(re_list)
     return re.compile(raw_string, re.IGNORECASE)
@@ -27,6 +27,10 @@ audio_file_content_regex = re_combiner(expressions["audio_file_resources_regex"]
 web_document_applications_regex = re_combiner(expressions["web_document_applications_regex"])
 
 canvas_studio_embed = re_combiner(expressions["canvas_studio_embed"])
+
+canvas_file_embed = re_combiner(expressions["canvas_file_embed"])
+
+canvas_media_embed = re_combiner(expressions["canvas_media_embed"])
 
 file_storage_regex = re_combiner(expressions["file_storage_regex"])
 

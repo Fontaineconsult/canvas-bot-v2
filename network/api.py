@@ -178,6 +178,14 @@ def get_media_objects(course_id):
 
 
 
+@response_decorator
+def get_media_object(media_object_id):
+    media_objects_url = f"{os.environ.get('API_PATH')}/media_objects/{media_object_id}" \
+                        f"/media_tracks?access_token={os.environ.get('access_token')}"
+
+    return media_objects_url
+
+
 
 @response_decorator
 def get_module_items(module_items_url):

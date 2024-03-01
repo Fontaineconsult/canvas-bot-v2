@@ -78,12 +78,12 @@ class CanvasCourseRoot(ContentExtractor):
         self.announcements = Announcements(self.course_id, self)
 
         self.discussions = Discussions(self.course_id, self)
-        #
+
         self.pages = Pages(self.course_id, self)
 
-        self.files = CanvasFiles(self.course_id, self)
+        # self.files = CanvasFiles(self.course_id, self)
 
-        self.media_objects = CanvasMediaObjects(self.course_id, self)
+        # self.media_objects = CanvasMediaObjects(self.course_id, self)
 
 
         print("Import Complete\n")
