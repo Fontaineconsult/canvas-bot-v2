@@ -310,6 +310,12 @@ This tool is a work in progress. Please contact me at <fontaine@sfsu.edu> if you
 * Added support for canvas studio
 
 
+#### 0.1.6
+
+* Many more bug fixes
+* Added a way to find embeded canvas studio videos rather than relying only on videos uploaded directly to Canvas Studio
+
+
 ### Future Features
 
 - [ ] Add GUI interface for easier use
