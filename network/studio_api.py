@@ -7,6 +7,8 @@ import warnings
 import requests
 from requests.exceptions import MissingSchema, JSONDecodeError
 
+
+
 log = logging.getLogger(__name__)
 def authorize_studio_token():
 
@@ -276,3 +278,9 @@ def post_caption_file(media_id, caption_file_name, caption_file_data):
 
     return course_url, headers, file
 
+
+if __name__=='__main__':
+    from network.cred import get_canvas_studio_client_credentials
+    from canvas_bot import set_canvas_studio_config
+    set_canvas_studio_config()
+    print(get_course("39365"))

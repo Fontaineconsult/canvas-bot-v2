@@ -213,6 +213,9 @@ def video_file_dict(video_file_node, file_download_directory, flatten):
     if getattr(video_file_node, "media_entry_id", None):
         video_file_dict['canvas_media_id'] = video_file_node.media_entry_id
 
+    if getattr(video_file_node, "uuid", None):
+        video_file_dict['canvas_media_id'] = video_file_node.uuid
+
 
     if getattr(video_file_node, "media_id", None):
         video_file_dict['canvas_media_id'] = video_file_node.media_id
