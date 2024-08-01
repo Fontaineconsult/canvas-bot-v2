@@ -23,7 +23,6 @@ class Announcements(Node):
 
         api_request = self.api_request(self.course_id)
         if api_request:
-            print(api_request)
             for module_dict in api_request:
                 self.children.append(Announcement(self, self.parent, module_dict))
 

@@ -22,7 +22,7 @@ if __name__=="__main__":
 def response_handler(request_url):
 
     try:
-        request = requests.get(request_url)
+        request = requests.get(request_url, verify=False)
     except requests.exceptions.ConnectionError as exc:
         log.exception(f"{exc} {request_url}")
         warnings.warn(f"{exc} {request_url}", UserWarning)
@@ -32,6 +32,8 @@ def response_handler(request_url):
         warnings.warn(f"{exc} {request_url}", UserWarning)
         return None
     if request.status_code == 200:
+        print(request.content)
+        print(request.headers)
         log.info(f"Request: {request_url} | Status Code: {request.status_code}")
         return json.loads(request.content)
     if request.status_code != 200:
@@ -199,6 +201,14 @@ def get_module_items(module_items_url):
 def get_external_tools(course_id):
     external_tools_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                 f"/external_tools?access_token={os.environ.get('access_token')}"
+    return external_tools_url
+
+
+@response_decorator
+def get_external_tool(course_id, id):
+    external_tools_url = f"{os.environ.get('API_PATH')}/courses/{course_id}/external_tools/sessionless_launch?url={id}" \
+                         f"&access_token={os.environ.get('access_token')}"
+    print(external_tools_url)
     return external_tools_url
 
 

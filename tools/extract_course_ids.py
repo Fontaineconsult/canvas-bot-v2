@@ -7,7 +7,9 @@ from network.cred import set_canvas_api_key_to_environment_variable, load_config
 semester_key = {
 
     "2237": 'fa23',
-    "2243": 'sp24'
+    "2243": 'sp24',
+    "2245": 'su24',
+
 
 }
 
