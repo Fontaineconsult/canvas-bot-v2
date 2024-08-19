@@ -9,7 +9,8 @@ import json
 import warnings
 import atexit
 from network.cred import set_canvas_api_key_to_environment_variable, load_config_data_from_appdata
-
+import urllib3
+urllib3.disable_warnings()
 # set_logger()
 log = logging.getLogger(__name__)
 
@@ -32,8 +33,6 @@ def response_handler(request_url):
         warnings.warn(f"{exc} {request_url}", UserWarning)
         return None
     if request.status_code == 200:
-        print(request.content)
-        print(request.headers)
         log.info(f"Request: {request_url} | Status Code: {request.status_code}")
         return json.loads(request.content)
     if request.status_code != 200:

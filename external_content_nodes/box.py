@@ -47,14 +47,18 @@ class BoxPage(FileStorageSite):
 
                     items = items_expression.search(clean_text)
 
-                    raw_string_dict = f"{{{items.group()}}}"
 
                     try:
+                        raw_string_dict = f"{{{items.group()}}}"
                         json_dict = json.loads(raw_string_dict)
 
                     except json.decoder.JSONDecodeError:
                         raw_string_dict = raw_string_dict + "}"
                         json_dict = json.loads(raw_string_dict)
+
+                    except AttributeError:
+                        print(f"{Fore.RED}No items found in {self.url}{Style.RESET_ALL}")
+                        continue
 
                     for item in json_dict['items']:
 
