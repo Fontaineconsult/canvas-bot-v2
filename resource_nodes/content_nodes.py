@@ -195,16 +195,14 @@ class CanvasStudioEmbed(BaseContentNode):
         super().__init__(parent, root, api_dict, url, title, **kwargs)
         self.id = canvas_studio_id
         media = get_media_by_id(canvas_studio_id)
-
-
         try:
             self.title = media['media']['title']
         except TypeError:
             self.title = None
         media_source = get_media_sources_by_id(self.id)
-
         captions = get_captions_by_media_id(self.id)
-        if len(captions['caption_files']) > 0:
+
+        if captions is not None and len(captions['caption_files']) > 0:
             self.captioned = True
             self.captions_list = captions['caption_files']
         if media_source:
