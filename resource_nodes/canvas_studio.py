@@ -28,15 +28,13 @@ class CanvasStudio(Node):
         if course:
             collection_id = course['course']['id']
             collection = get_collection_media(collection_id)
-            print(collection)
+
             if collection['meta']['total_count'] > 0:
                 for media in collection['media']:
 
                     captions = get_captions_by_media_id(media['id'])
 
                     media_source = get_media_sources_by_id(media['id'])
-                    print(media_source)
-
                     perspective = get_media_perspectives_by_id(media['id'])
 
                     media_uuid = perspective['perspectives'][0]['uuid']
