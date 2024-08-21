@@ -65,8 +65,7 @@ def derive_file_name(node):
 
         if has_file_extension(node.title, "video_files"):
             return node.title
-        else:
-            return create_filename_from_url(getattr(node, "download_url", None))
+        return "No Title Found"
 
 
     if node.file_name:

@@ -59,6 +59,7 @@ def create_filename_from_url(url):
     if 'filename' in query_params:
         filename = query_params['filename'][0]
     else:
+        print(url, query_params)
         raise ValueError("The URL does not contain a 'filename' query parameter.")
 
     # Extract the extension from the URL path
