@@ -34,7 +34,8 @@ class Discussion(Node):
 
     def __init__(self, parent, root, api_dict, **kwargs):
         if not kwargs.get("bypass_get_url") is True:
-            api_dict = get_discussion(root.course_id, api_dict['id'])
+            if api_dict:
+                api_dict = get_discussion(root.course_id, api_dict['id'])
 
         if api_dict:
             super().__init__(parent, root, api_dict['id'], api_dict['title'])
