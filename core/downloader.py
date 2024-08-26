@@ -24,8 +24,8 @@ import logging
 log = logging.getLogger(__name__)
 
 
-from tools.string_checking.other_tools import has_file_extension, remove_query_params_from_url, create_long_path_file, \
-    get_extension_from_mime_type, create_filename_from_url
+from tools.string_checking.other_tools import has_file_extension, create_long_path_file, \
+    get_extension_from_mime_type
 
 if TYPE_CHECKING:
     from core.content_extractor import ContentExtractor
@@ -63,9 +63,12 @@ def derive_file_name(node):
 
     if node.is_canvas_studio_file:
 
+
         if has_file_extension(node.title, "video_files"):
             return node.title
-        return "No Title Found"
+        else:
+            extension = get_extension_from_mime_type(node.mime_type)
+            return f"{node.title}{extension}"
 
 
     if node.file_name:

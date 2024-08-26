@@ -1,6 +1,7 @@
 import os
 import re
 import mimetypes
+import warnings
 from urllib import parse
 
 from config.yaml_io import read_config
@@ -59,8 +60,9 @@ def create_filename_from_url(url):
     if 'filename' in query_params:
         filename = query_params['filename'][0]
     else:
-        print(url, query_params)
-        raise ValueError("The URL does not contain a 'filename' query parameter.")
+        warnings.warn(f"No filename found in query parameters for {url}")
+        return "No File Name Found"
+
 
     # Extract the extension from the URL path
     path = parsed_url.path
