@@ -274,7 +274,7 @@ def post_caption_file(media_id, caption_file_name, caption_file_data):
 
     headers = {"accept": "application/json"}
     file = {"caption_file": (caption_file_name, caption_file_data)}
-    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/media/{media_id}/caption_files?srclang=eng"
+    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/media/{media_id}/caption_files?srclang=en"
 
     return course_url, headers, file
 
