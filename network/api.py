@@ -207,7 +207,6 @@ def get_external_tools(course_id):
 def get_external_tool(course_id, id):
     external_tools_url = f"{os.environ.get('API_PATH')}/courses/{course_id}/external_tools/sessionless_launch?url={id}" \
                          f"&access_token={os.environ.get('access_token')}"
-    print(external_tools_url)
     return external_tools_url
 
 

@@ -52,7 +52,6 @@ def create_long_path_file(long_path):
 
 def create_filename_from_url(url):
     # Parse the URL
-    print(url)
     parsed_url = parse.urlparse(url)
     # Extract query parameters
     query_params = parse.parse_qs(parsed_url.query)

@@ -34,4 +34,7 @@ class Announcement(Node):
         super().__init__(parent, root, api_dict['id'], api_dict['title'])
         self.api_dict = api_dict
         self._expand_api_dict_to_class_attributes(self.api_dict)
-        self.add_content_nodes_to_children(self.message)
+        try:
+            self.add_content_nodes_to_children(self.message)
+        except AttributeError:
+            pass

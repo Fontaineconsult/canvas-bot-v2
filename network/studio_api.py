@@ -283,4 +283,3 @@ if __name__=='__main__':
     from network.cred import get_canvas_studio_client_credentials
     from canvas_bot import set_canvas_studio_config
     set_canvas_studio_config()
-    print(get_course("39365"))

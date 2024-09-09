@@ -45,7 +45,10 @@ class Page(Node):
             super().__init__(parent, root, api_dict['page_id'], api_dict['title'])
             self.root.manifest.add_item_to_manifest(self)
             self._expand_api_dict_to_class_attributes(api_dict)
-            self.add_data_api_link_to_children(self.body)
-            self.add_content_nodes_to_children(self.body)
+            try:
+                self.add_data_api_link_to_children(self.body)
+                self.add_content_nodes_to_children(self.body)
+            except AttributeError:
+                pass
 
 

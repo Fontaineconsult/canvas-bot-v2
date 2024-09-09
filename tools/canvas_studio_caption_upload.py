@@ -50,8 +50,6 @@ def add_caption_to_canvas_studio_video(course_id, caption_file_location, media_i
 def check_media_id(course_id, media_id):
 
     course = get_course(course_id)
-
-    print(get_media_by_id(media_id))
     collection_id = course['course']['id']
     collection = get_collection_media(collection_id)
 
