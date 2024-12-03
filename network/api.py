@@ -21,28 +21,37 @@ if __name__=="__main__":
 
 
 def response_handler(request_url):
-
     try:
+        # Perform the GET request
         request = requests.get(request_url, verify=False)
-    except requests.exceptions.ConnectionError as exc:
-        log.exception(f"{exc} {request_url}")
-        warnings.warn(f"{exc} {request_url}", UserWarning)
+    except ConnectionError as exc:
+        # Log and warn for connection errors
+        log.exception(f"Connection error occurred: {exc} | URL: {request_url}")
+        warnings.warn(f"Connection error: {exc} | URL: {request_url}", UserWarning)
         return False
     except MissingSchema as exc:
-        log.exception(f"{exc} {request_url}")
-        warnings.warn(f"{exc} {request_url}", UserWarning)
+        # Log and warn for invalid URL schema
+        log.exception(f"Invalid URL schema: {exc} | URL: {request_url}")
+        warnings.warn(f"Invalid URL schema: {exc} | URL: {request_url}", UserWarning)
         return None
+
+    # Handle HTTP responses
     if request.status_code == 200:
-        log.info(f"Request: {request_url} | Status Code: {request.status_code}")
-        return json.loads(request.content)
-    if request.status_code != 200:
-        log.warning(f"Request: {request_url} | Status Code: {request.status_code}")
+        log.info(f"Request successful: {request_url} | Status Code: {request.status_code}")
+        try:
+            return json.loads(request.content)
+        except json.JSONDecodeError as exc:
+            log.exception(f"Failed to decode JSON: {exc} | URL: {request_url}")
+            warnings.warn(f"Invalid JSON response: {exc} | URL: {request_url}", UserWarning)
+            return None
+    else:
+        log.warning(f"Request failed: {request_url} | Status Code: {request.status_code}")
         try:
             error_message = json.loads(request.content)
-        except JSONDecodeError as exc:
-            log.exception(f"{exc} {request_url}")
-            error_message = "Failed to load message"
-        warning_message = f"{request.status_code} {error_message} {request_url}"
+        except json.JSONDecodeError as exc:
+            log.exception(f"Failed to decode error JSON: {exc} | URL: {request_url}")
+            error_message = "Failed to parse error message"
+        warning_message = f"HTTP {request.status_code}: {error_message} | URL: {request_url}"
         warnings.warn(warning_message, UserWarning)
         return None
 
