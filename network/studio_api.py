@@ -34,6 +34,7 @@ def authorize_studio_token():
 
 
         authorization_redirect_url = CANVAS_STUDIO_AUTHENTICATION_URL + '?' + '&'.join([f"{k}={v}" for k, v in auth_params.items()])
+        print(authorization_redirect_url)
 
         webbrowser.open(authorization_redirect_url)
 
@@ -116,6 +117,7 @@ def response_handler(request_url):
 
     try:
         request = requests.get(request_url, headers=headers)
+
     except requests.exceptions.ConnectionError as exc:
         log.exception(f"{exc} {request_url}")
         warnings.warn(f"{exc} {request_url}", UserWarning)

@@ -189,6 +189,7 @@ class CanvasStudioEmbed(BaseContentNode):
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
         if api_dict:
             canvas_studio_id = re.search(re.compile(expressions['canvas_embed_uuid_regex'][0]), api_dict['external_url']).group(2)
+
         else:
             canvas_studio_id = re.search(re.compile(expressions['canvas_embed_uuid_regex'][0]), url).group(2)
 
@@ -214,6 +215,7 @@ class CanvasStudioEmbed(BaseContentNode):
                 else:
                     self.download_url = media_source['sources'][0]["url"]
                     self.mime_type = media_source['sources'][0]['mime_type']
+
         self.is_canvas_studio_file = True
 
     def __str__(self):
