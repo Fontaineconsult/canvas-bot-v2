@@ -188,8 +188,14 @@ class CanvasStudioEmbed(BaseContentNode):
 
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
         if api_dict:
-            canvas_studio_id = re.search(re.compile(expressions['canvas_embed_uuid_regex'][0]), api_dict['external_url']).group(2)
 
+            match_video_only = re.search(re.compile(expressions['canvas_embed_uuid_regex'][0]), api_dict['external_url'])
+            match_studio_exam = re.search(re.compile(expressions['canvas_embed_uuid_regex'][1]), api_dict['external_url'])
+
+            if match_video_only:
+                canvas_studio_id = match_video_only.group(2)
+            if match_studio_exam:
+                canvas_studio_id = match_studio_exam.group(0)
         else:
             canvas_studio_id = re.search(re.compile(expressions['canvas_embed_uuid_regex'][0]), url).group(2)
 
