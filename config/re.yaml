@@ -165,3 +165,4 @@ force_to_shortcut:
 
 canvas_embed_uuid_regex:
   - ([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})-(\d{1,6})
+  - (?<=custom_arc_embedding_id=)[^&]+
