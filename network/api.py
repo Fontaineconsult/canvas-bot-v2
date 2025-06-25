@@ -1,18 +1,30 @@
 import os
-from json import JSONDecodeError
+
 import logging
-import tools.logger
+from logging.handlers import RotatingFileHandler
+
 import requests
-from dotenv import load_dotenv
+
 from requests.exceptions import MissingSchema
 import json
 import warnings
-import atexit
+
 from network.cred import set_canvas_api_key_to_environment_variable, load_config_data_from_appdata
 import urllib3
 urllib3.disable_warnings()
 # set_logger()
 log = logging.getLogger(__name__)
+
+
+# set up a rotating file handler
+handler = RotatingFileHandler(
+    filename="canvas_bot.log",    # your log file name
+    maxBytes=5 * 1024 * 1024,     # rotate after 5 MB
+    backupCount=3,                # keep the last 3 log files
+)
+if not log.handlers:
+    log.addHandler(handler)
+
 
 
 if __name__=="__main__":
