@@ -21,6 +21,7 @@ class BaseContentNode:
         self.url = url
         self.file_name = None
         self.download_url = None
+        self.download_url_is_manifest = False
         self.title = title
         self.parent = parent
         self.captioned = captioned
