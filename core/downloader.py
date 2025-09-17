@@ -63,12 +63,14 @@ def derive_file_name(node):
 
     if node.is_canvas_studio_file:
 
+        if node.download_url_is_manifest:
+            return f"{node.title}.mp4"
+
 
         if has_file_extension(node.title, "video_files"):
             return node.title
         else:
-            extension = get_extension_from_mime_type(node.mime_type)
-            return f"{node.title}{extension}"
+            return f"{node.title}.mp4"
 
 
     if node.file_name:
