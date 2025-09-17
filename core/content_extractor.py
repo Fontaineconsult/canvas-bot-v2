@@ -201,3 +201,37 @@ class ContentExtractor(DownloaderMixin):
                 for name in dirs:
                     os.rmdir(os.path.join(root, name))
             shutil.rmtree(root_download_directory)
+
+
+    def count_content(self):
+
+        content_counts = {
+
+            "documents": {},
+            "videos":{}
+
+        }
+
+        content = self.get_all_content()
+
+        for document in content['content']['documents']['documents']:
+            file_type = document.get('file_type')
+            if file_type not in content_counts['documents']:
+                content_counts['documents'][file_type] = 1
+            else:
+                content_counts['documents'][file_type] += 1
+
+        for video_sites in content['content']['videos']['video_sites']:
+            if "video_sites" not in content_counts['videos']:
+                content_counts['videos']["video_sites"] = 1
+            else:
+                content_counts['videos']["video_sites"] += 1
+
+        for video_files in content['content']['videos']['video_files']:
+            if "video_files" not in content_counts['videos']:
+                content_counts['videos']["video_files"] = 1
+            else:
+                content_counts['videos']["video_files"] += 1
+
+
+        return content_counts
