@@ -1,3 +1,5 @@
+from importlib.metadata import metadata
+
 from config.yaml_io import read_config
 from core.content_scaffolds import get_source_page_url
 from resource_nodes.base_node import Node
@@ -32,24 +34,39 @@ class CanvasStudio(Node):
             if collection['meta']['total_count'] > 0:
                 for media in collection['media']:
 
+
                     captions = get_captions_by_media_id(media['id'])
 
                     media_source = get_media_sources_by_id(media['id'])
+
                     perspective = get_media_perspectives_by_id(media['id'])
 
                     media_uuid = perspective['perspectives'][0]['uuid']
 
+
                     if media_source:
+                        print(media_source)
                         for source in media_source['sources']:
 
                             if source.get('definition') == "low": # we just want the smallest file size
                                 download_url = source['url']
                                 mime_type = source['mime_type']
+                                download_url_is_manifest = False
+
+                            elif  source['mime_type'] == "application/dash+xml":
+                                download_url_is_manifest = True
+                                download_url = source['download_url']
+                                mime_type = source['mime_type']
+
                             else:
                                 download_url = media_source['sources'][0]["url"]
                                 mime_type = media_source['sources'][0]['mime_type']
+                                download_url_is_manifest = False
 
                         content_node = get_content_node(download_url)
+
+
+
 
                         url = f"{instructure_perspectives_url}{media_uuid}"
 
@@ -71,9 +88,12 @@ class CanvasStudio(Node):
                                                           media['title'])
                             node_to_append.download_url = download_url
                             node_to_append.is_canvas_studio_file = True
+
                             rectify_studio_embeds(self, media['id'], node_to_append)
 
                         if content_node:
+                            node_to_append.download_url_is_manifest = download_url_is_manifest
+
                             self.children.append(node_to_append)
 
 
