@@ -10,6 +10,11 @@ from requests.exceptions import MissingSchema, JSONDecodeError
 
 
 log = logging.getLogger(__name__)
+
+
+
+
+
 def authorize_studio_token():
 
     import requests
@@ -117,6 +122,7 @@ def response_handler(request_url):
 
     try:
         request = requests.get(request_url, headers=headers)
+
 
     except requests.exceptions.ConnectionError as exc:
         log.exception(f"{exc} {request_url}")
