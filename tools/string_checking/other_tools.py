@@ -15,7 +15,8 @@ def get_content_id_key_from_api_url(api_url):
 
 
 def has_file_extension(filename, extension_class=None):
-
+    if filename is None:
+        return False
     if extension_class == "audio_files":
         return bool(audio_file_content_regex.match(filename))
 
