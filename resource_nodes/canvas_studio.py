@@ -34,15 +34,16 @@ class CanvasStudio(Node):
             if collection['meta']['total_count'] > 0:
                 for media in collection['media']:
 
+                    try:
+                        captions = get_captions_by_media_id(media['id'])
 
-                    captions = get_captions_by_media_id(media['id'])
+                        media_source = get_media_sources_by_id(media['id'])
 
-                    media_source = get_media_sources_by_id(media['id'])
+                        perspective = get_media_perspectives_by_id(media['id'])
 
-                    perspective = get_media_perspectives_by_id(media['id'])
-
-                    media_uuid = perspective['perspectives'][0]['uuid']
-
+                        media_uuid = perspective['perspectives'][0]['uuid']
+                    except TypeError:
+                        continue
 
                     if media_source:
                         print(media_source)
