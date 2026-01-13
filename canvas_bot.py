@@ -27,104 +27,387 @@ def read_course_list(course_list_file: str):
 
 
 def check_if_api_key_exists():
+    """Check if Canvas API key exists, prompt user if not."""
     if not set_canvas_api_key_to_environment_variable():
-        api_key = input("Please enter your Canvas API Key: ")
-        save_canvas_api_key(api_key)
-        set_canvas_api_key_to_environment_variable()
+        print("\n" + "=" * 50)
+        print("Canvas API Access Token Required")
+        print("=" * 50)
+        print("\nTo get an access token:")
+        print("  1. Log into Canvas")
+        print("  2. Go to Account > Settings")
+        print("  3. Scroll to 'Approved Integrations'")
+        print("  4. Click '+ New Access Token'")
+        print("  5. Copy the generated token\n")
+
+        api_key = input("Paste your Canvas API Access Token: ").strip()
+        if api_key:
+            save_canvas_api_key(api_key)
+            set_canvas_api_key_to_environment_variable()
+            print("[OK] Access token saved securely.\n")
+        else:
+            print("[ERROR] No token provided. Exiting.")
+            sys.exit(1)
+
+
+def _extract_domain_from_url(url):
+    """Extract the subdomain from a Canvas URL like https://myschool.instructure.com"""
+    import re
+    match = re.search(r'https?://([^.]+)\.instructure\.com', url)
+    if match:
+        return match.group(1)
+    return None
+
+
+def _prompt_with_default(prompt, default=None):
+    """Prompt user for input, showing and accepting a default value."""
+    if default:
+        user_input = input(f"{prompt} [{default}]: ").strip()
+        return user_input if user_input else default
+    else:
+        return input(f"{prompt}: ").strip()
 
 
 def load_json_config_file_from_appdata():
+    """Load config from appdata, or run initial setup if not found."""
 
-    if not load_config_data_from_appdata():
+    if load_config_data_from_appdata():
+        return  # Config already exists
 
-        required_config_file_keys = read_config()['required_env_file_keys']
-        app_config_dict = {}
-        for key in required_config_file_keys:
-            app_config_dict[key] = input(f"Enter {key}: ")
+    config = read_config()
+    optional_config_file_keys = config.get('optional_env_file_keys', [])
+
+    print("\n" + "=" * 50)
+    print("Canvas Bot - Initial Configuration")
+    print("=" * 50)
+    print("\nThis appears to be your first time running Canvas Bot.")
+    print("Let's set up your Canvas instance connection.\n")
+
+    # Step 1: Get Canvas URL and auto-derive other values
+    print("-" * 50)
+    print("Step 1: Canvas Instance")
+    print("-" * 50)
+
+    canvas_url = input("Enter your Canvas URL (e.g., https://myschool.instructure.com): ").strip()
+
+    # Normalize URL
+    if not canvas_url.startswith('http'):
+        canvas_url = 'https://' + canvas_url
+    canvas_url = canvas_url.rstrip('/')
+
+    # Auto-derive values
+    canvas_domain = _extract_domain_from_url(canvas_url)
+
+    if canvas_domain:
+        print(f"\n[Auto-detected] Canvas subdomain: {canvas_domain}")
+        api_path = f"{canvas_url}/api/v1"
+        studio_domain = f"{canvas_domain}.instructuremedia.com"
+        print(f"[Auto-detected] API path: {api_path}")
+        print(f"[Auto-detected] Canvas Studio domain: {studio_domain}")
+
+        # Let user override if needed
+        print("\nPress Enter to accept auto-detected values, or type to override:\n")
+        canvas_domain = _prompt_with_default("Canvas subdomain", canvas_domain)
+        api_path = _prompt_with_default("Canvas API path", api_path)
+        studio_domain = _prompt_with_default("Canvas Studio domain", studio_domain)
+    else:
+        print("\n[!] Could not auto-detect subdomain from URL.")
+        print("Please enter values manually:\n")
+        canvas_domain = input("Canvas subdomain (e.g., 'myschool'): ").strip()
+        api_path = input("Canvas API path (e.g., https://myschool.instructure.com/api/v1): ").strip()
+        studio_domain = input("Canvas Studio domain (e.g., myschool.instructuremedia.com): ").strip()
+
+    app_config_dict = {
+        'CANVAS_COURSE_PAGE_ROOT': canvas_url,
+        'API_PATH': api_path,
+        'CANVAS_DOMAIN': canvas_domain,
+        'CANVAS_STUDIO_DOMAIN': studio_domain,
+    }
+
+    # Step 2: Optional settings
+    print("\n" + "-" * 50)
+    print("Step 2: Optional Settings (press Enter to skip)")
+    print("-" * 50 + "\n")
+
+    optional_prompts = {
+        'BOX_DOMAIN': f"Box.com domain (e.g., {canvas_domain}.app.box.com)",
+        'LIBRARY_PROXY_DOMAIN': "Library proxy domain (if your institution uses one)",
+    }
+
+    for key in optional_config_file_keys:
+        prompt = optional_prompts.get(key, f"Enter {key}")
+        value = input(f"{prompt}: ").strip()
+        app_config_dict[key] = value if value else ''
+
+    # Step 3: Show summary and confirm
+    print("\n" + "=" * 50)
+    print("Configuration Summary")
+    print("=" * 50)
+    print(f"\n  Canvas URL:          {app_config_dict['CANVAS_COURSE_PAGE_ROOT']}")
+    print(f"  Canvas Domain:       {app_config_dict['CANVAS_DOMAIN']}")
+    print(f"  API Path:            {app_config_dict['API_PATH']}")
+    print(f"  Canvas Studio:       {app_config_dict['CANVAS_STUDIO_DOMAIN']}")
+
+    if app_config_dict.get('BOX_DOMAIN'):
+        print(f"  Box Domain:          {app_config_dict['BOX_DOMAIN']}")
+    if app_config_dict.get('LIBRARY_PROXY_DOMAIN'):
+        print(f"  Library Proxy:       {app_config_dict['LIBRARY_PROXY_DOMAIN']}")
+
+    print()
+    confirm = input("Save this configuration? (yes/no): ").strip().lower()
+
+    if confirm in ('yes', 'y', ''):
         save_config_data(app_config_dict)
         load_config_data_from_appdata()
-
-
-def configure_canvas_studio_api_key(force_studio_config=True):
-
-    """
-    refreshes saved tokens if they exist. If not, prompts user to authorize and save tokens.
-     Sets new tokens to env variables
-    :return:
-    """
-
-    if os.environ['studio_enabled'] == 'True':
-
-        token, re_auth = get_canvas_studio_tokens()
-
-        if token and re_auth:
-            token, re_auth = refresh_studio_token(re_auth)
-            set_canvas_studio_api_key_to_environment_variable(token, re_auth)
-        else:
-            print("Canvas Studio Enabled but no tokens found.")
-            # Collect client ID and Client Secret and Save them
-            set_canvas_studio_config(force_studio_config)
-            # get new tokens using client ID and Client Secret
-            token, re_auth = authorize_studio_token()
-
-            if token and re_auth:
-                set_canvas_studio_api_key_to_environment_variable(token, re_auth)
-
+        print("\n[OK] Configuration saved successfully!\n")
     else:
-        print("Canvas Studio Integration Disabled")
+        print("\n[!] Configuration cancelled. Please run again to reconfigure.")
+        sys.exit(0)
+
+
+def configure_canvas_studio_api_key():
+    """
+    Refresh Canvas Studio tokens if they exist, or trigger setup if not.
+    Sets tokens to environment variables.
+    """
+    studio_enabled = os.environ.get('studio_enabled', 'False')
+
+    if studio_enabled != 'True':
+        return  # Studio not enabled, nothing to do
+
+    token, re_auth = get_canvas_studio_tokens()
+
+    if token and re_auth:
+        # Try to refresh existing tokens
+        print("Refreshing Canvas Studio tokens...")
+        new_token, new_re_auth = refresh_studio_token(re_auth)
+        if new_token and new_re_auth:
+            set_canvas_studio_api_key_to_environment_variable(new_token, new_re_auth)
+            print("[OK] Canvas Studio tokens refreshed.\n")
+        else:
+            print("[!] Token refresh failed. You may need to re-authorize.")
+    else:
+        # No tokens found, need to authorize
+        print("\nCanvas Studio is enabled but no tokens found.")
+        print("Starting OAuth authorization...\n")
+        token, re_auth = authorize_studio_token()
+        if token and re_auth:
+            set_canvas_studio_api_key_to_environment_variable(token, re_auth)
+            print("[OK] Canvas Studio authorized successfully.\n")
 
 
 def set_canvas_studio_config(force_config=False):
-
     """
-    saves canvas studio client keys to env variables
-    :param force_config:
-    :return:
+    Configure Canvas Studio integration settings.
+    Prompts user to enable/configure Canvas Studio if not already set.
     """
+    # Check if already configured
+    studio_enabled = os.environ.get('studio_enabled')
 
-    def config_input():
-        while True:
-            response = input("Would you like to enable the canvas studio integration?").strip().lower()
-            if response == "yes":
+    if studio_enabled == 'True' and not force_config:
+        # Already enabled, just refresh tokens
+        configure_canvas_studio_api_key()
+        return
 
-                canvas_studio_config_keys = read_config()['canvas_studio_config_keys']
-                canvas_studio_config_dict = {}
+    if studio_enabled == 'False' and not force_config:
+        # Explicitly disabled, skip
+        return
 
-                client_id = input("Enter your Canvas Studio Client ID: ")
-                client_secret = input("Enter your Canvas Studio Client Secret: ")
+    # Not configured yet, or force_config is True - prompt user
+    print("\n" + "-" * 50)
+    print("Canvas Studio Integration (Optional)")
+    print("-" * 50)
+    print("\nCanvas Studio allows downloading and managing video")
+    print("content hosted on your institution's Canvas Studio.")
+    print("This requires OAuth client credentials from your admin.\n")
 
-                if client_id and client_secret:
-                    print("saving client keys")
-                    save_canvas_studio_client_keys(client_id, client_secret)
+    while True:
+        response = input("Enable Canvas Studio integration? (yes/no): ").strip().lower()
 
-                for key in canvas_studio_config_keys:
-                    canvas_studio_config_dict[key] = input(f"Enter {key}: ")
+        if response in ('no', 'n'):
+            save_config_data({'studio_enabled': False})
+            print("[OK] Canvas Studio integration disabled.\n")
+            return
 
-                canvas_studio_config_dict['studio_enabled'] = True
-                save_config_data(canvas_studio_config_dict)
-                load_json_config_file_from_appdata()
-                return True
+        if response in ('yes', 'y'):
+            break
 
-            elif response == "no":
-                save_config_data({'studio_enabled': False})
-                return False
-            else:
-                print("Invalid input. Please enter 'Yes' or 'No'.")
+        print("Please enter 'yes' or 'no'.")
+
+    # User wants to enable Studio - collect credentials
+    print("\n" + "-" * 50)
+    print("Canvas Studio OAuth Setup")
+    print("-" * 50)
+    print("\nYou'll need OAuth credentials from your Canvas admin.")
+    print("These are different from your personal API token.\n")
+
+    client_id = input("Canvas Studio Client ID: ").strip()
+    client_secret = input("Canvas Studio Client Secret: ").strip()
+
+    if not client_id or not client_secret:
+        print("[!] Client ID and Secret are required. Skipping Studio setup.")
+        save_config_data({'studio_enabled': False})
+        return
+
+    # Save client credentials
+    save_canvas_studio_client_keys(client_id, client_secret)
+    print("[OK] Client credentials saved.\n")
+
+    # Get Studio URLs - with helpful defaults based on Canvas domain
+    canvas_domain = os.environ.get('CANVAS_DOMAIN', '')
+    studio_domain = os.environ.get('CANVAS_STUDIO_DOMAIN', f'{canvas_domain}.instructuremedia.com')
+
+    print("Enter Canvas Studio OAuth URLs:")
+    print("(Press Enter to accept defaults shown in brackets)\n")
+
+    default_auth_url = f"https://{studio_domain}/api/oauth/authorize"
+    default_token_url = f"https://{studio_domain}/api/oauth/token"
+    default_callback = "urn:ietf:wg:oauth:2.0:oob"
+
+    auth_url = _prompt_with_default("  Authentication URL", default_auth_url)
+    token_url = _prompt_with_default("  Token URL", default_token_url)
+    callback_url = _prompt_with_default("  Callback URL", default_callback)
+
+    # Save Studio config
+    studio_config = {
+        'studio_enabled': True,
+        'CANVAS_STUDIO_AUTHENTICATION_URL': auth_url,
+        'CANVAS_STUDIO_TOKEN_URL': token_url,
+        'CANVAS_STUDIO_CALLBACK_URL': callback_url,
+    }
+    save_config_data(studio_config)
+    load_config_data_from_appdata()
+
+    print("\n[OK] Canvas Studio configuration saved.")
+    print("Starting OAuth authorization...\n")
+
+    # Now authorize
+    token, re_auth = authorize_studio_token()
+    if token and re_auth:
+        set_canvas_studio_api_key_to_environment_variable(token, re_auth)
+        print("[OK] Canvas Studio authorized successfully.\n")
 
 
+def show_config_status():
+    """Display current configuration status with masked sensitive values."""
+    import json
+    import keyring
 
+    print("\n" + "=" * 60)
+    print("Canvas Bot Configuration Status")
+    print("=" * 60)
+
+    # Get config file path
+    appdata_path = os.environ.get("APPDATA", "")
+    config_path = os.path.join(appdata_path, "canvas bot", "config.json")
+
+    # Check if config file exists
+    print(f"\nConfig file: {config_path}")
+    if os.path.exists(config_path):
+        print("Status: [EXISTS]")
+
+        # Load and display config values
+        try:
+            with open(config_path, 'r') as f:
+                config_data = json.load(f)
+
+            print("\n" + "-" * 60)
+            print("Instance Settings")
+            print("-" * 60)
+
+            # Non-sensitive config values - show full value
+            display_keys = [
+                ('CANVAS_COURSE_PAGE_ROOT', 'Canvas URL'),
+                ('API_PATH', 'API Path'),
+                ('CANVAS_DOMAIN', 'Canvas Domain'),
+                ('CANVAS_STUDIO_DOMAIN', 'Canvas Studio Domain'),
+                ('BOX_DOMAIN', 'Box Domain'),
+                ('LIBRARY_PROXY_DOMAIN', 'Library Proxy'),
+            ]
+
+            for key, label in display_keys:
+                value = config_data.get(key, '')
+                if value:
+                    print(f"  {label + ':':<25} {value}")
+                else:
+                    print(f"  {label + ':':<25} [not set]")
+
+            print("\n" + "-" * 60)
+            print("Canvas Studio OAuth URLs")
+            print("-" * 60)
+
+            studio_keys = [
+                ('CANVAS_STUDIO_AUTHENTICATION_URL', 'Auth URL'),
+                ('CANVAS_STUDIO_TOKEN_URL', 'Token URL'),
+                ('CANVAS_STUDIO_CALLBACK_URL', 'Callback URL'),
+            ]
+
+            studio_enabled = config_data.get('studio_enabled', False)
+            print(f"  {'Studio Enabled:':<25} {studio_enabled}")
+
+            for key, label in studio_keys:
+                value = config_data.get(key, '')
+                if value:
+                    print(f"  {label + ':':<25} {value}")
+                else:
+                    print(f"  {label + ':':<25} [not set]")
+
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"  [ERROR] Could not read config file: {e}")
+    else:
+        print("Status: [NOT FOUND] - Run canvas_bot to configure")
+
+    # Check credentials in Windows Credential Vault
+    print("\n" + "-" * 60)
+    print("Credentials (Windows Credential Vault)")
+    print("-" * 60)
+
+    def mask_value(value, show_chars=4):
+        """Mask a sensitive value, showing only first few chars."""
+        if not value:
+            return "[not set]"
+        if len(value) <= show_chars:
+            return "*" * len(value)
+        return value[:show_chars] + "*" * (len(value) - show_chars)
+
+    # Canvas API Token
     try:
-        if os.environ['studio_enabled'] == 'True' and force_config is False:
-            configure_canvas_studio_api_key()
-            return
+        api_token = keyring.get_password("ACCESS_TOKEN", "canvas_bot")
+        print(f"  {'Canvas API Token:':<25} {mask_value(api_token)}")
+    except Exception:
+        print(f"  {'Canvas API Token:':<25} [error reading]")
 
-        if os.environ['studio_enabled'] == 'False' and force_config is False:
-            return
-    except KeyError:
-        config_input()
-    config_input()
+    # Canvas Studio Client ID
+    try:
+        studio_client_id = keyring.get_password("STUDIO_CLIENT_ID", "canvas_bot")
+        print(f"  {'Studio Client ID:':<25} {mask_value(studio_client_id)}")
+    except Exception:
+        print(f"  {'Studio Client ID:':<25} [error reading]")
 
+    # Canvas Studio Client Secret
+    try:
+        studio_client_secret = keyring.get_password("STUDIO_CLIENT_SECRET", "canvas_bot")
+        print(f"  {'Studio Client Secret:':<25} {mask_value(studio_client_secret, 2)}")
+    except Exception:
+        print(f"  {'Studio Client Secret:':<25} [error reading]")
 
+    # Canvas Studio Access Token
+    try:
+        studio_token = keyring.get_password("CANVAS_STUDIO_TOKEN", "canvas_bot")
+        print(f"  {'Studio Access Token:':<25} {mask_value(studio_token)}")
+    except Exception:
+        print(f"  {'Studio Access Token:':<25} [error reading]")
+
+    # Canvas Studio Refresh Token
+    try:
+        studio_refresh = keyring.get_password("CANVAS_STUDIO_RE_AUTH_TOKEN", "canvas_bot")
+        print(f"  {'Studio Refresh Token:':<25} {mask_value(studio_refresh)}")
+    except Exception:
+        print(f"  {'Studio Refresh Token:':<25} [error reading]")
+
+    print("\n" + "=" * 60)
+    print("Use --reset_canvas_params to reconfigure Canvas settings")
+    print("Use --reset_canvas_studio_params to reconfigure Studio settings")
+    print("=" * 60 + "\n")
 
 
 class CanvasBot(CanvasCourseRoot):
@@ -137,23 +420,34 @@ class CanvasBot(CanvasCourseRoot):
             super().__init__(str(course_id))
 
     def detect_and_set_config(self):
-        print("Detecting Access Token and Config File")
-        check_if_api_key_exists()
+        """Load existing configuration or run initial setup."""
+        print("\nLoading configuration...")
         load_json_config_file_from_appdata()
+        check_if_api_key_exists()
         set_canvas_studio_config()
+        print("Configuration loaded.\n")
 
 
     def reset_config(self):
-        print("Resetting Access Token and Config File")
+        """Clear all configuration and re-run setup."""
+        print("\n" + "=" * 50)
+        print("Resetting Canvas Bot Configuration")
+        print("=" * 50)
+        print("\nClearing saved credentials and settings...")
         delete_canvas_api_key()
         delete_config_file_from_appdata()
+        print("[OK] Configuration cleared.\n")
         self.detect_and_set_config()
 
-
     def reset_canvas_studio_config(self):
-        print("Resetting Canvas Studio Config")
+        """Clear Canvas Studio configuration and re-run setup."""
+        print("\n" + "=" * 50)
+        print("Resetting Canvas Studio Configuration")
+        print("=" * 50)
+        print("\nClearing Canvas Studio credentials...")
         delete_canvas_studio_client_keys()
         delete_canvas_studio_tokens()
+        print("[OK] Studio credentials cleared.\n")
         set_canvas_studio_config(force_config=True)
 
 
@@ -169,48 +463,67 @@ class CanvasBot(CanvasCourseRoot):
 if __name__=='__main__':
 
     @click.command()
-    @click.help_option('-h', '--help', help='Welcome to Canvas Bot. This is a simple tool to scrape Canvas courses.'
-                                            'It will download all files in a course and organize them into a folder'
-                                            ' structure that matches the course structure. It will also output a JSON file of'
-                                            ' the course structure. A canvas API key is required to use this tool. Contact your'
-                                            ' Canvas administrator for more information.')
+    @click.help_option('-h', '--help', help='Canvas Bot - A tool for downloading and auditing Canvas LMS course content. '
+                                            'Discovers all content in a course (modules, pages, assignments, quizzes, files), '
+                                            'categorizes embedded links (documents, videos, audio, images), and exports to '
+                                            'organized folders or Excel/JSON for accessibility auditing. '
+                                            'Requires a Canvas API access token (Account > Settings > New Access Token).')
 
+    # === Course Selection ===
+    @click.option('--course_id', type=click.STRING,
+                  help='Canvas course ID to process. Find it in the course URL: canvas.edu/courses/[COURSE_ID]')
+    @click.option('--course_id_list', type=click.STRING,
+                  help='Path to text file with multiple course IDs (one per line) for batch processing.')
 
-    @click.option('--course_id', type=click.STRING, help='The course ID to scrape')
-    @click.option('--course_id_list', type=click.STRING, help='Text file containing a list'
-                                                              ' of course IDs to scrape.'
-                                                              ' One per line.')
-    @click.option('--download_folder', type=click.STRING, help='The Location to download files to.')
+    # === Output Options ===
+    @click.option('--download_folder', type=click.STRING,
+                  help='Directory to download files to. By default downloads documents only (PDF, DOCX, PPTX, etc). '
+                       'Files are organized into subfolders matching the course module structure.')
     @click.option('--output_as_json', type=click.STRING,
-                  help='Output the content tree as a JSON file. Pass the directory to save the file to.')
-    @click.option('--include_video_files', is_flag=True,
-                  help='Include video files in download. Default is False')
-    @click.option('--include_audio_files', is_flag=True,
-                  help='Include audio files in download. Default is False')
-    @click.option('--include_image_files', is_flag=True,
-                  help='Include image files in download. Default is False')
-    @click.option('--flatten', is_flag=True,
-                  help='Excludes course structure and downloads all files to the same directory. Default is False')
-    @click.option('--flush_after_download', is_flag=True,
-                  help='Deletes all files after download. Default is False')
-    @click.option('--download_hidden_files', is_flag=True,
-                  help='Downloads files hidden from students. Default is False')
-    @click.option('--show_content_tree', is_flag=True,
-                  help='Prints a content tree of the course to the console. Default is False')
-    @click.option('--reset_canvas_params', is_flag=True,
-                  help='Resets Access Tokens and config file. Default is False')
-    @click.option('--reset_canvas_studio_params', is_flag=True,
-                  help='Resets config variables for canvas studio. Default is False')
+                  help='Directory to save JSON export. Creates a structured inventory of all course content '
+                       'with metadata (URLs, titles, source pages, content types).')
     @click.option('--output_as_excel', type=click.STRING,
-                  help='The location to export the course content as an excel file.')
+                  help='Directory to save Excel workbook (.xlsm). Creates multi-sheet report for accessibility '
+                       'auditing with separate tabs for Documents, Videos, Audio, Images, and tracking columns.')
+
+    # === Content Inclusion Flags ===
+    @click.option('--include_video_files', is_flag=True,
+                  help='Also download video files (MP4, MOV, MKV, AVI, WebM). These can be large.')
+    @click.option('--include_audio_files', is_flag=True,
+                  help='Also download audio files (MP3, M4A, WAV, OGG).')
+    @click.option('--include_image_files', is_flag=True,
+                  help='Also download image files (JPG, PNG, GIF, SVG, WebP).')
+    @click.option('--download_hidden_files', is_flag=True,
+                  help='Include content that is hidden/unpublished in Canvas (not visible to students).')
+
+    # === Download Behavior ===
+    @click.option('--flatten', is_flag=True,
+                  help='Download all files to a single flat directory instead of preserving module folder structure.')
+    @click.option('--flush_after_download', is_flag=True,
+                  help='Delete downloaded files after processing. Use for temporary extraction workflows.')
+
+    # === Display & Debug ===
+    @click.option('--show_content_tree', is_flag=True,
+                  help='Print a visual tree of the course structure and discovered content to the console.')
+
+    # === Configuration ===
+    @click.option('--config_status', is_flag=True,
+                  help='Display current configuration status. Shows all settings with sensitive values masked.')
+    @click.option('--reset_canvas_params', is_flag=True,
+                  help='Clear and reconfigure Canvas API token and instance URL (stored in Windows Credential Vault).')
+    @click.option('--reset_canvas_studio_params', is_flag=True,
+                  help='Clear and reconfigure Canvas Studio OAuth credentials (client ID, secret, tokens).')
+
+    # === Video Captioning ===
     @click.option('--check_video_site_caption_status', is_flag=True,
-                  help='Where available, checks the if YouTube or Vimeo videos contain captions. Default is False')
+                  help='Query YouTube API to check if discovered YouTube videos have captions available. '
+                       'Results included in Excel/JSON exports.')
     @click.option('--caption_file_location', type=click.STRING,
-                  help='Pass the location of a caption file to upload to Canvas Studio.'
-                       ' Must also include the canvas studio media id "--media_id" flag')
+                  help='Path to caption file (.vtt, .srt) to upload to Canvas Studio. '
+                       'Requires --canvas_studio_media_id.')
     @click.option('--canvas_studio_media_id', type=click.STRING,
-                  help='Pass the Canvas Studio media ID of the item to add a caption file to.'
-                       'Must also include the "--caption_file_location" flag')
+                  help='Canvas Studio media ID for caption upload target. '
+                       'Requires --caption_file_location.')
 
     @click.pass_context
     def main(ctx,
@@ -226,6 +539,7 @@ if __name__=='__main__':
              flush_after_download,
              download_hidden_files,
              show_content_tree,
+             config_status,
              reset_canvas_params,
              reset_canvas_studio_params,
              check_video_site_caption_status,
@@ -233,8 +547,12 @@ if __name__=='__main__':
              canvas_studio_media_id
              ):
 
-        params = {
+        # Handle --config_status first (doesn't require course_id)
+        if config_status:
+            show_config_status()
+            sys.exit(0)
 
+        params = {
             "download_folder": download_folder,
             "output_as_json": output_as_json,
             "output_as_excel": output_as_excel,
@@ -250,7 +568,6 @@ if __name__=='__main__':
             "reset_canvas_studio_params": reset_canvas_studio_params,
             "caption_file_location": caption_file_location,
             "canvas_studio_media_id": canvas_studio_media_id
-
         }
 
         def run_bot(ctx,
@@ -274,9 +591,6 @@ if __name__=='__main__':
                     click.echo("Must include both caption file location and canvas studio media id")
                     input()
                     sys.exit()
-
-            if reset_canvas_params:
-                bot.reset_config()
 
             if reset_canvas_params:
                 bot.reset_config()

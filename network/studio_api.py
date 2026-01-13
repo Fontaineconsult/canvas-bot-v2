@@ -12,6 +12,14 @@ from requests.exceptions import MissingSchema, JSONDecodeError
 log = logging.getLogger(__name__)
 
 
+def _get_studio_api_base():
+    """Get the Canvas Studio API base URL from environment variable."""
+    studio_domain = os.environ.get('CANVAS_STUDIO_DOMAIN', '')
+    if studio_domain:
+        return f"https://{studio_domain}/api/public/v1"
+    return None
+
+
 
 
 
@@ -203,86 +211,99 @@ def post_decorator(calling_function):
 
 @response_decorator
 def get_course(course_id):
-    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/courses/{course_id}"
+    base_url = _get_studio_api_base()
+    course_url = f"{base_url}/courses/{course_id}"
     return course_url
 
 
 @response_decorator
 def get_collection_media(collection_id):
-    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/collections/{collection_id}/media"
+    base_url = _get_studio_api_base()
+    course_url = f"{base_url}/collections/{collection_id}/media"
     return course_url
 
 @response_decorator
 def get_collections_permission():
-    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/collections/"
+    base_url = _get_studio_api_base()
+    course_url = f"{base_url}/collections/"
     return course_url
 
 
 @response_decorator
 def get_collections_data(collection_id):
-    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/collections/{collection_id}"
+    base_url = _get_studio_api_base()
+    course_url = f"{base_url}/collections/{collection_id}"
     return course_url
 
 
 @response_decorator
 def search_user(email):
-    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/users/search?email={email}"
+    base_url = _get_studio_api_base()
+    course_url = f"{base_url}/users/search?email={email}"
     return course_url
 
 @response_decorator
 def get_user_media(user_id):
-    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/users/{user_id}/media"
+    base_url = _get_studio_api_base()
+    course_url = f"{base_url}/users/{user_id}/media"
     return course_url
 
 
 @response_decorator
 def get_courses_containing_media(media_id):
-    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/media/{media_id}/courses"
+    base_url = _get_studio_api_base()
+    course_url = f"{base_url}/media/{media_id}/courses"
     return course_url
 
 
 @response_decorator
 def get_media_by_id(media_id):
-    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/media/{media_id}"
+    base_url = _get_studio_api_base()
+    course_url = f"{base_url}/media/{media_id}"
     return course_url
 
 @response_decorator
 def get_media_sources_by_id(media_id):
-    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/media/{media_id}/sources"
+    base_url = _get_studio_api_base()
+    course_url = f"{base_url}/media/{media_id}/sources"
     return course_url
 
 
 @response_decorator
 def get_media_shares(media_id):
-    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/media/{media_id}/permissions"
+    base_url = _get_studio_api_base()
+    course_url = f"{base_url}/media/{media_id}/permissions"
     return course_url
 
 
 @response_decorator
 def get_media_perspectives_by_id(media_id):
-    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/media/{media_id}/perspectives"
+    base_url = _get_studio_api_base()
+    course_url = f"{base_url}/media/{media_id}/perspectives"
     return course_url
 
 
 
 @response_decorator
 def get_captions_by_media_id(media_id):
-    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/media/{media_id}/caption_files"
+    base_url = _get_studio_api_base()
+    course_url = f"{base_url}/media/{media_id}/caption_files"
     return course_url
 
 
 @download_decorator
 def download_caption_by_caption_file_id(caption_file_id):
-    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/caption_files/{caption_file_id}/download"
+    base_url = _get_studio_api_base()
+    course_url = f"{base_url}/caption_files/{caption_file_id}/download"
     return course_url
 
 
 @post_decorator
 def post_caption_file(media_id, caption_file_name, caption_file_data):
-
+    base_url = _get_studio_api_base()
     headers = {"accept": "application/json"}
     file = {"caption_file": (caption_file_name, caption_file_data)}
-    course_url = f"https://sfsu.instructuremedia.com/api/public/v1/media/{media_id}/caption_files?srclang=en"
+    course_url = f"{base_url}/media/{media_id}/caption_files?srclang=en"
 
     return course_url, headers, file
 

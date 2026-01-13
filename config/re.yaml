@@ -1,4 +1,4 @@
-resource_node_re: https://sfsu.instructure.com/courses/[0-9]{0,7}/(pages/|quizzes/|discussion_topics/|assignments/|announcements/).*.[0-9]{0,7}
+resource_node_re: https://{CANVAS_DOMAIN}.instructure.com/courses/[0-9]{0,7}/(pages/|quizzes/|discussion_topics/|assignments/|announcements/).*.[0-9]{0,7}
 
 
 resource_node_types_re:
@@ -29,9 +29,9 @@ document_content_regex:
 
 
 ignore_links_regex:
-  - https://sfsu.instructure.com/courses/[0-9]{0,7}/(pages/|quizzes/|discussion_topics/|assignments/|announcements/|items/|modules/).*.[0-9]{0,7}
-  - .*.sfsu.app.box.com/s/.*.
-  - .*.sfsu.box.com/s/.*.
+  - https://{CANVAS_DOMAIN}.instructure.com/courses/[0-9]{0,7}/(pages/|quizzes/|discussion_topics/|assignments/|announcements/|items/|modules/).*.[0-9]{0,7}
+  - .*.{BOX_DOMAIN}/s/.*.
+  - .*.{CANVAS_DOMAIN}.box.com/s/.*.
 
 image_content_regex:
   - .*\.jpg
@@ -54,11 +54,11 @@ canvas_file_content_regex: .*.courses/[0-9]{0,7}/files/[0-9]{0,9}.*.
 web_video_resources_regex:
   - .*..*.youtu[\.]?be.*..*.
   - .*.vimeo.*.
-  - .*.sfsu.mediasite.*.
+  - .*.{CANVAS_DOMAIN}.mediasite.*.
   - .*.dailymotion.*.
   - .*.alexanderstreet.*.
   - .*.amara.org/en/videos/.*.
-  - .*.fod.infobase.com.jpllnet.sfsu.edu.*.
+  - .*.fod.infobase.com.{LIBRARY_PROXY_DOMAIN}.*.
   - .*.player.vimeo.com.*.
   - .*.www.ted.com/talks/.*.
   - .*./video-clips/.*.
@@ -69,30 +69,33 @@ web_video_resources_regex:
   - .*./videos/
   - .*./video/
   - .*./video
-  - https://sfstate-primo.hosted.exlibrisgroup.com/.*.
-  - https://presidio.at.sfsu.edu/media/.{24}
+  - .*.primo.hosted.exlibrisgroup.com/.*.
   - .*./collections/.*./bundles/\d{6}  # diva video
   - .*./collections/.*./\d{4} # diva collection
-  - .*.presidio.at.sfsu.edu.*.
-  - .*.atvideo.at.sfsu.edu/player/.*.
   - .*.zoom.us.*.
   - .*.facebook.com/watch/\?v.*.
   - https:\/\/fb\.watch\/[a-zA-Z0-9_-]+\/
   - .*.smartplayer.captionsync.com.*.
   - .*.tiktok.com/embed/.*.
-  - .*.sfsu.mediasite.com/.*.
-  - .*.sfsu.instructure.com/media_objects_iframe/.*.
+  - .*.{CANVAS_DOMAIN}.mediasite.com/.*.
+  - .*.{CANVAS_DOMAIN}.instructure.com/media_objects_iframe/.*.
   - https://www.loom.com/share/.*.
+
+# Institution-specific video services (optional - add your own patterns here)
+institution_video_services_regex: []
+  # Examples:
+  # - .*.presidio.at.yourschool.edu.*.
+  # - .*.atvideo.at.yourschool.edu/player/.*.
 
 
 canvas_studio_embed:
-  - .*.sfsu.instructuremedia.com.*.
+  - .*.{CANVAS_STUDIO_DOMAIN}.*.
 
 canvas_file_embed:
-  - .*.sfsu.instructure.com/media_attachments_iframe/([0-9]{0,9}).*
+  - .*.{CANVAS_DOMAIN}.instructure.com/media_attachments_iframe/([0-9]{0,9}).*
 
 canvas_media_embed:
-  - .*.sfsu.instructure.com/courses/[0-9]{0,9}/media_download\?entryId=m-(.{32}).*
+  - .*.{CANVAS_DOMAIN}.instructure.com/courses/[0-9]{0,9}/media_download\?entryId=m-(.{32}).*
 
 
 video_file_resources_regex:
@@ -136,11 +139,11 @@ web_document_applications_regex:
 
 
 digital_text_book_regex:
-  - .*.ebookcentral.proquest.com/lib/sfsu/reader.*.
+  - .*.ebookcentral.proquest.com/lib/{CANVAS_DOMAIN}/reader.*.
 
 
 file_storage_regex:
-  - .*.sfsu.app.box.com/s/.*.|.*.sfsu.box.com/s/.*.
+  - .*.{BOX_DOMAIN}/s/.*.|.*.{CANVAS_DOMAIN}.box.com/s/.*.
   - .*.drive.google.com/file/.*.
 
 
@@ -157,8 +160,8 @@ ignore_list_regex:
 
 
 force_to_shortcut:
-  - .*.sfsu.app.box.com/s/.*.
-  - .*.sfsu.box.com/s/.*.
+  - .*.{BOX_DOMAIN}/s/.*.
+  - .*.{CANVAS_DOMAIN}.box.com/s/.*.
   - .*.docusign.*.
   - $$.*.
 

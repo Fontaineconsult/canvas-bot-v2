@@ -1,4 +1,4 @@
-# SF State CanvasBot
+# CanvasBot
 
 A command-line tool for downloading and organizing files from the Canvas LMS platform.
 
@@ -14,8 +14,7 @@ A command-line tool for downloading and organizing files from the Canvas LMS pla
 
 ## Overview
 
-The SF State CanvasBot is a
-Windows-only command-line tool that allows you
+CanvasBot is a Windows-only command-line tool that allows you
 to download all files from your Canvas LMS courses,
 including documents, videos, and images.
 It also categorizes all URLs it finds into different
@@ -163,7 +162,7 @@ The following is an example of a JSON file:
                     "order": 3,
                     "scan_date": "2023-04-05 10:57:11.526804",
                     "source_page_type": "Page",
-                    "source_page_url": "https://sfsu.instructure.com/courses/17899/pages/a-course-page",
+                    "source_page_url": "https://yourschool.instructure.com/courses/17899/pages/a-course-page",
                     "title": "a_pdf_file_in_a_course.pdf",
                     "url": "https://school.instructure.com/files/134695/download?download_frd=1&verifier=3t2tg2tg4g4g34g34g43g"
 
@@ -176,7 +175,7 @@ The following is an example of a JSON file:
                     "order": 17,
                     "scan_date": "2023-04-05 10:57:11.527797",
                     "source_page_type": "Discussion",
-                    "source_page_url": "https://sfsu.instructure.com/courses/17899/discussion_topics/94137",
+                    "source_page_url": "https://yourschool.instructure.com/courses/17899/discussion_topics/94137",
                     "title": "How A Folk Singer\u2019s Murder Forced Chile to Confront Its Past",
                     "url": "https://www.youtube.com/watch?v=j-8nhA-j2yo"
     
@@ -189,7 +188,7 @@ The following is an example of a JSON file:
                         "order": 3,
                         "scan_date": "2023-04-05 10:57:11.526804",
                         "source_page_type": "Page",
-                        "source_page_url": "https://sfsu.instructure.com/courses/17899/pages/a-course-page",
+                        "source_page_url": "https://yourschool.instructure.com/courses/17899/pages/a-course-page",
                         "title": "a_video_file_in_a_course.mp4",
                         "url": "https://school.instructure.com/files/1213695/download?download_frd=1&verifier=3t2tg2tg4g4g34g34g43g"
     
@@ -281,7 +280,7 @@ Give a name to your token and click Generate Token. <br>
 Copy the token. Once copied you won't be able to see it again. <br>
 ![Access Token Details](https://dprc-photos.s3.us-west-2.amazonaws.com/AccessTokenDetails.PNG)
 
-Once the token has been generated, you will need to enter it into the SF State CanvasBot.
+Once the token has been generated, you will need to enter it into the CanvasBot.
 When you first run the program you will be prompted.<br>
 ![Access Token Details](https://dprc-photos.s3.us-west-2.amazonaws.com/EnterAccessToken.PNG)
 

@@ -73,7 +73,7 @@ sorters:
               - "http://None"
 
   first-sort-remove-regexs:
-              - https://sfsu.instructure.com/courses/\d{0,10}/users/\d{0,10}
+              - https://{CANVAS_DOMAIN}.instructure.com/courses/\d{0,10}/users/\d{0,10}
               - data:image.*.
               - data:video.*.
               - /video/play.*.
@@ -88,6 +88,13 @@ default_download_path: "../downloads"
 required_env_file_keys:
   - CANVAS_COURSE_PAGE_ROOT
   - API_PATH
+  - CANVAS_DOMAIN
+  - CANVAS_STUDIO_DOMAIN
+
+# Optional institution-specific settings (can be left blank)
+optional_env_file_keys:
+  - BOX_DOMAIN
+  - LIBRARY_PROXY_DOMAIN
 
 canvas_studio_config_keys:
   - CANVAS_STUDIO_AUTHENTICATION_URL
@@ -97,5 +104,5 @@ canvas_studio_config_keys:
 
 source_url_configs:
   instructure_media: instructuremedia.com/
-  instructure_perspectives: https://sfsu.instructuremedia.com/perspectives/
+  instructure_perspectives: https://{CANVAS_STUDIO_DOMAIN}/perspectives/
   canvas: instructure.com/
