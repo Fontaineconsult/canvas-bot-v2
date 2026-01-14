@@ -13,6 +13,7 @@ semester_key = {
     "2253": "sp25",
     "2255": "su25",
     "2257": "fa25",
+    "2263": "sp26",
 
 
 }
@@ -22,7 +23,7 @@ def get_all_course_ids(offset=0):
     count = 1 + offset
     course_ids = get_active_accounts(count)
 
-    with open("../../accessiblebookchecker/root/application/migrations/data_import/raw_data/file.csv", "w", newline="")\
+    with open(r"C:\Users\Fonta\OneDrive - San Francisco State University\Desktop\test.csv", "w", newline="")\
             as csvfile:
         writer = csv.writer(csvfile, delimiter=",")
 
@@ -31,6 +32,7 @@ def get_all_course_ids(offset=0):
         while len(course_ids) > 0:
 
             course_ids = get_active_accounts(count)
+            print(course_ids)
             count += 1
             time.sleep(0.3)
             # print(course_ids)

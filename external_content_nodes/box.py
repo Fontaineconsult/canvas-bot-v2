@@ -34,7 +34,7 @@ class BoxPage(FileStorageSite):
         page_request = requests.get(self.url)
 
         if page_request:
-            page_html = BeautifulSoup(page_request.content, features="lxml")
+            page_html = BeautifulSoup(page_request.content, features="html.parser")
 
             page_scripts = page_html.find_all(filters[self.__class__.__name__])
             expression = re.compile("Box\.postStreamData")

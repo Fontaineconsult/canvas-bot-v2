@@ -49,15 +49,6 @@ def check_if_api_key_exists():
             sys.exit(1)
 
 
-def _extract_domain_from_url(url):
-    """Extract the subdomain from a Canvas URL like https://myschool.instructure.com"""
-    import re
-    match = re.search(r'https?://([^.]+)\.instructure\.com', url)
-    if match:
-        return match.group(1)
-    return None
-
-
 def _prompt_with_default(prompt, default=None):
     """Prompt user for input, showing and accepting a default value."""
     if default:
@@ -82,39 +73,40 @@ def load_json_config_file_from_appdata():
     print("\nThis appears to be your first time running Canvas Bot.")
     print("Let's set up your Canvas instance connection.\n")
 
-    # Step 1: Get Canvas URL and auto-derive other values
+    # Step 1: Just ask for the institution identifier
     print("-" * 50)
     print("Step 1: Canvas Instance")
     print("-" * 50)
+    print("\nEnter your institution's Canvas identifier.")
+    print("This is the subdomain in your Canvas URL.")
+    print("  Example: For 'https://sfsu.instructure.com' enter: sfsu")
+    print("  Example: For 'https://myschool.instructure.com' enter: myschool\n")
 
-    canvas_url = input("Enter your Canvas URL (e.g., https://myschool.instructure.com): ").strip()
+    canvas_domain = input("Canvas identifier: ").strip().lower()
 
-    # Normalize URL
-    if not canvas_url.startswith('http'):
-        canvas_url = 'https://' + canvas_url
-    canvas_url = canvas_url.rstrip('/')
+    if not canvas_domain:
+        print("[ERROR] Canvas identifier is required. Exiting.")
+        sys.exit(1)
 
-    # Auto-derive values
-    canvas_domain = _extract_domain_from_url(canvas_url)
+    # Auto-generate all URLs from the domain
+    canvas_url = f"https://{canvas_domain}.instructure.com"
+    api_path = f"https://{canvas_domain}.instructure.com/api/v1"
+    studio_domain = f"{canvas_domain}.instructuremedia.com"
 
-    if canvas_domain:
-        print(f"\n[Auto-detected] Canvas subdomain: {canvas_domain}")
-        api_path = f"{canvas_url}/api/v1"
-        studio_domain = f"{canvas_domain}.instructuremedia.com"
-        print(f"[Auto-detected] API path: {api_path}")
-        print(f"[Auto-detected] Canvas Studio domain: {studio_domain}")
+    print(f"\n[Auto-configured]")
+    print(f"  Canvas URL:     {canvas_url}")
+    print(f"  API Path:       {api_path}")
+    print(f"  Studio Domain:  {studio_domain}")
 
-        # Let user override if needed
-        print("\nPress Enter to accept auto-detected values, or type to override:\n")
-        canvas_domain = _prompt_with_default("Canvas subdomain", canvas_domain)
-        api_path = _prompt_with_default("Canvas API path", api_path)
-        studio_domain = _prompt_with_default("Canvas Studio domain", studio_domain)
-    else:
-        print("\n[!] Could not auto-detect subdomain from URL.")
-        print("Please enter values manually:\n")
-        canvas_domain = input("Canvas subdomain (e.g., 'myschool'): ").strip()
-        api_path = input("Canvas API path (e.g., https://myschool.instructure.com/api/v1): ").strip()
-        studio_domain = input("Canvas Studio domain (e.g., myschool.instructuremedia.com): ").strip()
+    # Allow override if needed
+    print("\nPress Enter to accept, or type 'edit' to customize:")
+    override = input("> ").strip().lower()
+
+    if override == 'edit':
+        print("\nCustomize settings (press Enter to keep default):\n")
+        canvas_url = _prompt_with_default("Canvas URL", canvas_url)
+        api_path = _prompt_with_default("API Path", api_path)
+        studio_domain = _prompt_with_default("Studio Domain", studio_domain)
 
     app_config_dict = {
         'CANVAS_COURSE_PAGE_ROOT': canvas_url,
@@ -259,8 +251,8 @@ def set_canvas_studio_config(force_config=False):
     print("Enter Canvas Studio OAuth URLs:")
     print("(Press Enter to accept defaults shown in brackets)\n")
 
-    default_auth_url = f"https://{studio_domain}/api/oauth/authorize"
-    default_token_url = f"https://{studio_domain}/api/oauth/token"
+    default_auth_url = f"https://{studio_domain}/api/public/oauth/authorize"
+    default_token_url = f"https://{studio_domain}/api/public/oauth/token"
     default_callback = "urn:ietf:wg:oauth:2.0:oob"
 
     auth_url = _prompt_with_default("  Authentication URL", default_auth_url)
@@ -525,6 +517,13 @@ if __name__=='__main__':
                   help='Canvas Studio media ID for caption upload target. '
                        'Requires --caption_file_location.')
 
+    # === Course List Export ===
+    @click.option('--export_course_list', type=click.STRING, default=None, is_flag=False, flag_value='canvas_courses.csv',
+                  help='Export all Canvas courses to CSV. Optionally specify output path (default: canvas_courses.csv). '
+                       'Does not require --course_id.')
+    @click.option('--semester_filter', type=click.STRING, default=None,
+                  help='Filter exported courses by semester (e.g., "fa24", "sp25"). Use with --export_course_list.')
+
     @click.pass_context
     def main(ctx,
              course_id,
@@ -544,12 +543,35 @@ if __name__=='__main__':
              reset_canvas_studio_params,
              check_video_site_caption_status,
              caption_file_location,
-             canvas_studio_media_id
+             canvas_studio_media_id,
+             export_course_list,
+             semester_filter
              ):
 
         # Handle --config_status first (doesn't require course_id)
         if config_status:
             show_config_status()
+            sys.exit(0)
+
+        # Handle --reset_canvas_studio_params (doesn't require course_id)
+        if reset_canvas_studio_params:
+            # Load existing config first so we have the domain info
+            load_config_data_from_appdata()
+            delete_canvas_studio_client_keys()
+            delete_canvas_studio_tokens()
+            print("\n[OK] Canvas Studio credentials cleared.")
+            set_canvas_studio_config(force_config=True)
+            print("[OK] Canvas Studio reconfigured.")
+            sys.exit(0)
+
+        # Handle --export_course_list (doesn't require course_id)
+        if export_course_list:
+            from tools.course_extractor import extract_courses_cli
+            # Load config and API key
+            load_config_data_from_appdata()
+            check_if_api_key_exists()
+            # Run extraction
+            extract_courses_cli(output_path=export_course_list, semester=semester_filter)
             sys.exit(0)
 
         params = {
