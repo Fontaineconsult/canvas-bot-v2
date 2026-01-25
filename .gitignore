@@ -5,6 +5,4 @@
 .env
 /dist
 /build
-canvas_bot.spec
-build.cmd
 /canvas_bot.exe
