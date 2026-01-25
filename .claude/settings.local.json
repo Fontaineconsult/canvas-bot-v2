@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(python canvas_bot.py:*)",
+      "Bash(findstr:*)"
     ]
   }
 }

@@ -2,7 +2,8 @@
 import os
 
 import click, sys, logging
-from config.yaml_io import read_config
+import re
+from config.yaml_io import read_config, read_re, write_re, reset_re
 from core.course_root import CanvasCourseRoot
 from network.cred import set_canvas_api_key_to_environment_variable, save_canvas_api_key, load_config_data_from_appdata, delete_canvas_api_key, delete_config_file_from_appdata, \
     save_canvas_studio_client_keys, get_canvas_studio_tokens, \
@@ -402,6 +403,169 @@ def show_config_status():
     print("=" * 60 + "\n")
 
 
+def list_patterns(category=None):
+    """List all categories or patterns in a specific category."""
+    patterns = read_re(substitute=False)
+
+    if category is None:
+        print("Pattern Categories:")
+        print("-" * 40)
+        for key in patterns.keys():
+            count = len(patterns[key]) if isinstance(patterns[key], list) else 1
+            print(f"  {key} ({count} patterns)")
+    else:
+        if category not in patterns:
+            print(f"Error: Category '{category}' not found")
+            sys.exit(1)
+        print(f"Patterns in '{category}':")
+        print("-" * 40)
+        items = patterns[category]
+        if isinstance(items, list):
+            for i, p in enumerate(items, 1):
+                print(f"  {i}. {p}")
+        else:
+            print(f"  {items}")
+
+
+def add_pattern(category, pattern, skip_confirm=False):
+    """Add a pattern to a category."""
+    try:
+        re.compile(pattern)
+    except re.error as e:
+        print(f"Error: Invalid regex - {e}")
+        sys.exit(1)
+
+    patterns = read_re(substitute=False)
+    if category not in patterns:
+        print(f"Error: Category '{category}' not found")
+        sys.exit(1)
+
+    if isinstance(patterns[category], list):
+        if pattern in patterns[category]:
+            print(f"Pattern already exists in '{category}'")
+            sys.exit(0)
+
+    print(f"\nCategory: {category}")
+    print("-" * 40)
+    print(f"+ {pattern}")
+    print()
+
+    if not skip_confirm:
+        confirm = input("Add this pattern? [y/N]: ")
+        if confirm.lower() != 'y':
+            print("Cancelled.")
+            sys.exit(0)
+
+    if isinstance(patterns[category], list):
+        patterns[category].append(pattern)
+    else:
+        patterns[category] = pattern
+
+    write_re(patterns)
+    print("Pattern added.")
+
+
+def remove_pattern(category, pattern, skip_confirm=False):
+    """Remove a pattern from a category."""
+    patterns = read_re(substitute=False)
+    if category not in patterns:
+        print(f"Error: Category '{category}' not found")
+        sys.exit(1)
+
+    if isinstance(patterns[category], list):
+        if pattern not in patterns[category]:
+            print(f"Pattern not found in '{category}'")
+            sys.exit(1)
+    else:
+        if patterns[category] != pattern:
+            print(f"Pattern not found in '{category}'")
+            sys.exit(1)
+
+    print(f"\nCategory: {category}")
+    print("-" * 40)
+    print(f"- {pattern}")
+    print()
+
+    if not skip_confirm:
+        confirm = input("Remove this pattern? [y/N]: ")
+        if confirm.lower() != 'y':
+            print("Cancelled.")
+            sys.exit(0)
+
+    if isinstance(patterns[category], list):
+        patterns[category].remove(pattern)
+    else:
+        patterns[category] = ""
+
+    write_re(patterns)
+    print("Pattern removed.")
+
+
+def test_pattern(test_string):
+    """Test which categories match a string."""
+    from sorters.sorters import (
+        document_content_regex, image_content_regex,
+        web_video_content_regex, video_file_content_regex,
+        web_audio_content_regex, audio_file_content_regex,
+        web_document_applications_regex, file_storage_regex,
+        canvas_studio_embed, ignore_list_regex
+    )
+
+    matchers = [
+        ("document_content_regex", document_content_regex),
+        ("image_content_regex", image_content_regex),
+        ("web_video_resources_regex", web_video_content_regex),
+        ("video_file_resources_regex", video_file_content_regex),
+        ("web_audio_resources_regex", web_audio_content_regex),
+        ("audio_file_resources_regex", audio_file_content_regex),
+        ("web_document_applications_regex", web_document_applications_regex),
+        ("file_storage_regex", file_storage_regex),
+        ("canvas_studio_embed", canvas_studio_embed),
+        ("ignore_list_regex", ignore_list_regex),
+    ]
+
+    print(f"Testing: {test_string}")
+    print("-" * 40)
+    matched = False
+    for name, regex in matchers:
+        if regex.match(test_string):
+            print(f"  MATCH: {name}")
+            matched = True
+
+    if not matched:
+        print("  No matches (would be classified as Unsorted)")
+
+
+def validate_pattern(pattern):
+    """Validate regex syntax."""
+    try:
+        compiled = re.compile(pattern, re.IGNORECASE)
+        print(f"Valid regex: {pattern}")
+        print(f"  Flags: IGNORECASE")
+        print(f"  Groups: {compiled.groups}")
+    except re.error as e:
+        print(f"Invalid regex: {e}")
+        sys.exit(1)
+
+
+def reset_patterns(skip_confirm=False):
+    """Reset patterns to bundled defaults."""
+    print("\nThis will reset all patterns to the original defaults.")
+    print("Any custom patterns you added will be lost.")
+    print()
+
+    if not skip_confirm:
+        confirm = input("Reset patterns to defaults? [y/N]: ")
+        if confirm.lower() != 'y':
+            print("Cancelled.")
+            sys.exit(0)
+
+    if reset_re():
+        print("Patterns reset to defaults.")
+    else:
+        print("No custom patterns file found (already using defaults).")
+
+
 class CanvasBot(CanvasCourseRoot):
     """
     Wraps Canvas Course Root Class
@@ -524,6 +688,22 @@ if __name__=='__main__':
     @click.option('--semester_filter', type=click.STRING, default=None,
                   help='Filter exported courses by semester (e.g., "fa24", "sp25"). Use with --export_course_list.')
 
+    # === Pattern Management ===
+    @click.option('--patterns-list', 'patterns_list', default=None, is_flag=False, flag_value='',
+                  help='List pattern categories. Optionally specify CATEGORY to see patterns in it.')
+    @click.option('--patterns-add', 'patterns_add', nargs=2, type=str, default=None,
+                  help='Add PATTERN to CATEGORY. Usage: --patterns-add CATEGORY PATTERN')
+    @click.option('--patterns-remove', 'patterns_remove', nargs=2, type=str, default=None,
+                  help='Remove PATTERN from CATEGORY. Usage: --patterns-remove CATEGORY PATTERN')
+    @click.option('--patterns-test', 'patterns_test', default=None,
+                  help='Test which categories match STRING.')
+    @click.option('--patterns-validate', 'patterns_validate', default=None,
+                  help='Validate PATTERN regex syntax without saving.')
+    @click.option('--patterns-reset', 'patterns_reset', is_flag=True,
+                  help='Reset patterns to bundled defaults (removes customizations).')
+    @click.option('-y', '--yes', 'skip_confirm', is_flag=True,
+                  help='Skip confirmation for pattern changes.')
+
     @click.pass_context
     def main(ctx,
              course_id,
@@ -545,7 +725,14 @@ if __name__=='__main__':
              caption_file_location,
              canvas_studio_media_id,
              export_course_list,
-             semester_filter
+             semester_filter,
+             patterns_list,
+             patterns_add,
+             patterns_remove,
+             patterns_test,
+             patterns_validate,
+             patterns_reset,
+             skip_confirm
              ):
 
         # Handle --config_status first (doesn't require course_id)
@@ -572,6 +759,31 @@ if __name__=='__main__':
             check_if_api_key_exists()
             # Run extraction
             extract_courses_cli(output_path=export_course_list, semester=semester_filter)
+            sys.exit(0)
+
+        # Handle pattern management options (don't require course_id)
+        if patterns_list is not None:
+            list_patterns(patterns_list if patterns_list != '' else None)
+            sys.exit(0)
+
+        if patterns_add:
+            add_pattern(patterns_add[0], patterns_add[1], skip_confirm)
+            sys.exit(0)
+
+        if patterns_remove:
+            remove_pattern(patterns_remove[0], patterns_remove[1], skip_confirm)
+            sys.exit(0)
+
+        if patterns_test:
+            test_pattern(patterns_test)
+            sys.exit(0)
+
+        if patterns_validate:
+            validate_pattern(patterns_validate)
+            sys.exit(0)
+
+        if patterns_reset:
+            reset_patterns(skip_confirm)
             sys.exit(0)
 
         params = {
