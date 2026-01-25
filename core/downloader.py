@@ -13,6 +13,7 @@ import requests
 from requests.exceptions import MissingSchema, InvalidURL, SSLError
 from config.yaml_io import read_config, read_download_manifest, write_to_download_manifest
 from tools.string_checking.url_cleaning import sanitize_windows_filename, remove_trailing_path_segments
+from urllib.parse import unquote_plus
 
 config = read_config()
 
@@ -73,11 +74,16 @@ def derive_file_name(node):
             return f"{node.title}.mp4"
 
 
+    # Prefer display_name (human-readable) over filename (URL-encoded)
+    if getattr(node, "display_name", None):
+        return node.display_name
+
     if node.file_name:
         return node.file_name
 
     if getattr(node, "filename", None):
-        return getattr(node, "filename")
+        # URL-decode filename (converts + to spaces, %20 to spaces, etc.)
+        return unquote_plus(getattr(node, "filename"))
 
     if not has_file_extension(node.title):
 

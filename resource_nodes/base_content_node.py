@@ -1,4 +1,5 @@
 from colorama import Fore, Style, init
+from urllib.parse import unquote_plus
 init()
 
 
@@ -64,7 +65,15 @@ class BaseContentNode:
                 setattr(self, key, self.api_dict[key])
 
             self.item_id = self.api_dict['id'] if self.api_dict.get('id') else self.api_dict['media_id']
-            self.title = self.api_dict['filename'] if self.api_dict.get('filename') else self.api_dict['title']
+            # Prefer display_name (human-readable) over filename (URL-encoded)
+            # Fallback chain: display_name -> title -> filename (decoded)
+            if self.api_dict.get('display_name'):
+                self.title = self.api_dict['display_name']
+            elif self.api_dict.get('title'):
+                self.title = self.api_dict['title']
+            elif self.api_dict.get('filename'):
+                # URL-decode filename as last resort (converts + to spaces)
+                self.title = unquote_plus(self.api_dict['filename'])
 
 
 
