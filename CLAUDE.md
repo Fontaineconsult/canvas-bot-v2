@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Project** | Canvas Bot v2 |
-| **Version** | 0.1.6-alpha |
+| **Version** | 1.0.0 |
 | **Language** | Python 3.12+ |
 | **Platform** | Windows only |
 | **Purpose** | CLI tool for downloading and auditing Canvas LMS course content |
@@ -497,6 +497,99 @@ python canvas_bot.py --patterns-list category_name
 | `treelib` | Tree visualization |
 | `PyYAML` | YAML config parsing |
 | `colorama` | Terminal color output |
+
+---
+
+## Pipeline Testing Framework
+
+The `test/pipeline_testing/` directory contains a testing framework for validating the content extraction pipeline.
+
+### Purpose
+
+Validates that raw Canvas API data is correctly transformed through the pipeline:
+1. Raw API response → ContentNode instantiation
+2. `display_name` / `filename` → `node.title`
+3. `derive_file_name(node)` → correct filename for download
+4. URL-encoded filenames are properly decoded
+
+### Test Framework Structure
+
+```
+test/
+└── pipeline_testing/
+    ├── __init__.py
+    ├── __main__.py
+    ├── cli.py                 # Click CLI interface
+    ├── collector.py           # Single-course raw data collector
+    ├── batch_collector.py     # Efficient multi-course collector
+    ├── batch_tester.py        # Offline batch testing
+    ├── direct_tester.py       # Direct pipeline function testing
+    ├── comparator.py          # Raw vs processed comparison
+    └── side_by_side.py        # Visual comparison output
+```
+
+### CLI Commands
+
+```bash
+# Collect raw API data from a single course
+python -m test.pipeline_testing collect --course_id 12345 --output ./test_data
+
+# Batch collect from a range of courses (efficient - 1 API call per course)
+python -m test.pipeline_testing batch-collect --range 34000-35000 --output corpus.json
+
+# Test pipeline offline against collected corpus
+python -m test.pipeline_testing batch-test --corpus corpus.json --output report.json
+
+# Direct pipeline test against raw data
+python -m test.pipeline_testing test --raw ./test_data/raw_12345.json
+
+# Compare raw API data vs processed output
+python -m test.pipeline_testing compare --raw raw.json --processed processed.json
+
+# Side-by-side visual comparison
+python -m test.pipeline_testing side-by-side --raw raw.json --processed processed.json
+```
+
+### Key Validation Checks
+
+| Check | Severity | Description |
+|-------|----------|-------------|
+| `TITLE_MISMATCH` | error | `node.title` doesn't match `display_name` |
+| `FILENAME_MISMATCH` | error | Derived filename doesn't match `display_name` |
+| `EXTENSION_MISMATCH` | error | Extension differs from original file |
+| `NO_FILENAME` | error | `derive_file_name()` returned empty |
+| `URL_ENCODED` | info | Filename contains `+` (may be legitimate) |
+| `INVALID_CHARS` | error | Filename contains `<>:"/\|?*` |
+
+### Recent Pipeline Fixes (validated by batch testing)
+
+**Issue:** 91% of files had incorrect titles - using URL-encoded `filename` instead of human-readable `display_name`.
+
+**Fixed in `resource_nodes/base_content_node.py`:**
+```python
+# Priority: display_name -> title -> filename (decoded)
+if self.api_dict.get('display_name'):
+    self.title = self.api_dict['display_name']
+elif self.api_dict.get('title'):
+    self.title = self.api_dict['title']
+elif self.api_dict.get('filename'):
+    self.title = unquote_plus(self.api_dict['filename'])
+```
+
+**Fixed in `core/downloader.py` `derive_file_name()`:**
+```python
+# Prefer display_name over filename
+if getattr(node, "display_name", None):
+    return node.display_name
+
+if node.file_name:
+    return node.file_name
+
+if getattr(node, "filename", None):
+    return unquote_plus(getattr(node, "filename"))
+```
+
+**Validation Result:** 99.7% pass rate across 27,034 files from 499 courses.
 
 ---
 

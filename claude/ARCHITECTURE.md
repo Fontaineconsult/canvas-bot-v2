@@ -319,3 +319,111 @@ def get_course(course_id):
 2. **New Canvas Resources:** Add handler to resource_nodes/, init in course_root.py
 3. **New Export Formats:** Add exporter to tools/
 4. **New External Services:** Add handler to external_content_nodes/
+
+---
+
+## Pipeline Testing Architecture
+
+The `test/pipeline_testing/` module provides offline validation of the content extraction pipeline.
+
+### Test Framework Layer Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CLI Layer (cli.py)                           │
+│         Click commands: collect, batch-collect, batch-test      │
+└─────────────────────────────────────────────────────────────────┘
+                                 │
+          ┌──────────────────────┼──────────────────────┐
+          ▼                      ▼                      ▼
+┌──────────────────┐   ┌──────────────────┐   ┌──────────────────┐
+│   Collection     │   │   Testing        │   │   Comparison     │
+│   (API calls)    │   │   (Offline)      │   │   (Offline)      │
+└──────────────────┘   └──────────────────┘   └──────────────────┘
+          │                      │                      │
+          ▼                      ▼                      ▼
+┌──────────────────┐   ┌──────────────────┐   ┌──────────────────┐
+│ collector.py     │   │ batch_tester.py  │   │ comparator.py    │
+│ batch_collector  │   │ direct_tester    │   │ side_by_side     │
+└──────────────────┘   └──────────────────┘   └──────────────────┘
+          │                      │
+          ▼                      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Test Data (JSON files)                       │
+│   corpus.json: Raw API responses with essential fields          │
+│   report.json: Test results and issue summaries                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Two-Phase Testing Architecture
+
+```
+PHASE 1: Collection (requires API access)
+─────────────────────────────────────────
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ Canvas API   │ ──► │ BatchCollector│ ──► │ corpus.json  │
+│ get_files()  │     │ extract      │     │ minimal data │
+└──────────────┘     │ essential    │     └──────────────┘
+                     │ fields only  │
+                     └──────────────┘
+
+Essential fields extracted:
+  - id
+  - display_name  (human-readable name)
+  - filename      (URL-encoded name)
+  - mime_class
+
+PHASE 2: Testing (offline - no API calls)
+─────────────────────────────────────────
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ corpus.json  │ ──► │ BatchTester  │ ──► │ report.json  │
+│              │     │ MockNode     │     │ pass/fail    │
+└──────────────┘     │ validation   │     │ issues       │
+                     └──────────────┘     └──────────────┘
+```
+
+### Filename Derivation Flow (Tested by Pipeline Tests)
+
+```
+Raw API Response
+      │
+      ├── display_name: "Homework 1.docx"    ← Human-readable
+      ├── filename: "Homework+1.docx"        ← URL-encoded
+      └── mime_class: "doc"
+      │
+      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ base_content_node.py :: _expand_api_dict_to_class_attributes()  │
+│                                                                 │
+│ Title derivation priority:                                      │
+│   1. display_name  ← Preferred (human-readable)                 │
+│   2. title         ← API title field                            │
+│   3. filename      ← Last resort (URL-decoded with unquote_plus)│
+└─────────────────────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ downloader.py :: derive_file_name(node)                         │
+│                                                                 │
+│ Filename derivation priority:                                   │
+│   1. display_name  ← Preferred                                  │
+│   2. file_name     ← Node attribute                             │
+│   3. filename      ← URL-decoded with unquote_plus()            │
+│   4. title         ← Fallback                                   │
+│   5. URL path      ← Last resort                                │
+└─────────────────────────────────────────────────────────────────┘
+      │
+      ▼
+Final filename: "Homework 1.docx" ✓
+```
+
+### Validation Checks
+
+| Check | What It Tests |
+|-------|---------------|
+| `TITLE_MISMATCH` | node.title should equal display_name |
+| `FILENAME_MISMATCH` | derive_file_name() should return display_name |
+| `EXTENSION_MISMATCH` | Derived extension should match original |
+| `NO_FILENAME` | derive_file_name() should not return empty |
+| `URL_ENCODED` | Filename should not contain unresolved + signs |
+| `INVALID_CHARS` | Filename should be Windows-safe |

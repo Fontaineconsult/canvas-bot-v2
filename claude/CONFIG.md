@@ -348,3 +348,109 @@ print(len(manifest.get('downloads', [])))  # Count of downloaded items
 | App settings | `config/config.yaml` |
 | Download history | `config/download_manifest.yaml` |
 | Logs | `%APPDATA%\canvas bot\canvas_bot.log` |
+| Pipeline test corpus | `test_data/*.json` |
+
+---
+
+## Pipeline Testing Configuration
+
+### Test Data Directory
+
+**Location:** `test_data/` (project root)
+
+**Files:**
+| File | Purpose |
+|------|---------|
+| `corpus_*.json` | Collected raw API data from batch-collect |
+| `report_*.json` | Test results from batch-test |
+| `raw_*.json` | Single-course raw data from collect |
+| `processed_*.json` | Output from --output_as_json for comparison |
+
+### Corpus File Structure
+
+```json
+{
+  "collected_at": "2026-01-25T10:30:00",
+  "total_courses": 1001,
+  "successful_courses": 499,
+  "failed_courses": ["34001", "34002"],
+  "total_files": 27034,
+  "courses": {
+    "34000": [
+      {
+        "id": 7556346,
+        "display_name": "Homework 1.docx",
+        "filename": "Homework+1.docx",
+        "mime_class": "doc"
+      }
+    ]
+  }
+}
+```
+
+### Test Report Structure
+
+```json
+{
+  "summary": {
+    "total_files": 27034,
+    "files_with_issues": 87,
+    "files_ok": 26947,
+    "total_courses": 499,
+    "issues_by_type": {
+      "URL_ENCODED": 87
+    },
+    "pass_rate": 99.68
+  },
+  "by_course": {
+    "34000": {
+      "total": 54,
+      "issues": 0,
+      "files_with_issues": []
+    }
+  }
+}
+```
+
+### Running Pipeline Tests
+
+**Phase 1: Collect test data (requires API access)**
+```bash
+# Collect from range of courses
+python -m test.pipeline_testing batch-collect --range 34000-35000 --output test_data/corpus.json
+
+# Collect from file of course IDs
+python -m test.pipeline_testing batch-collect --file courses.txt --output test_data/corpus.json
+```
+
+**Phase 2: Run tests offline**
+```bash
+# Test against collected corpus
+python -m test.pipeline_testing batch-test --corpus test_data/corpus.json --output test_data/report.json
+```
+
+### Validation Checks Explained
+
+| Check | Severity | Meaning |
+|-------|----------|---------|
+| `TITLE_MISMATCH` | error | `node.title` doesn't match `display_name` from API |
+| `FILENAME_MISMATCH` | error | `derive_file_name()` output doesn't match `display_name` |
+| `EXTENSION_MISMATCH` | error | File extension changed during processing |
+| `NO_FILENAME` | error | `derive_file_name()` returned None or empty |
+| `URL_ENCODED` | info | Filename contains `+` (may be URL encoding or legitimate) |
+| `INVALID_CHARS` | error | Filename contains Windows-invalid characters |
+
+### API Usage Efficiency
+
+The batch collector is designed for minimal API usage:
+
+| Operation | API Calls |
+|-----------|-----------|
+| Single course | 1 call (get_files) |
+| 100 courses | 100 calls |
+| 1000 courses | 1000 calls |
+
+**Rate limiting:** Default 0.5 second delay between calls. Adjust with `--delay` flag:
+```bash
+python -m test.pipeline_testing batch-collect --range 34000-35000 --output corpus.json --delay 1.0
+```

@@ -1,337 +1,476 @@
 # CanvasBot
 
-A command-line tool for downloading and organizing files from the Canvas LMS platform.
+A command-line tool for downloading, auditing, and organizing content from Canvas LMS courses.
 
 ## Table of Contents
 
 - [Overview](#overview)
 - [Requirements](#requirements)
 - [Installation](#installation)
+- [Quick Start](#quick-start)
 - [Usage](#usage)
-- [Export Data](#export-data)
+  - [Downloading Files](#downloading-files)
+  - [Exporting Data](#exporting-data)
+  - [Pattern Management](#pattern-management)
+  - [Course List Export](#course-list-export)
+- [Configuration](#configuration)
+- [Pipeline Testing](#pipeline-testing)
+- [Program Flags Reference](#program-flags-reference)
 - [Support](#support)
 - [License](#license)
 
 ## Overview
 
-CanvasBot is a Windows-only command-line tool that allows you
-to download all files from your Canvas LMS courses,
-including documents, videos, and images.
-It also categorizes all URLs it finds into different
-types of instructional materials and allows you to
-export this information into a JSON file.
-The primary target audience for this tool are
-accessible media coordinators and instructional designers at universities.
+CanvasBot is a Windows command-line tool designed for accessible media coordinators and instructional designers at universities. It connects to Canvas LMS via the REST API to:
 
+- **Download** all files from courses (documents, videos, audio, images)
+- **Categorize** embedded content by type using configurable regex patterns
+- **Export** content inventories to Excel or JSON for accessibility auditing
+- **Track** download progress to avoid re-downloading files
 
-There are currently 10 different content types:
+### Content Types
 
-<ul>
-<li>Documents</li>
-<li>Image Files</li> 
-<li>Audio Files</li>
-<li>Video Files</li>
-<li>Video Websites</li>
-<li>Audio Websites</li>
-<li>File Storage Sites</li>
-<li>Digital Textbooks</li>
-<li>Document Site</li>
-<li>Unsorted</li>
-</ul>
+CanvasBot classifies content into these categories:
 
-
-
+| Type | Description | Examples |
+|------|-------------|----------|
+| Documents | Downloadable document files | PDF, DOCX, PPTX, XLSX |
+| Document Sites | Cloud document platforms | Google Docs, OneDrive |
+| Video Files | Downloadable video files | MP4, MOV, MKV |
+| Video Sites | Video hosting platforms | YouTube, Vimeo, Zoom |
+| Audio Files | Downloadable audio files | MP3, M4A, WAV |
+| Audio Sites | Audio/podcast platforms | Podcast links |
+| Image Files | Image files | JPG, PNG, GIF |
+| File Storage Sites | Cloud storage | Box, Google Drive |
+| Digital Textbooks | E-textbook platforms | Cengage, McGraw-Hill |
+| Canvas Studio | Canvas Studio embeds | Institution media |
+| Unsorted | Unclassified links | Everything else |
 
 ## Requirements
 
 - Windows operating system
-- Canvas API Access Token
+- Canvas API Access Token (read access to courses)
 
 ## Installation
 
-Please download the v0.1.0-alpha executable here. [SF State CanvasBot Windows Executable](https://github.com/Fontaineconsult/canvas-bot-v2/releases/download/v0.1.1-alpha/canvas_bot.exe)
+### Executable (Recommended)
 
-This usage guide covers how to use this tool on the command line using the executable version available above. If you would like to use the source code, please close this repository. 
+Download the latest executable from [Releases](https://github.com/Fontaineconsult/canvas-bot-v2/releases).
 
-This is a standalone executable. You do not need to install Python or any other dependencies.
+This is a standalone executable - no Python installation required.
 
-### Configuration
+### From Source
 
+```bash
+git clone https://github.com/Fontaineconsult/canvas-bot-v2.git
+cd canvas-bot-v2
+pip install -r requirements.txt
+python canvas_bot.py --help
+```
 
-CanvasBot requires three pieces of information to run:
+## Quick Start
 
-- Canvas API Access Token
-- Canvas Page Course Root
-- Canvas API URL
+### First Run Setup
 
-#### Canvas API Access Token
+On first run, you'll be prompted for:
 
-The Access Token is a unique string of characters that allows you to access the Canvas API. Please see the obtaining an access token section below for more information.
+1. **Canvas Base URL** - e.g., `https://yourschool.instructure.com`
+2. **Canvas API Path** - e.g., `https://yourschool.instructure.com/api/v1`
+3. **Canvas Domain** - e.g., `yourschool` (subdomain)
+4. **Canvas Studio Domain** - e.g., `yourschool.instructuremedia.com`
+5. **API Access Token** - Generated from Canvas settings
 
-#### Canvas Page Course Root
+### Basic Commands
 
-The Canvas Page Course Root is the URL of the page that lists all of your courses. This is the page that you see when you log into Canvas. The URL will look something like this:
+```bash
+# Download documents from a course
+canvas_bot.exe --course_id 12345 --download_folder "C:\Downloads"
 
-    https://school.instructure.com/courses
+# Export course content to Excel
+canvas_bot.exe --course_id 12345 --output_as_excel "C:\Reports"
 
-#### Canvas API URL
-
-The Canvas API Url is the URL of the Canvas API. This is the URL that you use to access the Canvas API. The URL will look something like this:
-
-    https://school.instructure.com/api/v1
-
-Please consult with your Canvas administrator if you are unsure of the Canvas API URL.
-
-### Permission Requirements
-
-The CanvasBot only requires read access to a canvas course. It does not require any write access. As a Canvas LMS account holder who is likely providing support services for Faculty, we recommend that you advocate for the creation of a Canvas LMS account that is granted read access to all courses. This account should not be granted write access to any courses.
-
+# Export to JSON
+canvas_bot.exe --course_id 12345 --output_as_json "C:\Reports"
+```
 
 ## Usage
 
-
-### Scraping a single course. 
-
-
-To scrape a single course, you will need to know the course ID. In command prompt or powershell, navigate to the directory where you downloaded the executable.
-
-Run the following command:
-
-    canvas_bot.exe --course_id 12345
-
-
-### Scraping multiple courses
-To scrape multiple courses, you will need to create a text file with a list of course IDs. Each course ID should be on a new line. In command prompt or powershell, navigate to the directory where you downloaded the executable.
-
-    canvas_bot.exe --course_id_list course_ids.txt
-
-
 ### Downloading Files
-To download files, you will need to specify a download folder. In command prompt or powershell, navigate to the directory where you downloaded the executable. Pass the flag `--download_folder` and the path to the download folder. Make sure to quote your path if it contains spaces.
 
-    canvas_bot.exe --course_id 12345 --download_folder "C:\Users\Downloads"
+#### Single Course
 
+```bash
+canvas_bot.exe --course_id 12345 --download_folder "C:\Downloads"
+```
 
-By default, the program only downloads document-like files, such as PDF and MS Word. If you want to download other file types, such as videos and images, you will need to pass the following flags:
+#### Multiple Courses
 
-    canvas_bot.exe --course_id 12345 --download_folder C:\Users\Downloads --include_video_files --include_audio_files --include_image_files
+Create a text file with course IDs (one per line):
+
+```bash
+canvas_bot.exe --course_id_list courses.txt --download_folder "C:\Downloads"
+```
+
+#### Include Additional File Types
+
+By default, only documents are downloaded. Add flags for other types:
+
+```bash
+canvas_bot.exe --course_id 12345 --download_folder "C:\Downloads" \
+    --include_video_files \
+    --include_audio_files \
+    --include_image_files
+```
+
+#### Flatten Directory Structure
+
+Download all files to a single folder instead of preserving course structure:
+
+```bash
+canvas_bot.exe --course_id 12345 --download_folder "C:\Downloads" --flatten
+```
 
 #### Download Manifest
 
-The bot will track which files have been successfully downloaded. This is done by creating a file called `download_manifest.json` in the same directory as the course specified by `--download_folder`.
-This file contains a list of all the files that have been downloaded. If you want to download all files again, you will need to delete the course folder. The workflow that inspired this project comes
-from student workers. We want the students to be able to run the bot every day any only work on files that have been added since the last time they ran the bot. Consequently, each time the bot runs, a new folder is created with the current date. The bot will only download files that are not in the download manifest.
-If there are no new files to download, the bot will not create a new folder.
+CanvasBot tracks downloaded files in `download_manifest.yaml` to prevent re-downloads. Each run creates a date-stamped folder with only new files. Delete the course folder to re-download everything.
 
+#### Shortcuts for Failed Downloads
 
-#### Shortcuts
+If a file cannot be downloaded (authentication required, unavailable, etc.), CanvasBot creates a Windows shortcut (.lnk) to the URL for manual investigation.
 
-If for any reason the bot was unable to successfully download a file,
-it will create a shortcut to the URI where the file was found.
-The user can investigate why the resource was unavailable.
+### Exporting Data
 
+#### Excel Export
 
-### Flattening the Course Structure
+Generate a macro-enabled workbook (.xlsm) with content organized by type:
 
-By default, the program will download files into a folder structure that matches the course structure.
-If you want to download all files into a single folder, you will need to pass the `--flatten` flag.
+```bash
+canvas_bot.exe --course_id 12345 --output_as_excel "C:\Reports"
+```
 
-    canvas_bot.exe --course_id 12345 --download_folder C:\Users\Downloads --flatten
+**Sheets included:**
+- Documents
+- Document Sites
+- Video Files
+- Video Sites
+- Audio Files
+- Audio Sites
+- Image Files
+- Unsorted
 
-Flattening the course structure makes it easier to work with all the files in a course. 
+Features:
+- Dropdown validation for tracking status
+- Conditional formatting
+- Hyperlinks to source pages and downloaded files
 
-### Export Course Data as JSON
+#### JSON Export
 
-All course data can be exported as a JSON file. This file contains all the URLs found in the course,
-categorized by content type.
+Export all content metadata to JSON:
 
-    canvas_bot.exe --course_id 12345 --output_as_json "C:\Users\Downloads"
+```bash
+canvas_bot.exe --course_id 12345 --output_as_json "C:\Reports"
+```
 
+**Example output:**
 
-The following is an example of a JSON file:
-
-    {
-        "course_id": 12345,
-        "course_name": "Course Name",
-        "course_url": "https://canvas.instructure.com/courses/12345",
-        "content": {
-            "documents": [
-                {
-                    "file_type": "pdf",
-                    "is_hidden": false,
-                    "order": 3,
-                    "scan_date": "2023-04-05 10:57:11.526804",
-                    "source_page_type": "Page",
-                    "source_page_url": "https://yourschool.instructure.com/courses/17899/pages/a-course-page",
-                    "title": "a_pdf_file_in_a_course.pdf",
-                    "url": "https://school.instructure.com/files/134695/download?download_frd=1&verifier=3t2tg2tg4g4g34g34g43g"
-
-                }
-            ]
-            "videos":
-                "video_sites": [
-                    {
-                    "is_hidden": false,
-                    "order": 17,
-                    "scan_date": "2023-04-05 10:57:11.527797",
-                    "source_page_type": "Discussion",
-                    "source_page_url": "https://yourschool.instructure.com/courses/17899/discussion_topics/94137",
-                    "title": "How A Folk Singer\u2019s Murder Forced Chile to Confront Its Past",
-                    "url": "https://www.youtube.com/watch?v=j-8nhA-j2yo"
-    
-                    }
-                ]
-                "video_files": [
-                    {
-                        "file_type": "mp4",
-                        "is_hidden": false,
-                        "order": 3,
-                        "scan_date": "2023-04-05 10:57:11.526804",
-                        "source_page_type": "Page",
-                        "source_page_url": "https://yourschool.instructure.com/courses/17899/pages/a-course-page",
-                        "title": "a_video_file_in_a_course.mp4",
-                        "url": "https://school.instructure.com/files/1213695/download?download_frd=1&verifier=3t2tg2tg4g4g34g34g43g"
-    
-                    }
-            ]
-
-        }
+```json
+{
+  "course_id": "12345",
+  "course_name": "Introduction to Biology",
+  "course_url": "https://yourschool.instructure.com/courses/12345",
+  "content": {
+    "documents": [
+      {
+        "title": "Syllabus.pdf",
+        "url": "https://yourschool.instructure.com/files/123/download",
+        "file_type": "pdf",
+        "source_page_type": "Page",
+        "source_page_url": "https://yourschool.instructure.com/courses/12345/pages/welcome",
+        "is_hidden": false,
+        "order": 1
+      }
+    ],
+    "videos": {
+      "video_sites": [...],
+      "video_files": [...]
     }
+  }
+}
+```
 
-The ability to export a course's instructional material content in JSON is a usefull feature. You can use this data to
-easily build your own accessible media integrations. 
+#### Content Tree Visualization
 
+Display the course structure in the console:
 
-### Course Content Tree
+```bash
+canvas_bot.exe --course_id 12345 --show_content_tree
+```
 
-The SF State CanvasBot will generate a visual content tree of the course you are downloading.
-This tree will show you the structure of the course and the files that are included in each module, page etc.
-The following is an example of a course content tree:
+### Pattern Management
 
+CanvasBot uses regex patterns to classify content. You can manage these patterns via CLI:
 
-![Canvas Tree](https://dprc-photos.s3.us-west-2.amazonaws.com/CourseTree.PNG)
+#### List Patterns
 
+```bash
+# List all pattern categories
+canvas_bot.exe --patterns-list
 
-### Logging
+# List patterns in a specific category
+canvas_bot.exe --patterns-list document_content_regex
+```
 
-The SF State CanvasBot will generate a log file of the course you are downloading. Errors and warnings will be logged to this file.
+#### Add Patterns
 
+```bash
+# Add a pattern (with confirmation prompt)
+canvas_bot.exe --patterns-add document_content_regex ".*\.odt"
 
-### Excel File
+# Add without confirmation
+canvas_bot.exe --patterns-add document_content_regex ".*\.odt" -y
+```
 
-The SF State CanvasBot will generate a macro enabled Excel file of the course you are downloading. You will need to enable
-macro support in Excel to use this feature.
+#### Remove Patterns
 
-Content is divided into sheets by type:
+```bash
+canvas_bot.exe --patterns-remove document_content_regex ".*\.odt" -y
+```
 
-* Documents
-* Document Sites
-* Image Files
-* Video Files
-* Video Sites
-* Audio Files
-* Audio Sites
-* Unsorted
+#### Test Pattern Matching
 
-The Excel file can use the save path of files you download as hyperlinks, making it easy to directly inspect documents.
+```bash
+# Test what categories match a URL or filename
+canvas_bot.exe --patterns-test "myfile.pdf"
+canvas_bot.exe --patterns-test "https://youtube.com/watch?v=abc123"
+```
 
+#### Validate Pattern Syntax
 
-### Video Caption Inspection.
+```bash
+canvas_bot.exe --patterns-validate ".*\.pdf"
+```
 
-Currently this only supports the YouTube API. setting the `'--check_video_site_caption_status'` flag will tell the bot
-to check if a YouTube vide is captioned. 
+#### Reset to Defaults
 
+```bash
+canvas_bot.exe --patterns-reset -y
+```
 
-### Program Flags
+### Course List Export
 
-| Flag                                | Description                                                                                       | Default |
-|-------------------------------------|---------------------------------------------------------------------------------------------------|---------|
-| `--course_id TEXT`                  | The course ID to scrape                                                                           |         |
-| `--course_id_list TEXT`             | Text file containing a list of course IDs to scrape (one per line)                                |         |
-| `--download_folder TEXT`            | The location to download files to                                                                 |         |
-| `--output_as_json TEXT`             | Output the content tree as a JSON file (pass the directory to save the file to)                   |         |
-| `--output_as_excel TEXT`            | Outputs course content into an excel file sorted by type (pass the directory to save the file to) | False   |
-| `--include_video_files`             | Include video files in download                                                                   | False   |
-| `--include_audio_files`             | Include audio files in download                                                                   | False   |
-| `--include_image_files`             | Include image files in download                                                                   | False   |
-| `--flatten`                         | Excludes course structure and downloads all files to the same directory                           | False   |
-| `--flush_after_download`            | Deletes all files after download                                                                  | False   |
-| `--download_hidden_files`           | Downloads files hidden from students                                                              | False   |
-| `--show_content_tree`               | Prints a content tree of the course to the console                                                | False   |
-| `--reset_params`                    | Resets API Token and config file                                                                  | False   |
-| `--check_video_site_caption_status` | Checks if a video has captions (currently only YouTube)                                           | False   |
-| `--reset_canvas_studio_params`      | Deletes Canvas Studio Client ID and Secret and re-initialized the auth flow                       | INFO    |
+Export a list of all courses you have access to:
 
-### Obtaining a Canvas API Access Token
+```bash
+# Export all courses to CSV
+canvas_bot.exe --export_course_list
 
-Please contact your Canvas LMS campus administrator to enable your account to use the Canvas API.
-Once your account has been enabled, you will need to obtain an API access token.
-This token will be used to authenticate your account when using the SF State CanvasBot.
+# Filter by semester code
+canvas_bot.exe --export_course_list --semester_filter fa24
+```
 
-The API Token is stored as an encrypted password using Windows Credential Vault. 
+### Video Caption Status
 
-Canvas Integrations can be accessed in your account settings. <br> Go to Account > Settings > Approved Integrations.
-Click on the New Access Token button to generate a new access token. <br>
-![Canvas Integration](https://dprc-photos.s3.us-west-2.amazonaws.com/AddAPIToken.PNG)
+Check if YouTube videos have captions:
 
-Give a name to your token and click Generate Token. <br>
-![New Access Token](https://dprc-photos.s3.us-west-2.amazonaws.com/NewAccessToken.PNG)
+```bash
+canvas_bot.exe --course_id 12345 --output_as_excel "C:\Reports" \
+    --check_video_site_caption_status
+```
 
-Copy the token. Once copied you won't be able to see it again. <br>
-![Access Token Details](https://dprc-photos.s3.us-west-2.amazonaws.com/AccessTokenDetails.PNG)
+## Configuration
 
-Once the token has been generated, you will need to enter it into the CanvasBot.
-When you first run the program you will be prompted.<br>
-![Access Token Details](https://dprc-photos.s3.us-west-2.amazonaws.com/EnterAccessToken.PNG)
+### Credential Storage
 
-If you've entered the wrong token, you can reset the token by running the program with the `--reset_params` flag.
+Credentials are stored securely in Windows Credential Vault:
+- Canvas API Token
+- Canvas Studio OAuth tokens (client ID, secret, access/refresh tokens)
 
-    canvasbot.exe --reset_params
+### Configuration Files
+
+| File | Location | Purpose |
+|------|----------|---------|
+| `config.json` | `%APPDATA%\canvas bot\` | Instance URLs and settings |
+| `re.yaml` | `%APPDATA%\canvas bot\` | User-customized patterns |
+| `canvas_bot.log` | `%APPDATA%\canvas bot\` | Application logs |
+
+### Reset Configuration
+
+```bash
+# Reset Canvas API credentials
+canvas_bot.exe --reset_canvas_params
+
+# Reset Canvas Studio OAuth
+canvas_bot.exe --reset_canvas_studio_params
+
+# View current configuration status
+canvas_bot.exe --config_status
+```
+
+## Pipeline Testing
+
+CanvasBot includes a testing framework to validate the content extraction pipeline.
+
+### Purpose
+
+Validates that raw Canvas API data is correctly transformed:
+- `display_name` vs `filename` handling
+- URL decoding of filenames
+- Extension preservation
+- Windows-safe filename generation
+
+### Usage
+
+```bash
+# Collect test data from courses (requires API access)
+python -m test.pipeline_testing batch-collect --range 34000-35000 --output corpus.json
+
+# Run tests offline against collected data
+python -m test.pipeline_testing batch-test --corpus corpus.json
+
+# Direct comparison of raw vs processed output
+python -m test.pipeline_testing compare --raw raw.json --processed processed.json
+```
+
+### Test Commands
+
+| Command | Description |
+|---------|-------------|
+| `collect` | Collect raw API data from single course |
+| `batch-collect` | Collect from many courses (1 API call each) |
+| `batch-test` | Test pipeline offline against corpus |
+| `test` | Direct pipeline test against raw data |
+| `compare` | Compare raw API vs processed output |
+| `side-by-side` | Visual comparison output |
+
+## Program Flags Reference
+
+### Course Selection
+
+| Flag | Description |
+|------|-------------|
+| `--course_id TEXT` | Single course ID to process |
+| `--course_id_list TEXT` | File containing course IDs (one per line) |
+
+### Output Options
+
+| Flag | Description |
+|------|-------------|
+| `--download_folder TEXT` | Directory for downloaded files |
+| `--output_as_json TEXT` | Export content to JSON (specify directory) |
+| `--output_as_excel TEXT` | Export content to Excel (specify directory) |
+| `--show_content_tree` | Display course structure in console |
+
+### Download Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--include_video_files` | Include video files in download | False |
+| `--include_audio_files` | Include audio files in download | False |
+| `--include_image_files` | Include image files in download | False |
+| `--flatten` | Download all files to single directory | False |
+| `--download_hidden_files` | Include content hidden from students | False |
+| `--flush_after_download` | Delete files after processing | False |
+
+### Pattern Management
+
+| Flag | Description |
+|------|-------------|
+| `--patterns-list [CATEGORY]` | List all patterns or patterns in category |
+| `--patterns-add CATEGORY PATTERN` | Add pattern to category |
+| `--patterns-remove CATEGORY PATTERN` | Remove pattern from category |
+| `--patterns-test TEXT` | Test what categories match input |
+| `--patterns-validate TEXT` | Validate regex syntax |
+| `--patterns-reset` | Reset patterns to defaults |
+| `-y` | Skip confirmation prompts |
+
+### Configuration
+
+| Flag | Description |
+|------|-------------|
+| `--reset_canvas_params` | Reset Canvas API credentials |
+| `--reset_canvas_studio_params` | Reset Canvas Studio OAuth |
+| `--config_status` | Show current configuration |
+| `--export_course_list` | Export list of accessible courses |
+| `--semester_filter TEXT` | Filter course list by semester code |
+
+### Other Options
+
+| Flag | Description |
+|------|-------------|
+| `--check_video_site_caption_status` | Check YouTube caption availability |
+
+## Obtaining a Canvas API Access Token
+
+1. Log into Canvas
+2. Go to **Account > Settings**
+3. Scroll to **Approved Integrations**
+4. Click **+ New Access Token**
+5. Name your token and click **Generate Token**
+6. Copy the token immediately (it won't be shown again)
+
+The token is stored encrypted in Windows Credential Vault.
+
+### Permission Requirements
+
+CanvasBot only requires **read access** to courses. For institutional deployment, we recommend creating a service account with read-only access to all courses.
 
 ## Support
 
-This tool is a work in progress. Please contact me at <fontaine@sfsu.edu> if you have any questions, suggestions or bug reports.
+Contact: fontaine@sfsu.edu
 
+For bug reports and feature requests: [GitHub Issues](https://github.com/Fontaineconsult/canvas-bot-v2/issues)
 
+## Version History
 
-### Version History
+### 1.0.0
 
-#### 0.1.2
+**Major release** with significant new features and stability improvements.
 
-* Added support for macro enabled excel workbook to help view all content in a course. 
-* YouTube API added for video caption inspection.
-* Logging Added
+**New Features:**
+- Pattern management CLI (`--patterns-list`, `--patterns-add`, `--patterns-remove`, `--patterns-test`, `--patterns-validate`, `--patterns-reset`)
+- Pipeline testing framework for validating content extraction
+- Course list export with semester filtering (`--export_course_list`, `--semester_filter`)
+- Configuration status command (`--config_status`)
 
+**Bug Fixes:**
+- Fixed filename derivation to prefer `display_name` over URL-encoded `filename`
+- Added URL decoding for filenames (converts `+` to spaces)
+- Improved Canvas Studio embed detection
 
-#### 0.1.5
+**Testing:**
+- Validated against 27,000+ files across 499 courses with 99.7% pass rate
 
-* Many bug fixes
-* Added support for canvas studio
+### 0.1.5
 
+- Canvas Studio integration
+- Many bug fixes
 
-#### 0.1.6
+### 0.1.2
 
-* Many more bug fixes
-* Added a way to find embeded canvas studio videos rather than relying only on videos uploaded directly to Canvas Studio.
+- Macro-enabled Excel workbook export
+- YouTube API integration for caption checking
+- Logging system
 
+### 0.1.0
 
-### Future Features
+- Initial release
 
-- [ ] Add GUI interface for easier use
-- [ ] Add the ability to easily customize the filters for what content is tracked.
-- [ ] Add better support scraping Box, DropBox, Google Drive, etc.
+## Future Features
 
-### Known Issues
+- [ ] GUI interface
+- [ ] Better Box/Dropbox/Google Drive support
+- [ ] Batch accessibility reporting
 
-- [ ] Windows is finicky about the directory paths used to create shortcuts. I'm still testing to work out the best way to handle this.
-- [ ] Directory paths can also be very long depending on the title of courses and modules. This can cause issues with Windows.
+## Known Issues
 
+- Long directory paths may cause issues on Windows (260 character limit)
+- Some shortcut creation may fail depending on path characters
 
 ## License
 
 MIT License
 
-Copyright (c) 2023 Daniel Fontaine
+Copyright (c) 2023-2026 Daniel Fontaine
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

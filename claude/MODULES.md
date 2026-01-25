@@ -462,3 +462,147 @@ Uses patterns from `config/re.yaml` to classify URLs.
 **Key Functions:**
 - `sort_by_type(nodes)` - Group nodes by content type
 - `sort_by_module(nodes)` - Group nodes by source module
+
+---
+
+## Pipeline Testing Module (test/pipeline_testing/)
+
+### cli.py
+**Purpose:** Click CLI interface for pipeline testing commands
+
+**Commands:**
+| Command | Description |
+|---------|-------------|
+| `collect` | Collect raw API data from a single course |
+| `batch-collect` | Efficiently collect from many courses (1 API call per course) |
+| `batch-test` | Test pipeline offline against collected corpus |
+| `test` | Direct pipeline test against single raw data file |
+| `test-all` | Test all raw data files in a directory |
+| `compare` | Compare raw API data vs processed output |
+| `compare-all` | Compare all raw/processed pairs in directory |
+| `side-by-side` | Visual side-by-side comparison |
+| `summary` | Show summary of collected test data |
+| `samples` | Show sample entries from raw data |
+
+**Usage:**
+```bash
+# Collect from course range
+python -m test.pipeline_testing batch-collect --range 34000-35000 --output corpus.json
+
+# Test offline
+python -m test.pipeline_testing batch-test --corpus corpus.json
+```
+
+---
+
+### batch_collector.py
+**Purpose:** Efficient batch collection from many courses with minimal API usage
+
+**Key Classes:**
+- `BatchCollector` - Collects minimal data from courses
+
+**Key Functions:**
+- `extract_essential(raw)` - Extract only essential fields from API response
+- `print_corpus_summary(corpus)` - Print collection statistics
+
+**Essential Fields:**
+Only these 4 fields are stored per file to minimize storage:
+- `id` - File ID
+- `display_name` - Human-readable filename
+- `filename` - URL-encoded filename
+- `mime_class` - File type classification
+
+**Key Methods:**
+- `collect_course(course_id)` - Collect from single course (1 API call)
+- `collect_batch(course_ids, output_file)` - Collect from multiple courses
+- `collect_from_range(start, end, output_file)` - Collect from ID range
+- `collect_from_file(course_list_file, output_file)` - Collect from file of IDs
+
+---
+
+### batch_tester.py
+**Purpose:** Offline batch testing against collected corpus
+
+**Key Classes:**
+- `FileTestResult` - Result of testing one file entry
+- `MockNode` - Mock content node matching fixed pipeline logic
+- `BatchTester` - Tests pipeline against batch-collected corpus
+
+**Key Functions:**
+- `derive_file_name_test(node)` - Test version of derive_file_name logic
+
+**Key Methods:**
+- `test_file(raw)` - Test single file entry
+- `test_corpus(corpus_file)` - Test all files in corpus
+- `get_summary()` - Get test summary statistics
+- `print_report()` - Print formatted test report
+- `save_report(output_file)` - Save detailed report to JSON
+
+**Validation Rules:**
+- Title should match display_name
+- Derived filename should match display_name
+- No unresolved URL encoding (+ signs from encoding)
+- No empty filenames
+
+---
+
+### direct_tester.py
+**Purpose:** Direct pipeline function testing against raw API data
+
+**Key Classes:**
+- `TestResult` - Result of testing one raw API item
+- `MockNode` - Mock content node for testing derive_file_name
+- `DirectPipelineTester` - Tests pipeline functions directly
+
+**Key Methods:**
+- `load_raw_data(raw_file)` - Load raw API data file
+- `extract_files(data)` - Extract file entries from raw data
+- `test_derive_file_name(raw_api)` - Test derive_file_name() directly
+- `test_file(raw_api)` - Test single file through pipeline
+- `test_raw_file(raw_file)` - Test all entries in raw file
+
+**Imports actual pipeline code:**
+```python
+from core.downloader import derive_file_name
+```
+
+---
+
+### collector.py
+**Purpose:** Single-course raw data collector
+
+**Key Classes:**
+- `PipelineTestCollector` - Collects comprehensive raw data
+
+**Key Methods:**
+- `collect_from_course(course_id)` - Collect all data from one course
+- `collect_from_range(start_id, end_id, output_dir)` - Collect from ID range
+- `collect_from_file(course_file, output_dir)` - Collect from file of IDs
+
+**Data Collected:**
+- Files API response
+- Media objects API response
+- Summary statistics
+
+---
+
+### comparator.py
+**Purpose:** Compare raw API data with pipeline output
+
+**Key Classes:**
+- `ComparisonResult` - Result of comparing one item
+- `PipelineComparator` - Compares raw vs processed data
+
+**Key Methods:**
+- `compare(raw_file, processed_file)` - Compare two files
+- `print_report()` - Print comparison report
+- `save_report(output_file)` - Save comparison to JSON
+
+---
+
+### side_by_side.py
+**Purpose:** Visual side-by-side comparison output
+
+**Key Functions:**
+- `print_comparison_table(raw_file, processed_file)` - Print comparison table
+- `print_detailed_comparison(raw_file, processed_file, limit)` - Print detailed examples
