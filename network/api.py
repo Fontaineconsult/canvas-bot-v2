@@ -36,7 +36,6 @@ def response_handler(request_url):
     try:
         # Perform the GET request
         request = requests.get(request_url, verify=False)
-        print(request.content)
     except ConnectionError as exc:
         # Log and warn for connection errors
         log.exception(f"Connection error occurred: {exc} | URL: {request_url}")
