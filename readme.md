@@ -5,6 +5,8 @@ A command-line tool for downloading, auditing, and organizing content from Canva
 ## Table of Contents
 
 - [Overview](#overview)
+  - [Features](#features)
+  - [Content Types](#content-types)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
@@ -27,6 +29,127 @@ CanvasBot is a Windows command-line tool designed for accessible media coordinat
 - **Categorize** embedded content by type using configurable regex patterns
 - **Export** content inventories to Excel or JSON for accessibility auditing
 - **Track** download progress to avoid re-downloading files
+
+### Features
+
+#### Structured File Downloads
+
+Download course content into organized folder structures that mirror the Canvas course hierarchy. Files are organized by module, assignment, and content type for easy navigation.
+
+```bash
+canvas_bot.exe --course_id 12345 --download_folder "C:\Downloads" --include_video_files
+```
+
+**Output structure:**
+```
+Biology 101 - 12345/
+├── 26-01-2026/
+│   ├── Module 1 - Introduction/
+│   │   ├── Documents/
+│   │   │   └── syllabus.pdf
+│   │   └── VideoFiles/
+│   │       └── welcome_video.mp4
+│   └── Module 2 - Cell Biology/
+│       └── Documents/
+│           └── lecture_notes.docx
+```
+
+![Structured Downloads](docs/images/example_of_folder_structure_with_downloaded_files_by_course_structure.png)
+
+---
+
+#### Daily Incremental Downloads
+
+CanvasBot tracks previously downloaded files in a manifest, so running it daily only downloads new content. Each run creates a date-stamped folder with only the files added since your last download.
+
+```bash
+# Run daily - only new files are downloaded
+canvas_bot.exe --course_id 12345 --download_folder "C:\Downloads"
+```
+
+This makes it ideal for:
+- Automated daily content audits
+- Keeping local copies in sync with Canvas
+- Archiving course materials over time
+
+![Download Progress](docs/images/example_of_downloading_files_display.png)
+
+---
+
+#### Visual Content Tree
+
+Inspect course content structure directly in the terminal with a color-coded tree view. See all content types, hidden items, caption status, and clickable URLs at a glance.
+
+```bash
+canvas_bot.exe --course_id 12345 --show_content_tree
+```
+
+**Example output:**
+```
+🎓 Biology 101 | Course ID: 12345
+│  ↳ https://yourschool.instructure.com/courses/12345
+├── 📚 Modules
+│   └── 📖 Module: Introduction to Biology
+│       ├── 📄 Document: Syllabus.pdf
+│       │     ↳ https://yourschool.instructure.com/files/123/download
+│       ├── 🎬 VideoFile: Welcome Video.mp4
+│       │     ↳ https://yourschool.instructure.com/files/456/download
+│       └── 📹 VideoSite [no CC]: Introduction Lecture
+│             ↳ https://www.youtube.com/watch?v=abc123
+```
+
+Features:
+- Color-coded by content type
+- `[hidden]` indicator for unpublished content
+- `[CC]` / `[no CC]` caption status for videos
+- Full URLs for easy access
+
+![Content Tree](docs/images/example_of_course_tree_module_and_documents.png)
+
+After scanning, view a summary of all discovered content by type:
+
+![Content Summary](docs/images/example_of_resource_and_document_counts_after_scan.png)
+
+---
+
+#### JSON Export for Integration
+
+Export complete course content metadata to JSON for integration with other systems, custom reporting, or programmatic analysis.
+
+```bash
+canvas_bot.exe --course_id 12345 --output_as_json "C:\Reports"
+```
+
+Use cases:
+- Feed into accessibility scanning tools
+- Build custom dashboards
+- Integrate with institutional reporting systems
+- Archive course metadata
+
+---
+
+#### Excel Export for Analysis
+
+Generate organized Excel workbooks (.xlsm) with content categorized across multiple sheets. Includes dropdown validation, conditional formatting, and hyperlinks for accessibility tracking workflows.
+
+```bash
+canvas_bot.exe --course_id 12345 --output_as_excel "C:\Reports"
+```
+
+**Sheets included:**
+- Documents & Document Sites
+- Video Files & Video Sites
+- Audio Files & Audio Sites
+- Image Files
+- Unsorted Links
+
+Features:
+- Dropdown menus for tracking review status
+- Hyperlinks to source pages and download URLs
+- Hidden content flagging
+- Ready for accessibility audit workflows
+
+---
 
 ### Content Types
 
