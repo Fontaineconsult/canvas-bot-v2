@@ -54,7 +54,6 @@ def check_media_id(course_id, media_id):
     collection = get_collection_media(collection_id)
 
     for item in collection['media']:
-        print(item)
         if str(item['id']) == str(media_id):
             break
     else:

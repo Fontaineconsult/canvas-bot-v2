@@ -47,7 +47,6 @@ def authorize_studio_token():
 
 
         authorization_redirect_url = CANVAS_STUDIO_AUTHENTICATION_URL + '?' + '&'.join([f"{k}={v}" for k, v in auth_params.items()])
-        print(authorization_redirect_url)
 
         webbrowser.open(authorization_redirect_url)
 

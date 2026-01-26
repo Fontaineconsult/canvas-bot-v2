@@ -46,7 +46,6 @@ class CanvasStudio(Node):
                         continue
 
                     if media_source:
-                        print(media_source)
                         for source in media_source['sources']:
 
                             if source.get('definition') == "low": # we just want the smallest file size

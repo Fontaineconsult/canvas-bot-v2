@@ -306,7 +306,7 @@ def _format_node_display(node, show_urls=True):
             tc = _get_tree_chars()
             arrow = _get_arrow()
             if urls['content_url']:
-                url_lines.append(f"{tc['pipe']}         {Fore.LIGHTBLACK_EX}{arrow}{Style.RESET_ALL} {Fore.BLUE}{_truncate(urls['content_url'], 70)}{Style.RESET_ALL}")
+                url_lines.append(f"{tc['pipe']}         {Fore.LIGHTBLACK_EX}{arrow}{Style.RESET_ALL} {Fore.BLUE}{urls['content_url']}{Style.RESET_ALL}")
 
             # Show download URL only if different from content URL (avoid repetition)
             if urls['download_url'] and urls['download_url'] != urls['content_url']:
@@ -314,7 +314,7 @@ def _format_node_display(node, show_urls=True):
                 content_base = urls['content_url'].split('?')[0] if urls['content_url'] else ''
                 download_base = urls['download_url'].split('?')[0] if urls['download_url'] else ''
                 if content_base != download_base:
-                    url_lines.append(f"{tc['pipe']}         {Fore.LIGHTBLACK_EX}{arrow} Download:{Style.RESET_ALL} {Fore.GREEN}{_truncate(urls['download_url'], 60)}{Style.RESET_ALL}")
+                    url_lines.append(f"{tc['pipe']}         {Fore.LIGHTBLACK_EX}{arrow} Download:{Style.RESET_ALL} {Fore.GREEN}{urls['download_url']}{Style.RESET_ALL}")
 
             if url_lines:
                 main_line += "\n" + "\n".join(url_lines)
@@ -663,9 +663,9 @@ def print_url_report(tree):
         for item in items[:10]:  # Limit to first 10 per type
             print(f"  {Fore.WHITE}{_truncate(item['title'], 50)}{Style.RESET_ALL}")
             if item['content_url']:
-                print(f"    {Fore.BLUE}{_truncate(item['content_url'], 70)}{Style.RESET_ALL}")
+                print(f"    {Fore.BLUE}{item['content_url']}{Style.RESET_ALL}")
             if item['download_url'] and item['download_url'] != item['content_url']:
-                print(f"    {Fore.GREEN}Download: {_truncate(item['download_url'], 60)}{Style.RESET_ALL}")
+                print(f"    {Fore.GREEN}Download: {item['download_url']}{Style.RESET_ALL}")
 
         if len(items) > 10:
             print(f"  {Fore.LIGHTBLACK_EX}... and {len(items) - 10} more{Style.RESET_ALL}")
