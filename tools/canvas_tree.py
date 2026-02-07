@@ -544,16 +544,17 @@ class CanvasTree:
         print(f"    {Fore.RED}Hidden:{Style.RESET_ALL}              {hidden_content:>5}")
         print()
 
-    def _print_url_legend(self):
-        """Print legend explaining URL labels."""
-        print(f"  {Fore.YELLOW}URL Labels:{Style.RESET_ALL}")
-        print(f"    {Fore.LIGHTBLACK_EX}URL:{Style.RESET_ALL}       Content URL (video link, document, external site)")
-        print(f"    {Fore.LIGHTBLACK_EX}Download:{Style.RESET_ALL}  Direct download link for Canvas files")
-        print(f"    {Fore.LIGHTBLACK_EX}Found on:{Style.RESET_ALL}  Canvas page where this content was embedded")
-        print(f"    {Fore.LIGHTBLACK_EX}View:{Style.RESET_ALL}      Canvas page URL for modules, assignments, etc.")
-        print()
-        print(f"{Fore.CYAN}{'=' * 80}{Style.RESET_ALL}")
-        print()
+    # disabled labels, maybe we can use this later
+    # def _print_url_legend(self):
+    #     """Print legend explaining URL labels."""
+    #     print(f"  {Fore.YELLOW}URL Labels:{Style.RESET_ALL}")
+    #     print(f"    {Fore.LIGHTBLACK_EX}URL:{Style.RESET_ALL}       Content URL (video link, document, external site)")
+    #     print(f"    {Fore.LIGHTBLACK_EX}Download:{Style.RESET_ALL}  Direct download link for Canvas files")
+    #     print(f"    {Fore.LIGHTBLACK_EX}Found on:{Style.RESET_ALL}  Canvas page where this content was embedded")
+    #     print(f"    {Fore.LIGHTBLACK_EX}View:{Style.RESET_ALL}      Canvas page URL for modules, assignments, etc.")
+    #     print()
+    #     print(f"{Fore.CYAN}{'=' * 80}{Style.RESET_ALL}")
+    #     print()
 
     def get_statistics(self):
         """Return statistics as a dictionary."""
