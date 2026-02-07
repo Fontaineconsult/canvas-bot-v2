@@ -295,7 +295,8 @@ def _format_node_display(node, show_urls=True):
                 caption_info = f" {Fore.RED}[no CC]{Style.RESET_ALL}"
 
         # Build main line
-        main_line = f"{icon} {color}{node_type}{Style.RESET_ALL} {hidden_indicator}{Fore.WHITE}{title}{Style.RESET_ALL}{caption_info}"
+        # removed caption_info from main_line as the detection system isn't working.
+        main_line = f"{icon} {color}{node_type}{Style.RESET_ALL} {hidden_indicator}{Fore.WHITE}{title}{Style.RESET_ALL}"
 
         # Add URLs if requested
         if show_urls:
