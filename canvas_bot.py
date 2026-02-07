@@ -65,20 +65,13 @@ def load_json_config_file_from_appdata():
     if load_config_data_from_appdata():
         return  # Config already exists
 
-    config = read_config()
-    optional_config_file_keys = config.get('optional_env_file_keys', [])
-
     print("\n" + "=" * 50)
     print("Canvas Bot - Initial Configuration")
     print("=" * 50)
     print("\nThis appears to be your first time running Canvas Bot.")
     print("Let's set up your Canvas instance connection.\n")
 
-    # Step 1: Just ask for the institution identifier
-    print("-" * 50)
-    print("Step 1: Canvas Instance")
-    print("-" * 50)
-    print("\nEnter your institution's Canvas identifier.")
+    print("Enter your institution's Canvas identifier.")
     print("This is the subdomain in your Canvas URL.")
     print("  Example: For 'https://sfsu.instructure.com' enter: sfsu")
     print("  Example: For 'https://myschool.instructure.com' enter: myschool\n")
@@ -94,56 +87,19 @@ def load_json_config_file_from_appdata():
     api_path = f"https://{canvas_domain}.instructure.com/api/v1"
     studio_domain = f"{canvas_domain}.instructuremedia.com"
 
-    print(f"\n[Auto-configured]")
-    print(f"  Canvas URL:     {canvas_url}")
-    print(f"  API Path:       {api_path}")
-    print(f"  Studio Domain:  {studio_domain}")
-
-    # Allow override if needed
-    print("\nPress Enter to accept, or type 'edit' to customize:")
-    override = input("> ").strip().lower()
-
-    if override == 'edit':
-        print("\nCustomize settings (press Enter to keep default):\n")
-        canvas_url = _prompt_with_default("Canvas URL", canvas_url)
-        api_path = _prompt_with_default("API Path", api_path)
-        studio_domain = _prompt_with_default("Studio Domain", studio_domain)
-
     app_config_dict = {
         'CANVAS_COURSE_PAGE_ROOT': canvas_url,
         'API_PATH': api_path,
         'CANVAS_DOMAIN': canvas_domain,
         'CANVAS_STUDIO_DOMAIN': studio_domain,
+        'BOX_DOMAIN': '',
+        'LIBRARY_PROXY_DOMAIN': '',
     }
 
-    # Step 2: Optional settings
-    print("\n" + "-" * 50)
-    print("Step 2: Optional Settings (press Enter to skip)")
-    print("-" * 50 + "\n")
-
-    optional_prompts = {
-        'BOX_DOMAIN': f"Box.com domain (e.g., {canvas_domain}.app.box.com)",
-        'LIBRARY_PROXY_DOMAIN': "Library proxy domain (if your institution uses one)",
-    }
-
-    for key in optional_config_file_keys:
-        prompt = optional_prompts.get(key, f"Enter {key}")
-        value = input(f"{prompt}: ").strip()
-        app_config_dict[key] = value if value else ''
-
-    # Step 3: Show summary and confirm
-    print("\n" + "=" * 50)
-    print("Configuration Summary")
-    print("=" * 50)
-    print(f"\n  Canvas URL:          {app_config_dict['CANVAS_COURSE_PAGE_ROOT']}")
-    print(f"  Canvas Domain:       {app_config_dict['CANVAS_DOMAIN']}")
-    print(f"  API Path:            {app_config_dict['API_PATH']}")
-    print(f"  Canvas Studio:       {app_config_dict['CANVAS_STUDIO_DOMAIN']}")
-
-    if app_config_dict.get('BOX_DOMAIN'):
-        print(f"  Box Domain:          {app_config_dict['BOX_DOMAIN']}")
-    if app_config_dict.get('LIBRARY_PROXY_DOMAIN'):
-        print(f"  Library Proxy:       {app_config_dict['LIBRARY_PROXY_DOMAIN']}")
+    print(f"\n[Auto-configured]")
+    print(f"  Canvas URL:     {canvas_url}")
+    print(f"  API Path:       {api_path}")
+    print(f"  Studio Domain:  {studio_domain}")
 
     print()
     confirm = input("Save this configuration? (yes/no): ").strip().lower()
@@ -313,8 +269,6 @@ def show_config_status():
                 ('API_PATH', 'API Path'),
                 ('CANVAS_DOMAIN', 'Canvas Domain'),
                 ('CANVAS_STUDIO_DOMAIN', 'Canvas Studio Domain'),
-                ('BOX_DOMAIN', 'Box Domain'),
-                ('LIBRARY_PROXY_DOMAIN', 'Library Proxy'),
             ]
 
             for key, label in display_keys:
