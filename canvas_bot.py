@@ -567,6 +567,10 @@ class CanvasBot(CanvasCourseRoot):
 
     def print_content_tree(self):
         if self.exists:
+            return self.canvas_tree.show_content_only()
+
+    def print_full_course(self):
+        if self.exists:
             return self.canvas_tree.show_nodes()
 
 
@@ -613,8 +617,10 @@ if __name__=='__main__':
                   help='Delete downloaded files after processing. Use for temporary extraction workflows.')
 
     # === Display & Debug ===
-    @click.option('--show_content_tree', is_flag=True,
-                  help='Print a visual tree of the course structure and discovered content to the console.')
+    @click.option('--print_content_tree', is_flag=True,
+                  help='Print course tree showing only resources that contain content.')
+    @click.option('--print_full_course', is_flag=True,
+                  help='Print complete course tree including all resources.')
 
     # === Configuration ===
     @click.option('--config_status', is_flag=True,
@@ -671,7 +677,8 @@ if __name__=='__main__':
              flatten,
              flush_after_download,
              download_hidden_files,
-             show_content_tree,
+             print_content_tree,
+             print_full_course,
              config_status,
              reset_canvas_params,
              reset_canvas_studio_params,
@@ -750,7 +757,8 @@ if __name__=='__main__':
             "flatten": flatten,
             "flush_after_download": flush_after_download,
             "download_hidden_files": download_hidden_files,
-            "show_content_tree": show_content_tree,
+            "print_content_tree": print_content_tree,
+            "print_full_course": print_full_course,
             "reset_params": reset_canvas_params,
             "check_video_site_caption_status": check_video_site_caption_status,
             "reset_canvas_studio_params": reset_canvas_studio_params,
@@ -790,8 +798,11 @@ if __name__=='__main__':
                 print("No course ID provided. Exiting")
                 sys.exit()
 
-            if show_content_tree:
+            if print_content_tree:
                 bot.print_content_tree()
+
+            if print_full_course:
+                bot.print_full_course()
 
             if ctx.params.get('download_folder'):
                 bot.download_files(download_folder, **params)

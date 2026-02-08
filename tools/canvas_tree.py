@@ -443,6 +443,54 @@ class CanvasTree:
         except Exception as e:
             warnings.warn(f"Could not add node {node}: {e}")
 
+    def show_content_only(self, show_stats=True, show_urls=True):
+        """Display tree showing only resource nodes that contain content."""
+        from core.content_scaffolds import build_path
+
+        # 1. Collect IDs of all nodes to keep
+        keep_ids = set()
+
+        # Add root node
+        for node_id, node in self._node_registry.items():
+            if hasattr(node, 'root_node'):
+                keep_ids.add(node_id)
+                break
+
+        # For each content node, use build_path to get full ancestor chain
+        for node_id, node in self._node_registry.items():
+            if getattr(node, 'is_content', False):
+                keep_ids.add(node_id)
+                for ancestor in build_path(node, ignore_root=True):
+                    keep_ids.add(str(id(ancestor)))
+
+        # 2. Build filtered tree copy (BFS order preserves parent-child structure)
+        filtered_tree = Tree()
+        for node_id in self.tree.expand_tree(mode=Tree.WIDTH):
+            if node_id not in keep_ids:
+                continue
+
+            original_node = self.tree.get_node(node_id)
+            parent_id = original_node.predecessor(self.tree.identifier)
+
+            # Refresh display using existing _format_node_display
+            reg_node = self._node_registry.get(node_id)
+            if reg_node and not hasattr(reg_node, 'root_node'):
+                display = _format_node_display(reg_node, show_urls=show_urls)
+            else:
+                display = original_node.tag
+
+            if parent_id is None:
+                filtered_tree.create_node(display, node_id)
+            else:
+                filtered_tree.create_node(display, node_id, parent=parent_id)
+
+        # 3. Display using existing header/stats methods
+        if show_stats:
+            self._print_header()
+        print(filtered_tree.show(stdout=False))
+        if show_stats:
+            self._print_statistics()
+
     def show_nodes(self, show_stats=True, show_urls=True):
         """
         Display the tree with optional statistics and URLs.
