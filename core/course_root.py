@@ -86,4 +86,7 @@ class CanvasCourseRoot(ContentExtractor):
         self.media_objects = CanvasMediaObjects(self.course_id, self)
 
 
+        from tools.warning_collector import get_collector
+        get_collector().flush()
+
         print("Import Complete\n")

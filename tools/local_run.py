@@ -15,7 +15,7 @@ cpage = [
 # for course in range(35000,40000):
 
 
-bot = CanvasBot(str(35006))
+bot = CanvasBot(str(46120))
 bot.start()
 bot.print_content_tree()
 # bot.download_files(

@@ -32,19 +32,38 @@ if __name__=="__main__":
     load_config_data_from_appdata()
 
 
+def _clean_url(url):
+    """Strip access_token from URL for safe display."""
+    if 'access_token=' in url:
+        url = url.split('access_token=')[0].rstrip('?&')
+    return url
+
+
+def _extract_error_message(error_data):
+    """Extract human-readable message from Canvas API error response."""
+    if isinstance(error_data, dict):
+        # Canvas format: {'errors': [{'message': '...'}], 'status': '...'}
+        errors = error_data.get('errors', [])
+        if errors and isinstance(errors[0], dict):
+            return errors[0].get('message', error_data.get('status', str(error_data)))
+        return error_data.get('status', error_data.get('message', str(error_data)))
+    return str(error_data)
+
+
 def response_handler(request_url):
+    clean_url = _clean_url(request_url)
     try:
         # Perform the GET request
         request = requests.get(request_url, verify=False)
     except ConnectionError as exc:
         # Log and warn for connection errors
         log.exception(f"Connection error occurred: {exc} | URL: {request_url}")
-        warnings.warn(f"Connection error: {exc} | URL: {request_url}", UserWarning)
+        warnings.warn(f"Connection error\n    {clean_url}", UserWarning)
         return False
     except MissingSchema as exc:
         # Log and warn for invalid URL schema
         log.exception(f"Invalid URL schema: {exc} | URL: {request_url}")
-        warnings.warn(f"Invalid URL schema: {exc} | URL: {request_url}", UserWarning)
+        warnings.warn(f"Invalid URL\n    {clean_url}", UserWarning)
         return None
 
     # Handle HTTP responses
@@ -54,17 +73,17 @@ def response_handler(request_url):
             return json.loads(request.content)
         except json.JSONDecodeError as exc:
             log.exception(f"Failed to decode JSON: {exc} | URL: {request_url}")
-            warnings.warn(f"Invalid JSON response: {exc} | URL: {request_url}", UserWarning)
+            warnings.warn(f"Invalid JSON response\n    {clean_url}", UserWarning)
             return None
     else:
         log.warning(f"Request failed: {request_url} | Status Code: {request.status_code}")
         try:
-            error_message = json.loads(request.content)
+            error_data = json.loads(request.content)
+            error_message = _extract_error_message(error_data)
         except json.JSONDecodeError as exc:
             log.exception(f"Failed to decode error JSON: {exc} | URL: {request_url}")
-            error_message = "Failed to parse error message"
-        warning_message = f"HTTP {request.status_code}: {error_message} | URL: {request_url}"
-        warnings.warn(warning_message, UserWarning)
+            error_message = "Failed to parse error response"
+        warnings.warn(f"HTTP {request.status_code} - {error_message}\n    {clean_url}", UserWarning)
         return None
 
 

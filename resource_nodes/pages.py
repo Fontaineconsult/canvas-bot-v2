@@ -17,7 +17,7 @@ class Pages(Node):
         self.api_request_content = None
         self.get_all_items()
 
-    @animate('Importing Announcements')
+    @animate('Importing Pages')
     def get_all_items(self):
 
         api_request = self.api_request(self.course_id)

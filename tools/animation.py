@@ -93,9 +93,14 @@ def animate(prefix="", show_time=True, spinner_style='dots'):
                     idx += 1
                     time.sleep(0.08)
 
+            from tools.warning_collector import get_collector
+            collector = get_collector()
+
             animation.stop = False
             animation_thread = threading.Thread(target=animation)
             animation_thread.daemon = True
+
+            collector.install()
             animation_thread.start()
 
             try:
@@ -103,6 +108,7 @@ def animate(prefix="", show_time=True, spinner_style='dots'):
             finally:
                 animation.stop = True
                 animation_thread.join(timeout=0.5)
+                collector.uninstall()
 
             # Calculate final time
             elapsed = time.time() - start_time
@@ -141,6 +147,9 @@ class ProgressAnimation:
         self._spinner_chars = None
 
     def __enter__(self):
+        from tools.warning_collector import get_collector
+        self._collector = get_collector()
+
         # Get spinner characters
         try:
             self._spinner_chars = SPINNERS['dots']
@@ -154,6 +163,8 @@ class ProgressAnimation:
         self.stop = False
         self.thread = threading.Thread(target=self._animate)
         self.thread.daemon = True
+
+        self._collector.install()
         self.thread.start()
         return self
 
@@ -161,6 +172,7 @@ class ProgressAnimation:
         self.stop = True
         if self.thread:
             self.thread.join(timeout=0.5)
+        self._collector.uninstall()
 
         elapsed = time.time() - self.start_time
 

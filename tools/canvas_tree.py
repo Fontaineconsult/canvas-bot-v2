@@ -307,7 +307,7 @@ def _format_node_display(node, show_urls=True):
             tc = _get_tree_chars()
             arrow = _get_arrow()
             if urls['content_url']:
-                url_lines.append(f"{tc['pipe']}         {Fore.LIGHTBLACK_EX}{arrow}{Style.RESET_ALL} {Fore.BLUE}{urls['content_url']}{Style.RESET_ALL}")
+                url_lines.append(f"{tc['pipe']}               {Fore.LIGHTBLACK_EX}{arrow}{Style.RESET_ALL} {Fore.BLUE}{urls['content_url']}{Style.RESET_ALL}")
 
             # Show download URL only if different from content URL (avoid repetition)
             if urls['download_url'] and urls['download_url'] != urls['content_url']:
@@ -315,7 +315,7 @@ def _format_node_display(node, show_urls=True):
                 content_base = urls['content_url'].split('?')[0] if urls['content_url'] else ''
                 download_base = urls['download_url'].split('?')[0] if urls['download_url'] else ''
                 if content_base != download_base:
-                    url_lines.append(f"{tc['pipe']}         {Fore.LIGHTBLACK_EX}{arrow} Download:{Style.RESET_ALL} {Fore.GREEN}{urls['download_url']}{Style.RESET_ALL}")
+                    url_lines.append(f"{tc['pipe']}               {Fore.LIGHTBLACK_EX}{arrow} Download:{Style.RESET_ALL} {Fore.GREEN}{urls['download_url']}{Style.RESET_ALL}")
 
             if url_lines:
                 main_line += "\n" + "\n".join(url_lines)
@@ -463,7 +463,6 @@ class CanvasTree:
 
         if show_stats:
             self._print_statistics()
-            self._print_url_legend()
 
     def _refresh_node_displays(self, show_urls=True):
         """
@@ -504,8 +503,13 @@ class CanvasTree:
         resources = []
         content = []
 
+        # Container nodes that are just organizational wrappers (always 1 each)
+        containers = {'Modules', 'Pages', 'Assignments', 'Quizzes',
+                      'Discussions', 'Announcements', 'CanvasFiles',
+                      'CanvasMediaObjects', 'CanvasStudio'}
+
         for node_type, count in sorted(self._stats.items()):
-            if node_type.startswith('_'):
+            if node_type.startswith('_') or node_type in containers:
                 continue
             if node_type in ('Document', 'DocumentSite', 'VideoFile', 'VideoSite',
                            'AudioFile', 'AudioSite', 'ImageFile', 'FileStorageSite',
@@ -521,7 +525,13 @@ class CanvasTree:
             for node_type, count in resources:
                 icon = _get_icon(node_type)
                 color = COLORS.get(node_type, Fore.WHITE)
-                print(f"    {icon} {color}{node_type:<20}{Style.RESET_ALL} {count:>5}")
+                if node_type.endswith('z'):
+                    label = node_type + 'zes'
+                elif node_type.endswith('s'):
+                    label = node_type
+                else:
+                    label = node_type + 's'
+                print(f"    {icon} {color}{label:<20}{Style.RESET_ALL} {count:>5}")
             print()
 
         # Print content
