@@ -34,3 +34,10 @@
 - Removed URL labels from tree display to reduce clutter.
 - Removed call to deleted `_print_url_legend()` method that was causing an `AttributeError`.
 - Files changed: `tools/canvas_tree.py`
+
+### Split Tree Display into Two Modes
+- **Replaced `--show_content_tree`** with two new flags:
+  - `--print_content_tree` — shows only resource nodes that are ancestors of content. Empty branches (modules, pages, etc. with no content children) are hidden entirely.
+  - `--print_full_course` — shows the complete course tree including all resources (previous behavior).
+- **Added `show_content_only()` method** to `CanvasTree` — builds a filtered tree copy using `build_path()` from `content_scaffolds.py` to walk ancestor chains. Reuses existing `_format_node_display()`, `_print_header()`, and `_print_statistics()` for display.
+- Files changed: `tools/canvas_tree.py`, `canvas_bot.py`

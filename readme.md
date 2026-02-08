@@ -81,7 +81,11 @@ This makes it ideal for:
 Inspect course content structure directly in the terminal with a color-coded tree view. See all content types, hidden items, caption status, and clickable URLs at a glance.
 
 ```bash
-canvas_bot.exe --course_id 12345 --show_content_tree
+# Content tree - only resources with content (hides empty branches)
+canvas_bot.exe --course_id 12345 --print_content_tree
+
+# Full course tree - shows all resources including empty ones
+canvas_bot.exe --course_id 12345 --print_full_course
 ```
 
 **Example output:**
@@ -91,18 +95,18 @@ canvas_bot.exe --course_id 12345 --show_content_tree
 ├── 📚 Modules
 │   └── 📖 Module: Introduction to Biology
 │       ├── 📄 Document: Syllabus.pdf
-│       │     ↳ https://yourschool.instructure.com/files/123/download
+│       │               ↳ https://yourschool.instructure.com/files/123/download
 │       ├── 🎬 VideoFile: Welcome Video.mp4
-│       │     ↳ https://yourschool.instructure.com/files/456/download
-│       └── 📹 VideoSite [no CC]: Introduction Lecture
-│             ↳ https://www.youtube.com/watch?v=abc123
+│       │               ↳ https://yourschool.instructure.com/files/456/download
+│       └── 📹 VideoSite: Introduction Lecture
+│                       ↳ https://www.youtube.com/watch?v=abc123
 ```
 
 Features:
 - Color-coded by content type
 - `[hidden]` indicator for unpublished content
-- `[CC]` / `[no CC]` caption status for videos
 - Full URLs for easy access
+- Content-only view hides empty modules and resource branches
 
 ![Content Tree](docs/images/example_of_course_tree_module_and_documents.png)
 
@@ -197,11 +201,8 @@ python canvas_bot.py --help
 
 On first run, you'll be prompted for:
 
-1. **Canvas Base URL** - e.g., `https://yourschool.instructure.com`
-2. **Canvas API Path** - e.g., `https://yourschool.instructure.com/api/v1`
-3. **Canvas Domain** - e.g., `yourschool` (subdomain)
-4. **Canvas Studio Domain** - e.g., `yourschool.instructuremedia.com`
-5. **API Access Token** - Generated from Canvas settings
+1. **Canvas identifier** - Your institution's subdomain (e.g., `sfsu` for `https://sfsu.instructure.com`). All URLs are auto-generated from this.
+2. **API Access Token** - Generated from Canvas settings
 
 ### Basic Commands
 
@@ -326,7 +327,11 @@ canvas_bot.exe --course_id 12345 --output_as_json "C:\Reports"
 Display the course structure in the console:
 
 ```bash
-canvas_bot.exe --course_id 12345 --show_content_tree
+# Show only resources that contain content
+canvas_bot.exe --course_id 12345 --print_content_tree
+
+# Show complete course tree
+canvas_bot.exe --course_id 12345 --print_full_course
 ```
 
 ### Pattern Management
@@ -481,7 +486,8 @@ python -m test.pipeline_testing compare --raw raw.json --processed processed.jso
 | `--download_folder TEXT` | Directory for downloaded files |
 | `--output_as_json TEXT` | Export content to JSON (specify directory) |
 | `--output_as_excel TEXT` | Export content to Excel (specify directory) |
-| `--show_content_tree` | Display course structure in console |
+| `--print_content_tree` | Display course tree showing only resources with content |
+| `--print_full_course` | Display complete course tree including all resources |
 
 ### Download Options
 
@@ -545,6 +551,19 @@ For bug reports and feature requests: [GitHub Issues](https://github.com/Fontain
 
 ## Version History
 
+### 1.1
+
+**Improvements:**
+- **Simplified first-run setup** — only asks for the Canvas subdomain (e.g., `sfsu`). All URLs are auto-generated. Removed multi-step wizard and optional prompts for Box/Library Proxy domains.
+- **Split tree display into two modes** — `--print_content_tree` shows only resources with content (empty branches hidden); `--print_full_course` shows everything. Replaces the old `--show_content_tree` flag.
+- **Warning collector for animated spinners** — network errors are now buffered silently during import and displayed in a single Error Report block after import completes, preventing error messages from corrupting spinner animations.
+- **Cleaner API error messages** — network errors show human-readable status and message instead of raw JSON dicts. Access tokens are stripped from URLs before display.
+- **Canvas tree stats cleanup** — container nodes filtered from Content Summary, resource labels pluralized, content URLs indented deeper than resource URLs for visual distinction.
+
+**Bug Fixes:**
+- Fixed Pages import spinner incorrectly labeled as "Importing Announcements"
+- Fixed `AttributeError` from call to deleted `_print_url_legend()` method
+
 ### 1.0.0
 
 **Major release** with significant new features and stability improvements.
@@ -580,6 +599,7 @@ For bug reports and feature requests: [GitHub Issues](https://github.com/Fontain
 
 ## Future Features
 
+- [ ] LTI / SCORM / External Tool detection — identify third-party content that is outside institutional control for accessibility compliance review
 - [ ] GUI interface
 - [ ] Better Box/Dropbox/Google Drive support
 - [ ] Batch accessibility reporting
