@@ -83,7 +83,7 @@ def load_json_config_file_from_appdata():
         sys.exit(1)
 
     # Auto-generate all URLs from the domain
-    canvas_url = f"https://{canvas_domain}.instructure.com"
+    canvas_url = f"https://{canvas_domain}.instructure.com/courses/"
     api_path = f"https://{canvas_domain}.instructure.com/api/v1"
     studio_domain = f"{canvas_domain}.instructuremedia.com"
 

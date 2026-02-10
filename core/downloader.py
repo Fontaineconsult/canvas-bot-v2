@@ -498,7 +498,7 @@ class DownloaderMixin:
         ...     flatten=True
         ... )
         """
-        from core.content_scaffolds import is_hidden
+        from core.content_scaffolds import is_hidden, get_source_page_url
 
         download_manifest = read_download_manifest(root_directory)['downloaded_files']
         log.info(f"Downloading files to {root_directory} with params: {params}")
@@ -535,6 +535,7 @@ class DownloaderMixin:
 
         # Track statistics
         stats = {'downloaded': 0, 'skipped': 0, 'hidden': 0, 'shortcuts': 0, 'errors': 0}
+        shortcut_folders = set()
 
         for idx, node in enumerate(download_nodes, 1):
             # Progress indicator
@@ -556,6 +557,19 @@ class DownloaderMixin:
 
             # Build path and download
             full_file_path = path_constructor(root_directory, node, flatten)
+
+            # Create "Content Location" shortcut to the source Canvas page
+            parent_type = node.parent.__class__.__name__
+            target_folder = os.path.dirname(full_file_path)
+            if parent_type not in ("Module", "ModuleItem") and target_folder not in shortcut_folders:
+                source_url = get_source_page_url(node)
+                if source_url:
+                    shortcut_path = os.path.join(target_folder, "Content Location")
+                    if not os.path.exists(target_folder):
+                        os.makedirs(target_folder)
+                    create_windows_shortcut_from_url(source_url, shortcut_path)
+                    shortcut_folders.add(target_folder)
+
             result = self._download_file(node.url, full_file_path, bool(force_to_shortcut.match(node.url)))
 
             # Track result

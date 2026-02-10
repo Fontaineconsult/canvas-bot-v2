@@ -45,8 +45,10 @@ canvas_bot.exe --course_id 12345 --download_folder "C:\Downloads" --include_vide
 Biology 101 - 12345/
 ├── 26-01-2026/
 │   ├── Module 1 - Introduction/
-│   │   ├── Documents/
-│   │   │   └── syllabus.pdf
+│   │   ├── Week 1 Assignment/
+│   │   │   └── Documents/
+│   │   │       ├── Content Location.lnk  ← shortcut to Canvas page
+│   │   │       └── syllabus.pdf
 │   │   └── VideoFiles/
 │   │       └── welcome_video.mp4
 │   └── Module 2 - Cell Biology/
@@ -556,6 +558,8 @@ For bug reports and feature requests: [GitHub Issues](https://github.com/Fontain
 **Improvements:**
 - **Simplified first-run setup** — only asks for the Canvas subdomain (e.g., `sfsu`). All URLs are auto-generated. Removed multi-step wizard and optional prompts for Box/Library Proxy domains.
 - **Split tree display into two modes** — `--print_content_tree` shows only resources with content (empty branches hidden); `--print_full_course` shows everything. Replaces the old `--show_content_tree` flag.
+- **Content Location shortcuts** — download folders now include a `Content Location.lnk` shortcut that links directly to the Canvas page containing the content, making it easy to navigate back for inspection or remediation.
+- **Safe folder deletion** — `clear_folder_contents()` now verifies the target contains a Canvas Bot manifest before deleting, preventing accidental deletion of unrelated folders.
 - **Warning collector for animated spinners** — network errors are now buffered silently during import and displayed in a single Error Report block after import completes, preventing error messages from corrupting spinner animations.
 - **Cleaner API error messages** — network errors show human-readable status and message instead of raw JSON dicts. Access tokens are stripped from URLs before display.
 - **Canvas tree stats cleanup** — container nodes filtered from Content Summary, resource labels pluralized, content URLs indented deeper than resource URLs for visual distinction.
@@ -563,6 +567,7 @@ For bug reports and feature requests: [GitHub Issues](https://github.com/Fontain
 **Bug Fixes:**
 - Fixed Pages import spinner incorrectly labeled as "Importing Announcements"
 - Fixed `AttributeError` from call to deleted `_print_url_legend()` method
+- Fixed missing manifest registration in Announcement class
 
 ### 1.0.0
 

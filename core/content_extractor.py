@@ -882,6 +882,11 @@ class ContentExtractor(DownloaderMixin):
             if not os.path.exists(root_download_directory):
                 return
 
+            # Only delete folders created by Canvas Bot (must contain manifest)
+            manifest_path = os.path.join(root_download_directory, ".manifest", "download_manifest.yaml")
+            if not os.path.exists(manifest_path):
+                return
+
             # Walk and delete with long path support
             for root, dirs, files in os.walk(root_download_directory, topdown=False):
                 for name in files:
