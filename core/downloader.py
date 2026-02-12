@@ -325,8 +325,14 @@ def path_constructor(root_directory: str, node: BaseContentNode, flatten: bool) 
     # Hierarchical structure: build path from course tree
     for node_ in node_path:
         if hasattr(node_, 'is_resource'):
-            folder_name = sanitize_windows_filename(node_.title[:50], folder=True).rstrip() if node_.title else str(node_.__class__.__name__)
-            paths.append(folder_name)
+            if node_.__class__.__name__ == "Module":
+
+                folder_name = sanitize_windows_filename(f"{str(node_.position)}-{node_.title[:50]}", folder=True).rstrip() if node_.title else str(node_.__class__.__name__)
+                paths.append(folder_name)
+            else:
+                folder_name = sanitize_windows_filename(node_.title[:50], folder=True).rstrip() if node_.title else str(node_.__class__.__name__)
+                paths.append(folder_name)
+
 
     constructed_path = os.path.join(root_directory, sort_by_date(), *paths[::-1], f"{node.__class__.__name__}s", filename)
 

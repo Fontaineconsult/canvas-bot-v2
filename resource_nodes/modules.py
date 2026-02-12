@@ -40,6 +40,7 @@ class Module(Node):
         self._expand_api_dict_to_class_attributes(api_dict)
         self.items_url = api_dict['items_url']
         self.url = root.course_url
+        self.position = api_dict.get('position', 0)
         self.identify_content()
 
     def identify_content(self):
@@ -49,7 +50,6 @@ class Module(Node):
 
         if module_items:
             for item in module_items:
-
                 ResourceNode = get_node(item['type'])
                 if ResourceNode:
                     module_item_dict = get_url(item['url'])
