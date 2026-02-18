@@ -1,10 +1,7 @@
 import os
-
 import logging
-from logging.handlers import RotatingFileHandler
 
 import requests
-
 from requests.exceptions import MissingSchema
 import json
 import warnings
@@ -12,18 +9,8 @@ import warnings
 from network.cred import set_canvas_api_key_to_environment_variable, load_config_data_from_appdata
 import urllib3
 urllib3.disable_warnings()
-# set_logger()
+
 log = logging.getLogger(__name__)
-
-
-# set up a rotating file handler
-handler = RotatingFileHandler(
-    filename="canvas_bot.log",    # your log file name
-    maxBytes=5 * 1024 * 1024,     # rotate after 5 MB
-    backupCount=3,                # keep the last 3 log files
-)
-if not log.handlers:
-    log.addHandler(handler)
 
 
 
@@ -57,31 +44,31 @@ def response_handler(request_url):
         request = requests.get(request_url, verify=False)
     except ConnectionError as exc:
         # Log and warn for connection errors
-        log.exception(f"Connection error occurred: {exc} | URL: {request_url}")
+        log.exception(f"Connection error occurred: {exc} | URL: {clean_url}")
         warnings.warn(f"Connection error\n    {clean_url}", UserWarning)
         return False
     except MissingSchema as exc:
         # Log and warn for invalid URL schema
-        log.exception(f"Invalid URL schema: {exc} | URL: {request_url}")
+        log.exception(f"Invalid URL schema: {exc} | URL: {clean_url}")
         warnings.warn(f"Invalid URL\n    {clean_url}", UserWarning)
         return None
 
     # Handle HTTP responses
     if request.status_code == 200:
-        log.info(f"Request successful: {request_url} | Status Code: {request.status_code}")
+        log.info(f"Request successful: {clean_url} | Status Code: {request.status_code}")
         try:
             return json.loads(request.content)
         except json.JSONDecodeError as exc:
-            log.exception(f"Failed to decode JSON: {exc} | URL: {request_url}")
+            log.exception(f"Failed to decode JSON: {exc} | URL: {clean_url}")
             warnings.warn(f"Invalid JSON response\n    {clean_url}", UserWarning)
             return None
     else:
-        log.warning(f"Request failed: {request_url} | Status Code: {request.status_code}")
+        log.warning(f"Request failed: {clean_url} | Status Code: {request.status_code}")
         try:
             error_data = json.loads(request.content)
             error_message = _extract_error_message(error_data)
         except json.JSONDecodeError as exc:
-            log.exception(f"Failed to decode error JSON: {exc} | URL: {request_url}")
+            log.exception(f"Failed to decode error JSON: {exc} | URL: {clean_url}")
             error_message = "Failed to parse error response"
         warnings.warn(f"HTTP {request.status_code} - {error_message}\n    {clean_url}", UserWarning)
         return None
