@@ -632,9 +632,6 @@ if __name__=='__main__':
                   help='Clear and reconfigure Canvas Studio OAuth credentials (client ID, secret, tokens).')
 
     # === Video Captioning ===
-    @click.option('--check_video_site_caption_status', is_flag=True,
-                  help='Query YouTube API to check if discovered YouTube videos have captions available. '
-                       'Results included in Excel/JSON exports.')
     @click.option('--caption_file_location', type=click.STRING,
                   help='Path to caption file (.vtt, .srt) to upload to Canvas Studio. '
                        'Requires --canvas_studio_media_id.')
@@ -676,7 +673,6 @@ if __name__=='__main__':
              config_status,
              reset_canvas_params,
              reset_canvas_studio_params,
-             check_video_site_caption_status,
              caption_file_location,
              canvas_studio_media_id,
              patterns_list,
@@ -742,7 +738,6 @@ if __name__=='__main__':
             "print_content_tree": print_content_tree,
             "print_full_course": print_full_course,
             "reset_params": reset_canvas_params,
-            "check_video_site_caption_status": check_video_site_caption_status,
             "reset_canvas_studio_params": reset_canvas_studio_params,
             "caption_file_location": caption_file_location,
             "canvas_studio_media_id": canvas_studio_media_id
