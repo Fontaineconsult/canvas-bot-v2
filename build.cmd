@@ -5,7 +5,7 @@ REM Builds a standalone Windows executable using PyInstaller
 REM ============================================================
 REM CONFIGURATION - Edit this path to change output location
 REM ============================================================
-set OUTPUT_PATH=C:\Users\Fonta\OneDrive - San Francisco State University\Desktop
+set OUTPUT_PATH=C:\Users\Fonta\PycharmProjects\canvas-bot-v2\build
 REM ============================================================
 
 echo ============================================================
@@ -147,12 +147,36 @@ pyinstaller --onefile ^
 
 echo.
 echo ============================================================
-if %ERRORLEVEL% EQU 0 (
-    echo [OK] Build successful!
-    echo Output: %OUTPUT_PATH%\canvas_bot.exe
-) else (
+if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Build failed with error code %ERRORLEVEL%
+    echo ============================================================
+    pause
+    exit /b 1
 )
+echo [OK] Build successful!
+echo Output: %OUTPUT_PATH%\canvas_bot.exe
 echo ============================================================
+echo.
+
+REM ============================================================
+REM Run Test Harness Against Built EXE
+REM ============================================================
+echo ------------------------------------------------------------
+echo Running test harness against %OUTPUT_PATH%\canvas_bot.exe ...
+echo ------------------------------------------------------------
+echo.
+
+python -m test.exe_test_harness --exe "%OUTPUT_PATH%\canvas_bot.exe"
+
+echo.
+if %ERRORLEVEL% EQU 0 (
+    echo ============================================================
+    echo [OK] Build and tests passed!
+    echo ============================================================
+) else (
+    echo ============================================================
+    echo [WARN] Build succeeded but some tests failed.
+    echo ============================================================
+)
 
 pause

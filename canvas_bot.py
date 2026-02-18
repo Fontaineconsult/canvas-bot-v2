@@ -3,7 +3,7 @@ import os
 
 import click, sys, logging
 import re
-from config.yaml_io import read_config, read_re, write_re, reset_re
+from config.yaml_io import read_re, write_re, reset_re
 from core.course_root import CanvasCourseRoot
 from network.cred import set_canvas_api_key_to_environment_variable, save_canvas_api_key, load_config_data_from_appdata, delete_canvas_api_key, delete_config_file_from_appdata, \
     save_canvas_studio_client_keys, get_canvas_studio_tokens, \
@@ -12,7 +12,8 @@ from network.set_config import save_config_data
 from network.studio_api import authorize_studio_token, refresh_studio_token
 from tools.canvas_studio_caption_upload import add_caption_to_canvas_studio_video
 
-version = read_config()['version']
+__version__ = "1.1.0"
+version = __version__
 log = logging.getLogger(__name__)
 
 
@@ -641,13 +642,6 @@ if __name__=='__main__':
                   help='Canvas Studio media ID for caption upload target. '
                        'Requires --caption_file_location.')
 
-    # === Course List Export ===
-    @click.option('--export_course_list', type=click.STRING, default=None, is_flag=False, flag_value='canvas_courses.csv',
-                  help='Export all Canvas courses to CSV. Optionally specify output path (default: canvas_courses.csv). '
-                       'Does not require --course_id.')
-    @click.option('--semester_filter', type=click.STRING, default=None,
-                  help='Filter exported courses by semester (e.g., "fa24", "sp25"). Use with --export_course_list.')
-
     # === Pattern Management ===
     @click.option('--patterns-list', 'patterns_list', default=None, is_flag=False, flag_value='',
                   help='List pattern categories. Optionally specify CATEGORY to see patterns in it.')
@@ -685,8 +679,6 @@ if __name__=='__main__':
              check_video_site_caption_status,
              caption_file_location,
              canvas_studio_media_id,
-             export_course_list,
-             semester_filter,
              patterns_list,
              patterns_add,
              patterns_remove,
@@ -710,16 +702,6 @@ if __name__=='__main__':
             print("\n[OK] Canvas Studio credentials cleared.")
             set_canvas_studio_config(force_config=True)
             print("[OK] Canvas Studio reconfigured.")
-            sys.exit(0)
-
-        # Handle --export_course_list (doesn't require course_id)
-        if export_course_list:
-            from tools.course_extractor import extract_courses_cli
-            # Load config and API key
-            load_config_data_from_appdata()
-            check_if_api_key_exists()
-            # Run extraction
-            extract_courses_cli(output_path=export_course_list, semester=semester_filter)
             sys.exit(0)
 
         # Handle pattern management options (don't require course_id)
@@ -785,8 +767,7 @@ if __name__=='__main__':
 
                 else:
                     click.echo("Must include both caption file location and canvas studio media id")
-                    input()
-                    sys.exit()
+                    sys.exit(1)
 
             if reset_canvas_params:
                 bot.reset_config()
