@@ -575,6 +575,17 @@ class DownloaderMixin:
                         os.makedirs(target_folder)
                     create_windows_shortcut_from_url(source_url, shortcut_path)
                     shortcut_folders.add(target_folder)
+            elif parent_type in ("Module", "ModuleItem"):
+                relative_parts = os.path.relpath(full_file_path, root_directory).split(os.sep)
+                module_folder = os.path.join(root_directory, relative_parts[0], relative_parts[1])
+                if module_folder not in shortcut_folders:
+                    source_url = node.root.course_url
+                    if source_url:
+                        shortcut_path = os.path.join(module_folder, "Content Location")
+                        if not os.path.exists(module_folder):
+                            os.makedirs(module_folder)
+                        create_windows_shortcut_from_url(source_url, shortcut_path)
+                        shortcut_folders.add(module_folder)
 
             result = self._download_file(node.url, full_file_path, bool(force_to_shortcut.match(node.url)))
 
