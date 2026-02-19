@@ -143,6 +143,8 @@ pyinstaller --onefile ^
     --add-data "config\re.yaml;config" ^
     --add-data "tools\vba\DocumentTriggers.cls;tools\vba" ^
     --add-data "tools\vba\CheckIfFileExists.bas;tools\vba" ^
+    --add-data "cb.ico;." ^
+    --collect-data customtkinter ^
     canvas_bot.py
 
 echo.

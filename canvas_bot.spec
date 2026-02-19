@@ -1,11 +1,13 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_data_files
 
 
 a = Analysis(
     ['canvas_bot.py'],
     pathex=['C:\\Users\\Fonta\\PycharmProjects\\canvas-bot-v2', 'C:\\Users\\Fonta\\PycharmProjects\\canvas-bot-v2\\config'],
     binaries=[],
-    datas=[('config\\config.yaml', 'config'), ('config\\download_manifest.yaml', 'config'), ('config\\re.yaml', 'config'), ('tools\\vba\\DocumentTriggers.cls', 'tools\\vba'), ('tools\\vba\\CheckIfFileExists.bas', 'tools\\vba')],
+    datas=[('config\\config.yaml', 'config'), ('config\\download_manifest.yaml', 'config'), ('config\\re.yaml', 'config'), ('tools\\vba\\DocumentTriggers.cls', 'tools\\vba'), ('tools\\vba\\CheckIfFileExists.bas', 'tools\\vba'), ('cb.ico', '.')]
+          + collect_data_files('customtkinter'),
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

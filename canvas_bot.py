@@ -811,10 +811,14 @@ if __name__=='__main__':
             sys.exit()
 
 
-    try:
-        main()
-    except Exception as exc:
-        log.exception(exc)
-        raise exc
+    if len(sys.argv) == 1:
+        from gui.app import CanvasBotGUI
+        CanvasBotGUI().run()
+    else:
+        try:
+            main()
+        except Exception as exc:
+            log.exception(exc)
+            raise exc
 
 

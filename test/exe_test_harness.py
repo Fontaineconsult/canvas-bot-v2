@@ -12,7 +12,7 @@ Usage:
     python -m test.exe_test_harness --course_id 12345
 
     # Custom exe path
-    python -m test.exe_test_harness --exe ./my_build/canvas_bot.exe
+    python -m test.exe_test_harness --exe ./my_build/Canvasbot.exe
 
     # Verbose mode (show stdout/stderr for every test)
     python -m test.exe_test_harness --verbose
@@ -52,7 +52,7 @@ class TestResult:
 
 @dataclass
 class HarnessConfig:
-    exe_path: str = os.path.join("dist", "canvas_bot.exe")
+    exe_path: str = os.path.join("dist", "Canvasbot.exe")
     course_id: Optional[str] = None
     verbose: bool = False
     group: Optional[str] = None
@@ -1144,8 +1144,8 @@ Available test groups:
   api_batch            Batch course processing
         """,
     )
-    parser.add_argument("--exe", default=os.path.join("dist", "canvas_bot.exe"),
-                        help="Path to the compiled exe (default: dist/canvas_bot.exe)")
+    parser.add_argument("--exe", default=os.path.join("dist", "Canvasbot.exe"),
+                        help="Path to the compiled exe (default: dist/Canvasbot.exe)")
     parser.add_argument("--course_id", default=None,
                         help="Canvas course ID for API tests")
     parser.add_argument("--verbose", "-v", action="store_true",

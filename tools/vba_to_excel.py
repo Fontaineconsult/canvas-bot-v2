@@ -58,28 +58,28 @@ def insert_hyperlinks(ss, hyper_link_dict):
 
 
 def insert_vba(wb_path):
+    #
+    # try:
+    xl = win32.gencache.EnsureDispatch('Excel.Application')
+    xl.DisplayAlerts = False
+    xl.Visible = False
 
-    try:
-        xl = win32.gencache.EnsureDispatch('Excel.Application')
-        xl.DisplayAlerts = False
-        xl.Visible = False
+    ss = xl.Workbooks.Open(wb_path, CorruptLoad=1)
 
-        ss = xl.Workbooks.Open(wb_path, CorruptLoad=1)
-
-        insert_vba_modules(ss)
-        insert_sheet_triggers(ss)
-        insert_hyperlinks(ss, hyper_link_dict)
-        ss.SaveAs(wb_path, FileFormat=52)
-        ss.Close(True)
-        xl.Quit()
-        xl.DisplayAlerts = True
-    except Exception:
-        print()
-        print("  ! Excel macro insertion failed. Enable programmatic VBA access:")
-        print("    Excel > File > Options > Trust Center > Trust Center Settings")
-        print("    > Macro Settings > Check 'Trust access to the VBA project object model'")
-        print()
-        print("    WARNING: This setting allows any program to inject VBA macros into Excel")
-        print("    files. Only enable this if you trust the software running on your machine.")
-        print("    You may disable it again after exporting.")
-        print()
+    insert_vba_modules(ss)
+    insert_sheet_triggers(ss)
+    insert_hyperlinks(ss, hyper_link_dict)
+    ss.SaveAs(wb_path, FileFormat=52)
+    ss.Close(True)
+    xl.Quit()
+    xl.DisplayAlerts = True
+    # except Exception:
+    #     print()
+    #     print("  ! Excel macro insertion failed. Enable programmatic VBA access:")
+    #     print("    Excel > File > Options > Trust Center > Trust Center Settings")
+    #     print("    > Macro Settings > Check 'Trust access to the VBA project object model'")
+    #     print()
+    #     print("    WARNING: This setting allows any program to inject VBA macros into Excel")
+    #     print("    files. Only enable this if you trust the software running on your machine.")
+    #     print("    You may disable it again after exporting.")
+    #     print()

@@ -37,7 +37,7 @@ CanvasBot is a Windows command-line tool designed for accessible media coordinat
 Download course content into organized folder structures that mirror the Canvas course hierarchy. Files are organized by module, assignment, and content type for easy navigation.
 
 ```bash
-canvas_bot.exe --course_id 12345 --download_folder "C:\Downloads" --include_video_files
+Canvasbot.exe --course_id 12345 --download_folder "C:\Downloads" --include_video_files
 ```
 
 **Output structure:**
@@ -66,7 +66,7 @@ CanvasBot tracks previously downloaded files in a manifest, so running it daily 
 
 ```bash
 # Run daily - only new files are downloaded
-canvas_bot.exe --course_id 12345 --download_folder "C:\Downloads"
+Canvasbot.exe --course_id 12345 --download_folder "C:\Downloads"
 ```
 
 This makes it ideal for:
@@ -84,10 +84,10 @@ Inspect course content structure directly in the terminal with a color-coded tre
 
 ```bash
 # Content tree - only resources with content (hides empty branches)
-canvas_bot.exe --course_id 12345 --print_content_tree
+Canvasbot.exe --course_id 12345 --print_content_tree
 
 # Full course tree - shows all resources including empty ones
-canvas_bot.exe --course_id 12345 --print_full_course
+Canvasbot.exe --course_id 12345 --print_full_course
 ```
 
 **Example output:**
@@ -123,7 +123,7 @@ After scanning, view a summary of all discovered content by type:
 Export complete course content metadata to JSON for integration with other systems, custom reporting, or programmatic analysis.
 
 ```bash
-canvas_bot.exe --course_id 12345 --output_as_json "C:\Reports"
+Canvasbot.exe --course_id 12345 --output_as_json "C:\Reports"
 ```
 
 Use cases:
@@ -139,7 +139,7 @@ Use cases:
 Generate organized Excel workbooks (.xlsm) with content categorized across multiple sheets. Includes dropdown validation, conditional formatting, and hyperlinks for accessibility tracking workflows.
 
 ```bash
-canvas_bot.exe --course_id 12345 --output_as_excel "C:\Reports"
+Canvasbot.exe --course_id 12345 --output_as_excel "C:\Reports"
 ```
 
 **Sheets included:**
@@ -210,13 +210,13 @@ On first run, you'll be prompted for:
 
 ```bash
 # Download documents from a course
-canvas_bot.exe --course_id 12345 --download_folder "C:\Downloads"
+Canvasbot.exe --course_id 12345 --download_folder "C:\Downloads"
 
 # Export course content to Excel
-canvas_bot.exe --course_id 12345 --output_as_excel "C:\Reports"
+Canvasbot.exe --course_id 12345 --output_as_excel "C:\Reports"
 
 # Export to JSON
-canvas_bot.exe --course_id 12345 --output_as_json "C:\Reports"
+Canvasbot.exe --course_id 12345 --output_as_json "C:\Reports"
 ```
 
 ## Usage
@@ -226,7 +226,7 @@ canvas_bot.exe --course_id 12345 --output_as_json "C:\Reports"
 #### Single Course
 
 ```bash
-canvas_bot.exe --course_id 12345 --download_folder "C:\Downloads"
+Canvasbot.exe --course_id 12345 --download_folder "C:\Downloads"
 ```
 
 #### Multiple Courses
@@ -234,7 +234,7 @@ canvas_bot.exe --course_id 12345 --download_folder "C:\Downloads"
 Create a text file with course IDs (one per line):
 
 ```bash
-canvas_bot.exe --course_id_list courses.txt --download_folder "C:\Downloads"
+Canvasbot.exe --course_id_list courses.txt --download_folder "C:\Downloads"
 ```
 
 #### Include Additional File Types
@@ -242,7 +242,7 @@ canvas_bot.exe --course_id_list courses.txt --download_folder "C:\Downloads"
 By default, only documents are downloaded. Add flags for other types:
 
 ```bash
-canvas_bot.exe --course_id 12345 --download_folder "C:\Downloads" \
+Canvasbot.exe --course_id 12345 --download_folder "C:\Downloads" \
     --include_video_files \
     --include_audio_files \
     --include_image_files
@@ -253,7 +253,7 @@ canvas_bot.exe --course_id 12345 --download_folder "C:\Downloads" \
 Download all files to a single folder instead of preserving course structure:
 
 ```bash
-canvas_bot.exe --course_id 12345 --download_folder "C:\Downloads" --flatten
+Canvasbot.exe --course_id 12345 --download_folder "C:\Downloads" --flatten
 ```
 
 #### Download Manifest
@@ -271,7 +271,7 @@ If a file cannot be downloaded (authentication required, unavailable, etc.), Can
 Generate a macro-enabled workbook (.xlsm) with content organized by type:
 
 ```bash
-canvas_bot.exe --course_id 12345 --output_as_excel "C:\Reports"
+Canvasbot.exe --course_id 12345 --output_as_excel "C:\Reports"
 ```
 
 **Sheets included:**
@@ -294,7 +294,7 @@ Features:
 Export all content metadata to JSON:
 
 ```bash
-canvas_bot.exe --course_id 12345 --output_as_json "C:\Reports"
+Canvasbot.exe --course_id 12345 --output_as_json "C:\Reports"
 ```
 
 **Example output:**
@@ -330,10 +330,10 @@ Display the course structure in the console:
 
 ```bash
 # Show only resources that contain content
-canvas_bot.exe --course_id 12345 --print_content_tree
+Canvasbot.exe --course_id 12345 --print_content_tree
 
 # Show complete course tree
-canvas_bot.exe --course_id 12345 --print_full_course
+Canvasbot.exe --course_id 12345 --print_full_course
 ```
 
 ### Pattern Management
@@ -344,46 +344,46 @@ CanvasBot uses regex patterns to classify content. You can manage these patterns
 
 ```bash
 # List all pattern categories
-canvas_bot.exe --patterns-list
+Canvasbot.exe --patterns-list
 
 # List patterns in a specific category
-canvas_bot.exe --patterns-list document_content_regex
+Canvasbot.exe --patterns-list document_content_regex
 ```
 
 #### Add Patterns
 
 ```bash
 # Add a pattern (with confirmation prompt)
-canvas_bot.exe --patterns-add document_content_regex ".*\.odt"
+Canvasbot.exe --patterns-add document_content_regex ".*\.odt"
 
 # Add without confirmation
-canvas_bot.exe --patterns-add document_content_regex ".*\.odt" -y
+Canvasbot.exe --patterns-add document_content_regex ".*\.odt" -y
 ```
 
 #### Remove Patterns
 
 ```bash
-canvas_bot.exe --patterns-remove document_content_regex ".*\.odt" -y
+Canvasbot.exe --patterns-remove document_content_regex ".*\.odt" -y
 ```
 
 #### Test Pattern Matching
 
 ```bash
 # Test what categories match a URL or filename
-canvas_bot.exe --patterns-test "myfile.pdf"
-canvas_bot.exe --patterns-test "https://youtube.com/watch?v=abc123"
+Canvasbot.exe --patterns-test "myfile.pdf"
+Canvasbot.exe --patterns-test "https://youtube.com/watch?v=abc123"
 ```
 
 #### Validate Pattern Syntax
 
 ```bash
-canvas_bot.exe --patterns-validate ".*\.pdf"
+Canvasbot.exe --patterns-validate ".*\.pdf"
 ```
 
 #### Reset to Defaults
 
 ```bash
-canvas_bot.exe --patterns-reset -y
+Canvasbot.exe --patterns-reset -y
 ```
 
 ### Course List Export
@@ -392,10 +392,10 @@ Export a list of all courses you have access to:
 
 ```bash
 # Export all courses to CSV
-canvas_bot.exe --export_course_list
+Canvasbot.exe --export_course_list
 
 # Filter by semester code
-canvas_bot.exe --export_course_list --semester_filter fa24
+Canvasbot.exe --export_course_list --semester_filter fa24
 ```
 
 ### Video Caption Status
@@ -403,7 +403,7 @@ canvas_bot.exe --export_course_list --semester_filter fa24
 Check if YouTube videos have captions:
 
 ```bash
-canvas_bot.exe --course_id 12345 --output_as_excel "C:\Reports" \
+Canvasbot.exe --course_id 12345 --output_as_excel "C:\Reports" \
     --check_video_site_caption_status
 ```
 
@@ -427,13 +427,13 @@ Credentials are stored securely in Windows Credential Vault:
 
 ```bash
 # Reset Canvas API credentials
-canvas_bot.exe --reset_canvas_params
+Canvasbot.exe --reset_canvas_params
 
 # Reset Canvas Studio OAuth
-canvas_bot.exe --reset_canvas_studio_params
+Canvasbot.exe --reset_canvas_studio_params
 
 # View current configuration status
-canvas_bot.exe --config_status
+Canvasbot.exe --config_status
 ```
 
 ## Pipeline Testing

@@ -5,7 +5,8 @@
       "Bash(python canvas_bot.py:*)",
       "Bash(findstr:*)",
       "Bash(python -m test.pipeline_testing:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(.venv/Scripts/python:*)"
     ]
   }
 }
