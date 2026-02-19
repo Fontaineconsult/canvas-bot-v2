@@ -519,7 +519,17 @@ def save_as_excel(json_data, file_save_path, download_hidden_files):
     xcel_path = os.path.join(file_save_path, json_data['course_id'] + '.xlsm')
     json_data = remove_key_recursively(json_data, 'path')
 
-    create_excel_file(xcel_path)  # No error
+    # Remove existing file to avoid PermissionError from stale locks
+    if os.path.exists(xcel_path):
+        try:
+            os.remove(xcel_path)
+        except PermissionError:
+            raise PermissionError(
+                f"Cannot write to '{xcel_path}' — the file is locked by another process. "
+                f"Check Task Manager for a running Excel.exe and close it, then try again."
+            )
+
+    create_excel_file(xcel_path)
 
     build_xcel_file(json_data, xcel_path, download_hidden_files) # No error
     add_tracking_columns(xcel_path) # No error

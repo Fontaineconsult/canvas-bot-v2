@@ -699,6 +699,7 @@ class ContentExtractor(DownloaderMixin):
             full_path = os.path.join(dirname, rf'output\\json\\{self.course_id}.json')
 
             if json_save_directory:
+                json_save_directory = os.path.normpath(json_save_directory)
                 full_path = os.path.join(json_save_directory, rf"{self.course_id}.json")
 
             if os.path.exists(full_path):
@@ -758,10 +759,12 @@ class ContentExtractor(DownloaderMixin):
         download_hidden_files = params.get("download_hidden_files", False)
 
         if self.exists:
+            excel_directory = os.path.normpath(excel_directory)
             root_download_directory = os.path.join(excel_directory, rf"{sanitize_windows_filename(self.course_name)} "
                                                               rf"- {self.course_id}")
 
             if file_download_directory:
+                file_download_directory = os.path.normpath(file_download_directory)
                 root_file_download_directory = os.path.join(file_download_directory, rf"{sanitize_windows_filename(self.course_name)} "
                                                                                      rf"- {self.course_id}")
             else:
@@ -832,6 +835,7 @@ class ContentExtractor(DownloaderMixin):
         flush_after_download = params.get("flush_after_download", False)
 
         if self.exists:
+            directory = os.path.normpath(directory)
             root_download_directory = os.path.join(directory, rf"{sanitize_windows_filename(self.course_name)} "
                                                               rf"- {self.course_id}")
             create_download_manifest(root_download_directory)

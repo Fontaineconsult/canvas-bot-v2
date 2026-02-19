@@ -1,5 +1,8 @@
+import os
+import warnings
 import win32com.client as win32
 import comtypes, comtypes.client
+import pywintypes
 
 from tools.vba.vba_strings import get_vba_modules, get_vba_triggers
 
@@ -46,40 +49,62 @@ def insert_hyperlinks(ss, hyper_link_dict):
         sh = ss.Worksheets(sheet_number)  # Get the appropriate worksheet based on dictionary key
 
         for column in columns:  # Iterate over columns to add hyperlinks
-            last_row = sh.Cells(sh.Rows.Count, column).End(win32.constants.xlUp).Row
+            last_row = sh.Cells(sh.Rows.Count, column).End(-4162).Row  # -4162 = xlUp
 
             for row in range(2, last_row + 1):  # Start from row 2 to skip the header
                 cell = sh.Cells(row, column)  # Column based on column value in dictionary
                 address = cell.Value  # You may need to adjust this depending on the cell content
-                if address:  # Skip cells without a value
-                    sh.Hyperlinks.Add(Anchor=cell, Address=address)
+                if address and isinstance(address, str):
+                    try:
+                        sh.Hyperlinks.Add(Anchor=cell, Address=address)
+                    except Exception:
+                        pass  # Skip cells with values that aren't valid hyperlink addresses
 
 
+
+
+def _get_excel():
+    """Get an Excel COM object, clearing corrupted cache if needed."""
+    import shutil
+    try:
+        return win32.gencache.EnsureDispatch('Excel.Application')
+    except Exception:
+        cache_dir = win32.gencache.GetGeneratePath()
+        if os.path.isdir(cache_dir):
+            shutil.rmtree(cache_dir, ignore_errors=True)
+        return win32.gencache.EnsureDispatch('Excel.Application')
 
 
 def insert_vba(wb_path):
-    #
-    # try:
-    xl = win32.gencache.EnsureDispatch('Excel.Application')
+    wb_path = os.path.abspath(wb_path)  # Normalize to absolute path with backslashes for COM
+    xl = _get_excel()
     xl.DisplayAlerts = False
     xl.Visible = False
 
-    ss = xl.Workbooks.Open(wb_path, CorruptLoad=1)
-
-    insert_vba_modules(ss)
-    insert_sheet_triggers(ss)
-    insert_hyperlinks(ss, hyper_link_dict)
-    ss.SaveAs(wb_path, FileFormat=52)
-    ss.Close(True)
-    xl.Quit()
-    xl.DisplayAlerts = True
-    # except Exception:
-    #     print()
-    #     print("  ! Excel macro insertion failed. Enable programmatic VBA access:")
-    #     print("    Excel > File > Options > Trust Center > Trust Center Settings")
-    #     print("    > Macro Settings > Check 'Trust access to the VBA project object model'")
-    #     print()
-    #     print("    WARNING: This setting allows any program to inject VBA macros into Excel")
-    #     print("    files. Only enable this if you trust the software running on your machine.")
-    #     print("    You may disable it again after exporting.")
-    #     print()
+    try:
+        ss = xl.Workbooks.Open(wb_path, CorruptLoad=1)
+        insert_vba_modules(ss)
+        insert_sheet_triggers(ss)
+        insert_hyperlinks(ss, hyper_link_dict)
+        ss.SaveAs(wb_path, FileFormat=52)
+        ss.Close(True)
+    except pywintypes.com_error as e:
+        # HRESULT -2147352567 (0x80020009) with scode -2146827284 (0x800A03EC)
+        # typically means VBA project access is blocked by Trust Center settings.
+        if e.hresult == -2147352567 or (hasattr(e, 'excepinfo') and e.excepinfo and e.excepinfo[5] == -2146827284):
+            warnings.warn(
+                "Excel macro insertion failed — programmatic access to VBA is disabled.\n"
+                "  To enable it:\n"
+                "    1. Open Excel\n"
+                "    2. Go to File > Options > Trust Center > Trust Center Settings\n"
+                "    3. Click 'Macro Settings'\n"
+                "    4. Check 'Trust access to the VBA project object model'\n"
+                "    5. Click OK and re-run the export\n"
+                "  The Excel file was saved without macros."
+            )
+        else:
+            warnings.warn(f"Excel macro insertion failed: {e}\n  The Excel file was saved without macros.")
+    except Exception as e:
+        warnings.warn(f"Excel macro insertion failed: {e}\n  The Excel file was saved without macros.")
+    finally:
+        xl.Quit()
