@@ -812,8 +812,24 @@ if __name__=='__main__':
 
 
     if len(sys.argv) == 1:
-        from gui.app import CanvasBotGUI
-        CanvasBotGUI().run()
+        try:
+            # Hide the console window when launching GUI mode
+            import ctypes
+            ctypes.windll.user32.ShowWindow(
+                ctypes.windll.kernel32.GetConsoleWindow(), 0  # SW_HIDE
+            )
+            from gui.app import CanvasBotGUI
+            CanvasBotGUI().run()
+        except Exception as exc:
+            # Show console again so the error is visible
+            ctypes.windll.user32.ShowWindow(
+                ctypes.windll.kernel32.GetConsoleWindow(), 5  # SW_SHOW
+            )
+            import traceback
+            traceback.print_exc()
+            print("\nPress Enter to exit...")
+            input()
+            sys.exit(1)
     else:
         try:
             main()

@@ -124,28 +124,14 @@ echo [OK] Virtual environment activated
 echo.
 
 REM ============================================================
-REM Run PyInstaller
+REM Run PyInstaller (using spec file)
 REM ============================================================
 echo ------------------------------------------------------------
-echo Running PyInstaller...
+echo Running PyInstaller from canvas_bot.spec...
 echo ------------------------------------------------------------
 echo.
 
-pyinstaller --onefile ^
-    --name canvas_bot ^
-    --console ^
-    --icon=cb.ico ^
-    --distpath "%OUTPUT_PATH%" ^
-    --paths "%CD%" ^
-    --paths "%CD%\config" ^
-    --add-data "config\config.yaml;config" ^
-    --add-data "config\download_manifest.yaml;config" ^
-    --add-data "config\re.yaml;config" ^
-    --add-data "tools\vba\DocumentTriggers.cls;tools\vba" ^
-    --add-data "tools\vba\CheckIfFileExists.bas;tools\vba" ^
-    --add-data "cb.ico;." ^
-    --collect-data customtkinter ^
-    canvas_bot.py
+pyinstaller --distpath "%OUTPUT_PATH%" --noconfirm canvas_bot.spec
 
 echo.
 echo ============================================================
