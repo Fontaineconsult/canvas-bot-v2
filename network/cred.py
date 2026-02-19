@@ -149,6 +149,26 @@ def delete_canvas_studio_tokens():
         print(exc)
 
 
+def check_config_status():
+    """
+    Check if Canvas Bot configuration is functional.
+
+    Returns a tuple of (ok, message) where ok is True if the config is ready
+    to use, and message is a human-readable status string.
+    """
+    appdata_path = os.environ.get("APPDATA", "")
+    config_path = os.path.join(appdata_path, "canvas bot", "config.json")
+
+    if not os.path.exists(config_path):
+        return False, "Not Configured — click Reset Config to set up Canvas instance"
+
+    api_key = keyring.get_password("ACCESS_TOKEN", "canvas_bot")
+    if not api_key:
+        return False, "No API Token — click Reset Config to set your access token"
+
+    return True, "Ready"
+
+
 def load_config_data_from_appdata():
     """
     Load configuration data from a JSON file in the AppData folder.
