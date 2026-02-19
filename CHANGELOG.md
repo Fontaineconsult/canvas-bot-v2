@@ -32,15 +32,27 @@
 - **Set application icon** — the `cb.ico` icon is now displayed in the GUI window titlebar and taskbar. Bundled as a data file in the PyInstaller build for the compiled exe.
 - Files changed: `gui/app.py`, `build.cmd`, `canvas_bot.spec`
 
+### About Dialog
+- **Added About button** to the title bar (`Alt+A`) — opens a scrollable dialog with an overview of Canvas Bot, descriptions of every GUI section (Course Selection, Output Folders, Download Options, Display Options, Configuration), a numbered first-time setup guide, and developer contact info.
+- Files changed: `gui/app.py`
+
 ### Accessibility
-- **Keyboard shortcuts** — `Alt+R` to Run, `Alt+V` to View Config, `Alt+C` to Reset Config. Shortcuts displayed in button labels.
+- **Keyboard shortcuts** — `Alt+R` to Run, `Alt+V` to View Config, `Alt+C` to Reset Config, `Alt+A` for About. Shortcuts displayed in button labels.
 - **Keyboard focus navigation** — Tab key cycles through all interactive elements. Buttons and checkboxes show a blue focus ring when selected. Enter key activates the focused button or toggles the focused checkbox.
 - **Tooltips** — every interactive control (entries, buttons, checkboxes) displays a descriptive tooltip on hover or keyboard focus after a 3-second delay. Tooltips have a white background with rounded corners and a subtle border.
 - **Descriptive placeholder text** — all entry fields have detailed placeholder text describing expected input (e.g., "Canvas course ID (e.g. 12345)").
 - **Screen reader-friendly labels** — all buttons use descriptive text labels. Error messages reference specific button names.
 - **Initial focus** — Course ID field receives focus on launch for immediate keyboard input.
-- **Escape to close dialogs** — Reset Config dialog can be dismissed with the Escape key.
+- **Escape to close dialogs** — About and Reset Config dialogs can be dismissed with the Escape key.
 - Files changed: `gui/app.py`
+
+### Excel Export Robustness
+- **Fixed COM automation for VBA insertion** — replaced `EnsureDispatch` / `Dispatch` cycling with `_get_excel()` helper that tries `EnsureDispatch` first and falls back to clearing the corrupted gen_py cache and retrying. Fixes `AttributeError` on `DisplayAlerts` and stale type library errors.
+- **Graceful VBA error handling** — `insert_vba()` now catches COM errors and generic exceptions, issuing a warning instead of crashing. Specific detection for the "Trust access to the VBA project object model" Trust Center setting with step-by-step enable instructions.
+- **Resilient hyperlink insertion** — `insert_hyperlinks()` skips cells with non-string or invalid URL values instead of raising a COM error.
+- **Stale file lock detection** — `save_as_excel()` attempts to remove an existing `.xlsm` before writing. If the file is locked (e.g. by a zombie Excel process), a clear error message is raised instead of an opaque `PermissionError`.
+- **Path normalization for GUI paths** — all output paths (download, Excel, JSON) are normalized with `os.path.normpath()` to convert forward slashes from the GUI file picker to backslashes, preventing `PermissionError` on mapped network drives.
+- Files changed: `tools/vba_to_excel.py`, `tools/export_to_excel.py`, `core/content_extractor.py`
 
 ### PyInstaller Build Update
 - **Added `--collect-data customtkinter`** to the PyInstaller build command to bundle CustomTkinter's theme assets (JSON themes, widget images).
