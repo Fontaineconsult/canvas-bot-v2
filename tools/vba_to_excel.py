@@ -76,6 +76,8 @@ def _get_excel():
 
 
 def insert_vba(wb_path):
+    import pythoncom
+    pythoncom.CoInitialize()
     wb_path = os.path.abspath(wb_path)  # Normalize to absolute path with backslashes for COM
     xl = _get_excel()
     xl.DisplayAlerts = False
@@ -108,3 +110,4 @@ def insert_vba(wb_path):
         warnings.warn(f"Excel macro insertion failed: {e}\n  The Excel file was saved without macros.")
     finally:
         xl.Quit()
+        pythoncom.CoUninitialize()
