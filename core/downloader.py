@@ -393,7 +393,7 @@ def create_windows_shortcut_from_url(url: str, shortcut_path: str) -> str:
     """
     # Strip non-ASCII characters and change extension to .lnk
     encode_path_to_ascii = shortcut_path.encode('ascii', errors='ignore').decode('ascii')
-    shortcut_path = encode_path_to_ascii.split(".")[0] + ".lnk"
+    shortcut_path = os.path.splitext(encode_path_to_ascii)[0] + ".lnk"
 
     try:
         shell = win32com.client.Dispatch("WScript.Shell")
