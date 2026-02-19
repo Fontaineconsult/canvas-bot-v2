@@ -1,6 +1,6 @@
 # CanvasBot
 
-A command-line tool for downloading, auditing, and organizing content from Canvas LMS courses.
+A tool for downloading, auditing, and organizing content from Canvas LMS courses. Available as a graphical desktop application or command-line tool.
 
 ## Table of Contents
 
@@ -10,11 +10,12 @@ A command-line tool for downloading, auditing, and organizing content from Canva
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+  - [GUI Mode](#gui-mode)
+  - [CLI Mode](#cli-mode)
 - [Usage](#usage)
   - [Downloading Files](#downloading-files)
   - [Exporting Data](#exporting-data)
   - [Pattern Management](#pattern-management)
-  - [Course List Export](#course-list-export)
 - [Configuration](#configuration)
 - [Pipeline Testing](#pipeline-testing)
 - [Program Flags Reference](#program-flags-reference)
@@ -23,12 +24,14 @@ A command-line tool for downloading, auditing, and organizing content from Canva
 
 ## Overview
 
-CanvasBot is a Windows command-line tool designed for accessible media coordinators and instructional designers at universities. It connects to Canvas LMS via the REST API to:
+CanvasBot is a Windows application designed for accessible media coordinators and instructional designers at universities. It connects to Canvas LMS via the REST API to:
 
 - **Download** all files from courses (documents, videos, audio, images)
 - **Categorize** embedded content by type using configurable regex patterns
 - **Export** content inventories to Excel or JSON for accessibility auditing
 - **Track** download progress to avoid re-downloading files
+
+CanvasBot can be used through a graphical user interface (GUI) or the command line (CLI). Double-click the executable or run without arguments to launch the GUI; pass command-line flags for scripted/automated workflows.
 
 ### Features
 
@@ -177,8 +180,9 @@ CanvasBot classifies content into these categories:
 
 ## Requirements
 
-- Windows operating system
+- Windows 10 or later
 - Canvas API Access Token (read access to courses)
+- For Excel export with macros: "Trust access to the VBA project object model" must be enabled in Excel (File > Options > Trust Center > Trust Center Settings > Macro Settings)
 
 ## Installation
 
@@ -204,9 +208,30 @@ python canvas_bot.py --help
 On first run, you'll be prompted for:
 
 1. **Canvas identifier** - Your institution's subdomain (e.g., `sfsu` for `https://sfsu.instructure.com`). All URLs are auto-generated from this.
-2. **API Access Token** - Generated from Canvas settings
+2. **API Access Token** - Generated from Canvas settings (see [Obtaining a Canvas API Access Token](#obtaining-a-canvas-api-access-token))
 
-### Basic Commands
+### GUI Mode
+
+Double-click the executable or run `python canvas_bot.py` with no arguments to launch the graphical interface.
+
+The GUI provides:
+- **Course Selection** — enter a single course ID or browse for a `.txt` file with one course ID per line for batch processing
+- **Output Folders** — separate folder pickers for Download, Excel, and JSON output
+- **Download Options** — checkboxes for video, audio, image files, hidden content, and flat folder structure
+- **Display Options** — print content tree or full course tree (single course only)
+- **Real-time log** — scrollable output area showing progress as courses are processed
+- **Settings persistence** — all inputs are saved across sessions
+- **About dialog** — click "About" for a guide to every GUI element and first-time setup instructions
+
+Configuration buttons in the title bar:
+- **View Config** — opens a terminal showing current configuration status
+- **Reset Config** — opens a dialog to reset Canvas API or Canvas Studio credentials
+
+Keyboard shortcuts: `Alt+R` Run, `Alt+V` View Config, `Alt+C` Reset Config, `Alt+A` About. All dialogs close with `Escape`.
+
+### CLI Mode
+
+Pass command-line flags for scripted or automated workflows:
 
 ```bash
 # Download documents from a course
@@ -386,27 +411,6 @@ Canvasbot.exe --patterns-validate ".*\.pdf"
 Canvasbot.exe --patterns-reset -y
 ```
 
-### Course List Export
-
-Export a list of all courses you have access to:
-
-```bash
-# Export all courses to CSV
-Canvasbot.exe --export_course_list
-
-# Filter by semester code
-Canvasbot.exe --export_course_list --semester_filter fa24
-```
-
-### Video Caption Status
-
-Check if YouTube videos have captions:
-
-```bash
-Canvasbot.exe --course_id 12345 --output_as_excel "C:\Reports" \
-    --check_video_site_caption_status
-```
-
 ## Configuration
 
 ### Credential Storage
@@ -421,9 +425,14 @@ Credentials are stored securely in Windows Credential Vault:
 |------|----------|---------|
 | `config.json` | `%APPDATA%\canvas bot\` | Instance URLs and settings |
 | `re.yaml` | `%APPDATA%\canvas bot\` | User-customized patterns |
+| `gui_settings.json` | `%APPDATA%\canvas bot\` | Saved GUI inputs (folders, checkboxes) |
 | `canvas_bot.log` | `%APPDATA%\canvas bot\` | Application logs |
 
 ### Reset Configuration
+
+From the GUI, use the **View Config** and **Reset Config** buttons in the title bar.
+
+From the CLI:
 
 ```bash
 # Reset Canvas API credentials
@@ -521,14 +530,6 @@ python -m test.pipeline_testing compare --raw raw.json --processed processed.jso
 | `--reset_canvas_params` | Reset Canvas API credentials |
 | `--reset_canvas_studio_params` | Reset Canvas Studio OAuth |
 | `--config_status` | Show current configuration |
-| `--export_course_list` | Export list of accessible courses |
-| `--semester_filter TEXT` | Filter course list by semester code |
-
-### Other Options
-
-| Flag | Description |
-|------|-------------|
-| `--check_video_site_caption_status` | Check YouTube caption availability |
 
 ## Obtaining a Canvas API Access Token
 
@@ -553,7 +554,26 @@ For bug reports and feature requests: [GitHub Issues](https://github.com/Fontain
 
 ## Version History
 
-### 1.1
+### 1.2.0
+
+**GUI:**
+- **Graphical user interface** — double-click the executable or run with no arguments to launch a desktop GUI built with CustomTkinter. CLI mode is still available by passing flags.
+  - Course selection (single ID or batch `.txt` file), output folder pickers, download/display option checkboxes, real-time log output, status bar
+  - **Settings persistence** — all GUI inputs saved to `%APPDATA%\canvas bot\gui_settings.json` and restored on next launch
+  - **About dialog** — overview of Canvas Bot, guide to every GUI section, first-time setup steps, and contact info
+  - **View Config / Reset Config buttons** — manage credentials directly from the GUI
+  - **Accessibility** — keyboard shortcuts (`Alt+R/V/C/A`), Tab focus navigation with visible focus rings, tooltips on all controls, Escape to close dialogs
+
+**Excel Export:**
+- **Robust COM automation** — VBA insertion now handles corrupted type library caches, missing Trust Center permissions (with step-by-step fix instructions), and invalid hyperlink values gracefully instead of crashing
+- **Stale file lock detection** — existing `.xlsm` files are removed before writing; locked files produce a clear error message
+- **Path normalization** — GUI folder paths are normalized to prevent `PermissionError` on mapped network drives
+
+**Other:**
+- Application icon (`cb.ico`) displayed in window titlebar and taskbar
+- Removed `--export_course_list`, `--semester_filter`, and `--check_video_site_caption_status` CLI flags
+
+### 1.1.0
 
 **Improvements:**
 - **Simplified first-run setup** — only asks for the Canvas subdomain (e.g., `sfsu`). All URLs are auto-generated. Removed multi-step wizard and optional prompts for Box/Library Proxy domains.
@@ -563,11 +583,14 @@ For bug reports and feature requests: [GitHub Issues](https://github.com/Fontain
 - **Warning collector for animated spinners** — network errors are now buffered silently during import and displayed in a single Error Report block after import completes, preventing error messages from corrupting spinner animations.
 - **Cleaner API error messages** — network errors show human-readable status and message instead of raw JSON dicts. Access tokens are stripped from URLs before display.
 - **Canvas tree stats cleanup** — container nodes filtered from Content Summary, resource labels pluralized, content URLs indented deeper than resource URLs for visual distinction.
+- **Security** — API access tokens stripped from log files; duplicate log handler removed.
+- **EXE test harness** — automated test suite (64 offline + 20 API tests) validates every CLI flag combination.
 
 **Bug Fixes:**
 - Fixed Pages import spinner incorrectly labeled as "Importing Announcements"
 - Fixed `AttributeError` from call to deleted `_print_url_legend()` method
 - Fixed missing manifest registration in Announcement class
+- Fixed blocking `input()` call in caption upload error path
 
 ### 1.0.0
 
@@ -605,7 +628,7 @@ For bug reports and feature requests: [GitHub Issues](https://github.com/Fontain
 ## Future Features
 
 - [ ] LTI / SCORM / External Tool detection — identify third-party content that is outside institutional control for accessibility compliance review
-- [ ] GUI interface
+- [x] GUI interface (added in v1.2.0)
 - [ ] Better Box/Dropbox/Google Drive support
 - [ ] Batch accessibility reporting
 
