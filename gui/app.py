@@ -200,6 +200,9 @@ class CanvasBotGUI:
         # --- Load saved settings ---
         self._load_settings()
 
+        # --- Check configuration ---
+        self._check_config()
+
         # --- Set initial focus ---
         self.entry_course_id.focus_set()
 
@@ -250,6 +253,18 @@ class CanvasBotGUI:
                 json.dump(data, f, indent=4)
         except OSError:
             pass
+
+    def _check_config(self):
+        """Check if Canvas API configuration is functional and update status bar."""
+        try:
+            from network.cred import check_config_status
+            ok, message = check_config_status()
+            if ok:
+                self.status_label.configure(text=f"Status: {message}", text_color=("gray10", "gray90"))
+            else:
+                self.status_label.configure(text=f"Status: {message}", text_color="orange")
+        except Exception:
+            self.status_label.configure(text="Status: Configuration check failed", text_color="orange")
 
     def _center_window(self):
         self.root.update_idletasks()
