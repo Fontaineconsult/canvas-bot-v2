@@ -7,8 +7,6 @@ import json
 import warnings
 
 from network.cred import set_canvas_api_key_to_environment_variable, load_config_data_from_appdata
-import urllib3
-urllib3.disable_warnings()
 
 log = logging.getLogger(__name__)
 
@@ -41,7 +39,7 @@ def response_handler(request_url):
     clean_url = _clean_url(request_url)
     try:
         # Perform the GET request
-        request = requests.get(request_url, verify=False)
+        request = requests.get(request_url, verify=True)
     except ConnectionError as exc:
         # Log and warn for connection errors
         log.exception(f"Connection error occurred: {exc} | URL: {clean_url}")
