@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.2
+## v1.2.0
 
 ### GUI Mode
 - **Added graphical user interface** — double-clicking the exe (or running `python canvas_bot.py` with no arguments) now launches a CustomTkinter GUI. Passing CLI arguments continues to use the existing command-line interface.
@@ -10,13 +10,14 @@
   - Display Options: print content tree or print full course tree (single course only, mutually exclusive)
   - Run button with validation — disabled until a course input and at least one output folder or display option is set
   - Scrollable log output area with real-time progress display
-  - Status bar showing current processing state (Ready, Initializing, Processing course N/M, Complete, Error)
+  - Status bar showing current processing state and configuration check on launch
   - Options organized into two-column layout: Download Options (left) and Display Options (right)
+- **Console window hidden in GUI mode** — when launching via the exe, the console window is automatically hidden. If an error occurs before the GUI loads, the console is restored with the traceback displayed.
 - **Background threading** — course processing runs in a daemon thread so the GUI stays responsive during imports and downloads.
 - **stdout/stderr redirect** — `TextRedirector` class captures all print output and routes it to the GUI log textbox. Includes ANSI escape code stripping (colorama) and carriage return handling for spinner animations.
-- **Tcl/Tk path fix** — `_fix_tcl_paths()` auto-detects Tcl/Tk library locations for Python venvs where the paths aren't auto-discovered. Searches `sys.base_prefix`, `sys._base_executable`, and the default Python install location.
+- **Configuration status check** — the GUI status bar checks for a valid config file and API token on launch via `check_config_status()` in `network/cred.py`, displaying actionable messages if setup is incomplete.
 - **New dependency**: `customtkinter`
-- Files changed: `gui/__init__.py` (new), `gui/app.py` (new), `canvas_bot.py`
+- Files changed: `gui/__init__.py` (new), `gui/app.py` (new), `canvas_bot.py`, `network/cred.py`
 
 ### GUI Configuration Management
 - **View Config and Reset Config buttons** — replaced the single Settings button with two buttons in the title bar.
@@ -48,16 +49,21 @@
 
 ### Excel Export Robustness
 - **Fixed COM automation for VBA insertion** — replaced `EnsureDispatch` / `Dispatch` cycling with `_get_excel()` helper that tries `EnsureDispatch` first and falls back to clearing the corrupted gen_py cache and retrying. Fixes `AttributeError` on `DisplayAlerts` and stale type library errors.
+- **COM thread initialization** — `insert_vba()` now calls `pythoncom.CoInitialize()` / `CoUninitialize()` so Excel COM automation works from the GUI's background thread.
 - **Graceful VBA error handling** — `insert_vba()` now catches COM errors and generic exceptions, issuing a warning instead of crashing. Specific detection for the "Trust access to the VBA project object model" Trust Center setting with step-by-step enable instructions.
 - **Resilient hyperlink insertion** — `insert_hyperlinks()` skips cells with non-string or invalid URL values instead of raising a COM error.
 - **Stale file lock detection** — `save_as_excel()` attempts to remove an existing `.xlsm` before writing. If the file is locked (e.g. by a zombie Excel process), a clear error message is raised instead of an opaque `PermissionError`.
 - **Path normalization for GUI paths** — all output paths (download, Excel, JSON) are normalized with `os.path.normpath()` to convert forward slashes from the GUI file picker to backslashes, preventing `PermissionError` on mapped network drives.
 - Files changed: `tools/vba_to_excel.py`, `tools/export_to_excel.py`, `core/content_extractor.py`
 
-### PyInstaller Build Update
-- **Added `--collect-data customtkinter`** to the PyInstaller build command to bundle CustomTkinter's theme assets (JSON themes, widget images).
+### Bug Fixes
+- **Fixed shortcut creation on UNC paths** — `create_windows_shortcut_from_url()` used `.split(".")` to replace the file extension, which truncated the entire path at the first dot in the server name (e.g., `\\server.domain.edu\...` became `\\server.lnk`). Replaced with `os.path.splitext()` which correctly handles dots in directory names.
+- Files changed: `core/downloader.py`
+
+### PyInstaller Build
+- **Switched to spec-file build** — `build.cmd` now runs `pyinstaller canvas_bot.spec` instead of passing flags on the command line, preventing the spec file from being regenerated and losing manual edits.
+- **Bundled Tcl/Tk for tkinter** — spec file uses `_tkinter.__file__` to locate the correct Python install and bundles the `tcl8.6` and `tk8.6` data directories alongside `collect_all('tkinter')` and `collect_data_files('customtkinter')`.
 - **Added `cb.ico` as bundled data** for window icon display in the compiled exe.
-- Updated both `build.cmd` and `canvas_bot.spec` to include the CustomTkinter data collection and icon bundling.
 - Files changed: `build.cmd`, `canvas_bot.spec`
 
 ---
