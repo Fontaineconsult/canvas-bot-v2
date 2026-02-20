@@ -596,6 +596,8 @@ class CanvasBotGUI:
 
     def _run_worker(self):
         try:
+            import pythoncom
+            pythoncom.CoInitialize()
             from canvas_bot import CanvasBot, read_course_list
             from network.cred import set_canvas_api_key_to_environment_variable, load_config_data_from_appdata
 
@@ -673,6 +675,7 @@ class CanvasBotGUI:
             traceback.print_exc()
 
         finally:
+            pythoncom.CoUninitialize()
             self._finish_run()
 
     def _finish_run(self):
