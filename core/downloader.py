@@ -600,6 +600,8 @@ class DownloaderMixin:
         # Save manifest
         write_to_download_manifest(root_directory, "downloaded_files", download_manifest)
 
+        log.info(f"AUDIT: Download complete | downloaded={stats['downloaded']} | skipped={stats['skipped']} | shortcuts={stats['shortcuts']} | directory={root_directory}")
+
         # Print summary
         print()
         print(f"{Fore.CYAN}{'─' * 60}{Style.RESET_ALL}")

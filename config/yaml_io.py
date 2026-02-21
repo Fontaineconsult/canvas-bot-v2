@@ -1,8 +1,11 @@
+import logging
 import yaml
 import os
 import re
 import sys
 import shutil, ctypes
+
+log = logging.getLogger(__name__)
 
 
 def _get_bundled_path(filename):
@@ -103,8 +106,13 @@ def reset_re():
     return False
 
 def read_download_manifest(course_folder):
-    with open(os.path.join(course_folder, ".manifest", "download_manifest.yaml"), "r+") as f:
-        return yaml.safe_load(f)
+    try:
+        with open(os.path.join(course_folder, ".manifest", "download_manifest.yaml"), "r+") as f:
+            return yaml.safe_load(f)
+    except FileNotFoundError as exc:
+        log.error(f"Failed to read download manifest file: {course_folder} | {exc}")
+        raise SystemExit(f"Download manifest file not found: {course_folder}")
+
 
 def write_to_download_manifest(course_folder: str, heading:str, content_list: list):
     yaml_content = {"downloaded_files": content_list}
@@ -115,11 +123,19 @@ def write_to_download_manifest(course_folder: str, heading:str, content_list: li
 def create_download_manifest(course_folder: str):
 
     if not os.path.exists(os.path.join(course_folder, ".manifest")):
-        os.makedirs(os.path.join(course_folder, ".manifest"), exist_ok=True)
+        try:
+            os.makedirs(os.path.join(course_folder, ".manifest"), exist_ok=True)
+        except FileNotFoundError as exc:
+            print("Could not create download manifest folder. Please check the course folder path and try again.")
+            log.warning(f"Failed to create download manifest folder: {course_folder} | {exc}")
 
     raw_manifest_path = _get_bundled_path("download_manifest.yaml")
     if not os.path.exists(os.path.join(course_folder, ".manifest", "download_manifest.yaml")):
-        shutil.copy(raw_manifest_path, os.path.join(course_folder, ".manifest", "download_manifest.yaml"))
+        try:
+            shutil.copy(raw_manifest_path, os.path.join(course_folder, ".manifest", "download_manifest.yaml"))
 
-        ctypes.windll.kernel32.SetFileAttributesW(os.path.join(course_folder, ".manifest"), 0x02)
+            ctypes.windll.kernel32.SetFileAttributesW(os.path.join(course_folder, ".manifest"), 0x02)
+        except FileNotFoundError as exc:
+            print("Could not create download manifest file. Please check the course folder path and try again.")
+            log.warning(f"Failed to create download manifest file: {course_folder} | {exc}")
 

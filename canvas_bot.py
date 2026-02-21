@@ -834,7 +834,7 @@ if __name__=='__main__':
         try:
             main()
         except Exception as exc:
-            log.exception(exc)
+            log.error(f"Unhandled error: {type(exc).__name__}: {exc}")
             raise exc
 
 
