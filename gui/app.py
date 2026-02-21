@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 import sys
@@ -6,6 +7,8 @@ import threading
 import traceback
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
+
+log = logging.getLogger(__name__)
 
 _ANSI_RE = re.compile(r'\x1b\[[0-9;]*m')
 
@@ -668,7 +671,8 @@ class CanvasBotGUI:
             self._set_status("Complete")
             print(f"\nAll done — {total} course(s) processed.")
 
-        except Exception:
+        except Exception as exc:
+            log.exception(f"Unhandled error: {type(exc).__name__}: {exc}")
             self._set_status("Error")
             traceback.print_exc()
 

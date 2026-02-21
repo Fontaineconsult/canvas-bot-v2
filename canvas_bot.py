@@ -821,6 +821,7 @@ if __name__=='__main__':
             from gui.app import CanvasBotGUI
             CanvasBotGUI().run()
         except Exception as exc:
+            log.exception(f"Unhandled error: {type(exc).__name__}: {exc}")
             # Show console again so the error is visible
             ctypes.windll.user32.ShowWindow(
                 ctypes.windll.kernel32.GetConsoleWindow(), 5  # SW_SHOW
@@ -834,7 +835,7 @@ if __name__=='__main__':
         try:
             main()
         except Exception as exc:
-            log.error(f"Unhandled error: {type(exc).__name__}: {exc}")
+            log.exception(f"Unhandled error: {type(exc).__name__}: {exc}")
             raise exc
 
 

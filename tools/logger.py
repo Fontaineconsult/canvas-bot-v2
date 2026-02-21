@@ -2,6 +2,7 @@ import logging.config
 import getpass
 import os
 import stat
+import sys
 import uuid
 import logging
 from network.set_config import save_config_data
@@ -59,6 +60,17 @@ logging.config.dictConfig(LOGGING_CONFIG)
 _session_filter = SessionContextFilter()
 for handler in logging.root.handlers:
     handler.addFilter(_session_filter)
+
+# Global exception hook — logs any unhandled exception to the log file
+_unhandled_log = logging.getLogger('unhandled')
+
+def _excepthook(exc_type, exc_value, exc_tb):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_tb)
+        return
+    _unhandled_log.error(f"Unhandled {exc_type.__name__}: {exc_value}")
+
+sys.excepthook = _excepthook
 
 # Best-effort log file permission restriction (limited on Windows,
 # but %APPDATA% is already per-user)
