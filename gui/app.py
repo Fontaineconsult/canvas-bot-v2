@@ -805,10 +805,10 @@ class CanvasBotGUI:
         import subprocess
         if getattr(sys, 'frozen', False):
             exe = sys.executable
-            subprocess.Popen(f'start cmd /k "{exe}" {flag}', shell=True)
+            subprocess.Popen(['cmd', '/k', exe, flag], creationflags=subprocess.CREATE_NEW_CONSOLE)
         else:
             script = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'canvas_bot.py')
-            subprocess.Popen(f'start cmd /k python "{script}" {flag}', shell=True)
+            subprocess.Popen(['cmd', '/k', 'python', script, flag], creationflags=subprocess.CREATE_NEW_CONSOLE)
 
     def _view_config(self):
         self._launch_cli('--config_status')
