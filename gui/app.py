@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 import sys
@@ -6,6 +7,8 @@ import threading
 import traceback
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
+
+log = logging.getLogger(__name__)
 
 _ANSI_RE = re.compile(r'\x1b\[[0-9;]*m')
 
@@ -144,7 +147,7 @@ class CanvasBotGUI:
         ctk.set_default_color_theme("blue")
 
         self.root = ctk.CTk()
-        self.root.title("Canvas Bot v1.2.0")
+        self.root.title("Canvas Bot v1.2.1")
         self.root.geometry("650x750")
         self.root.minsize(550, 600)
 
@@ -290,7 +293,7 @@ class CanvasBotGUI:
 
         ctk.CTkLabel(
             title_frame,
-            text="v1.2.0",
+            text="v1.2.1",
             font=ctk.CTkFont(size=12),
             text_color="gray",
         ).pack(side="left", padx=(8, 0), pady=(4, 0))
@@ -616,16 +619,28 @@ class CanvasBotGUI:
                 self._finish_run()
                 return
 
-            # Build course list
+            # Build and validate course list
+            from gui.validation import validate_course_id, validate_course_list
+
             course_ids = []
             if self.var_course_id.get().strip():
-                course_ids = [self.var_course_id.get().strip()]
+                cid = self.var_course_id.get().strip()
+                error = validate_course_id(cid)
+                if error:
+                    self._set_status("Error")
+                    print(f"ERROR: {error}")
+                    self._finish_run()
+                    return
+                course_ids = [cid]
             elif self.var_course_list.get().strip():
-                course_ids = read_course_list(self.var_course_list.get().strip())
+                raw_ids = read_course_list(self.var_course_list.get().strip())
+                course_ids, warnings = validate_course_list(raw_ids)
+                for w in warnings:
+                    print(f"WARNING: {w}")
 
             if not course_ids:
                 self._set_status("Error")
-                print("ERROR: No course IDs to process.")
+                print("ERROR: No valid course IDs to process.")
                 self._finish_run()
                 return
 
@@ -670,7 +685,8 @@ class CanvasBotGUI:
             self._set_status("Complete")
             print(f"\nAll done — {total} course(s) processed.")
 
-        except Exception:
+        except Exception as exc:
+            log.exception(f"Unhandled error: {type(exc).__name__}: {exc}")
             self._set_status("Error")
             traceback.print_exc()
 
@@ -719,7 +735,7 @@ class CanvasBotGUI:
 
         # Title
         ctk.CTkLabel(scroll, text="Canvas Bot", font=ctk.CTkFont(size=20, weight="bold"), anchor="w").pack(fill="x")
-        ctk.CTkLabel(scroll, text="v1.2.0", font=ctk.CTkFont(size=13), text_color="gray", anchor="w").pack(fill="x")
+        ctk.CTkLabel(scroll, text="v1.2.1", font=ctk.CTkFont(size=13), text_color="gray", anchor="w").pack(fill="x")
 
         # Intro
         heading("What is Canvas Bot?")
@@ -804,10 +820,10 @@ class CanvasBotGUI:
         import subprocess
         if getattr(sys, 'frozen', False):
             exe = sys.executable
-            subprocess.Popen(f'start cmd /k "{exe}" {flag}', shell=True)
+            subprocess.Popen(['cmd', '/k', exe, flag], creationflags=subprocess.CREATE_NEW_CONSOLE)
         else:
             script = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'canvas_bot.py')
-            subprocess.Popen(f'start cmd /k python "{script}" {flag}', shell=True)
+            subprocess.Popen(['cmd', '/k', 'python', script, flag], creationflags=subprocess.CREATE_NEW_CONSOLE)
 
     def _view_config(self):
         self._launch_cli('--config_status')

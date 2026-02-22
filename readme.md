@@ -17,6 +17,7 @@ A tool for downloading, auditing, and organizing content from Canvas LMS courses
   - [Exporting Data](#exporting-data)
   - [Pattern Management](#pattern-management)
 - [Configuration](#configuration)
+- [Security and Privacy](#security-and-privacy)
 - [Pipeline Testing](#pipeline-testing)
 - [Program Flags Reference](#program-flags-reference)
 - [Support](#support)
@@ -444,6 +445,53 @@ Canvasbot.exe --reset_canvas_studio_params
 # View current configuration status
 Canvasbot.exe --config_status
 ```
+
+## Security and Privacy
+
+CanvasBot handles sensitive credentials and institutional course content. The following measures are in place to protect this data.
+
+### Credential Protection
+
+- **Encrypted storage** — API tokens and OAuth credentials are stored in the Windows Credential Vault via the `keyring` library, never in plaintext configuration files.
+- **In-memory isolation** — After loading from the Credential Vault, credentials are held in a private module-level store rather than process environment variables. This prevents leakage to child processes, debugging tools, or other libraries reading `os.environ`.
+- **Automatic cleanup** — Credentials are cleared from memory when the application exits via `atexit` handler.
+
+### Transport Security
+
+- **TLS certificate verification** — All Canvas API and Studio API calls validate SSL/TLS certificates. Connections to servers with invalid or expired certificates are rejected.
+
+### Logging and Audit Trail
+
+- **Sensitive data stripped from logs** — API tokens, email addresses, and other sensitive query parameters are removed from all URLs before they are written to log files or displayed in warnings.
+- **Audit trail** — Structured log entries track course scan start/completion, download summaries, and export operations with course IDs and item counts.
+- **User and session identification** — Every log entry includes the Windows username and a unique session ID for attribution on shared machines.
+- **Unhandled exception logging** — All unexpected errors are captured with full tracebacks for debugging, including a global exception hook as a safety net.
+- **Log file permissions** — Log files are stored under `%APPDATA%\canvas bot\`, which is per-user protected on Windows. Best-effort file permission restrictions are applied on creation.
+
+### Input Validation
+
+- **Course ID validation** — Course IDs are validated as numeric before being used in API requests, in both CLI and GUI modes. Batch course list files skip invalid entries with per-line warnings.
+- **Filename sanitization** — Downloaded filenames are stripped of invalid Windows characters and truncated to respect path length limits.
+- **Regex validation** — User-supplied patterns are validated with `re.compile()` before being saved.
+
+### Process Isolation
+
+- **No shell injection** — GUI subprocess calls use argument lists instead of shell string interpolation, preventing command injection.
+- **No dynamic code execution** — The application does not use `eval()`, `exec()`, or similar constructs.
+
+### Data Storage
+
+All application data is stored under `%APPDATA%\canvas bot\`, a per-user protected directory on Windows:
+
+| Data | Location | Sensitivity |
+|------|----------|-------------|
+| API tokens | Windows Credential Vault | High (encrypted) |
+| Instance config | `config.json` | Low (URLs only) |
+| Application logs | `canvas_bot.log` | Medium (URLs, errors — tokens stripped) |
+| GUI settings | `gui_settings.json` | Low (paths, preferences) |
+| Downloaded content | User-specified folder | Varies (course content) |
+
+Downloaded course content is stored as-is in user-specified folders. For sensitive course materials, we recommend storing downloads on an encrypted drive (e.g., BitLocker).
 
 ## Pipeline Testing
 

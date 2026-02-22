@@ -70,6 +70,7 @@ See Also
 """
 
 import json
+import logging
 import os
 import shutil
 
@@ -79,6 +80,8 @@ from core.manifest import Manifest
 from resource_nodes.content_nodes import *
 from core.downloader import DownloaderMixin
 from tools.export_to_excel import save_as_excel
+
+log = logging.getLogger(__name__)
 
 
 class ContentExtractor(DownloaderMixin):
@@ -711,6 +714,7 @@ class ContentExtractor(DownloaderMixin):
             with open(full_path, 'w') as f:
                 f.write(self.get_all_content_as_json(file_download_directory, **params))
 
+            log.info(f"AUDIT: JSON export | course_id={self.course_id} | path={full_path}")
             return full_path
         return None
 
@@ -775,6 +779,7 @@ class ContentExtractor(DownloaderMixin):
             json_data = json.loads(self.get_all_content_as_json(root_file_download_directory, **params))
 
             save_as_excel(json_data, root_download_directory, download_hidden_files)
+            log.info(f"AUDIT: Excel export | course_id={self.course_id} | path={root_download_directory}")
 
     # =========================================================================
     # Download Methods

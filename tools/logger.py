@@ -1,5 +1,9 @@
 import logging.config
+import getpass
 import os
+import stat
+import sys
+import uuid
 import logging
 from network.set_config import save_config_data
 
@@ -7,11 +11,22 @@ log_save_location = save_config_data(folder_only=True)
 
 print(f"Log save location: {log_save_location}")
 
+
+# Session context filter — injects username and session ID into every log record
+_session_id = uuid.uuid4().hex[:8]
+
+class SessionContextFilter(logging.Filter):
+    def filter(self, record):
+        record.user = getpass.getuser()
+        record.session = _session_id
+        return True
+
+
 LOGGING_CONFIG = {
     'version': 1,
     'formatters': {
         'default': {
-            'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            'format': '%(asctime)s - %(user)s - %(session)s - %(name)s - %(levelname)s - %(message)s',
         },
     },
     'handlers': {
@@ -40,3 +55,28 @@ LOGGING_CONFIG = {
 }
 
 logging.config.dictConfig(LOGGING_CONFIG)
+
+# Apply session filter to all handlers
+_session_filter = SessionContextFilter()
+for handler in logging.root.handlers:
+    handler.addFilter(_session_filter)
+
+# Global exception hook — logs any unhandled exception to the log file
+_unhandled_log = logging.getLogger('unhandled')
+
+def _excepthook(exc_type, exc_value, exc_tb):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_tb)
+        return
+    _unhandled_log.error(f"Unhandled {exc_type.__name__}: {exc_value}")
+
+sys.excepthook = _excepthook
+
+# Best-effort log file permission restriction (limited on Windows,
+# but %APPDATA% is already per-user)
+_log_file = os.path.join(log_save_location, "canvas_bot.log")
+try:
+    if os.path.exists(_log_file):
+        os.chmod(_log_file, stat.S_IRUSR | stat.S_IWUSR)
+except OSError:
+    pass

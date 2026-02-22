@@ -53,7 +53,7 @@ class CanvasCourseRoot(ContentExtractor):
             self.course_name = course_api['course_code'] # name used for course folder
             self.exists = True
             print(f"\nStarting import for {self.title} | {self.course_url}\n")
-            log.info(f" ---------- Starting import for {self.title} | {self.course_url} | {self.course_id} ----------")
+            log.info(f"AUDIT: Course scan start | course_id={self.course_id} | title={self.title} | url={self.course_url}")
             self._init_modules_root()
 
         if not course_api:
@@ -89,4 +89,5 @@ class CanvasCourseRoot(ContentExtractor):
         from tools.warning_collector import get_collector
         get_collector().flush()
 
+        log.info(f"AUDIT: Course scan complete | course_id={self.course_id} | items={len(self.manifest.content_list())}")
         print("Import Complete\n")

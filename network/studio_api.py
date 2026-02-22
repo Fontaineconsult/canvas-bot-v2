@@ -9,7 +9,21 @@ from requests.exceptions import MissingSchema, JSONDecodeError
 
 
 
+from network.cred import get_studio_token
+
 log = logging.getLogger(__name__)
+
+
+def _clean_url(url):
+    """Strip sensitive query params from Studio API URLs for safe display."""
+    if '?' in url:
+        base, _, query = url.partition('?')
+        clean_params = '&'.join(
+            p for p in query.split('&')
+            if not p.startswith(('access_token=', 'email=', 'search='))
+        )
+        return f"{base}?{clean_params}" if clean_params else base
+    return url
 
 
 def _get_studio_api_base():
@@ -123,34 +137,35 @@ def refresh_studio_token(reauth_token: str):
 
 def response_handler(request_url):
 
+    clean_url = _clean_url(request_url)
 
     headers = {"accept": "application/json",
-               "Authorization": f"Bearer {os.environ['CANVAS_STUDIO_TOKEN']}"}
+               "Authorization": f"Bearer {get_studio_token()}"}
 
     try:
         request = requests.get(request_url, headers=headers)
 
 
     except requests.exceptions.ConnectionError as exc:
-        log.exception(f"{exc} {request_url}")
-        warnings.warn(f"{exc} {request_url}", UserWarning)
+        log.exception(f"{exc} {clean_url}")
+        warnings.warn(f"{exc} {clean_url}", UserWarning)
         return False
     except MissingSchema as exc:
-        log.exception(f"{exc} {request_url}")
-        warnings.warn(f"{exc} {request_url}", UserWarning)
+        log.exception(f"{exc} {clean_url}")
+        warnings.warn(f"{exc} {clean_url}", UserWarning)
         return None
     if request.status_code == 200:
-        log.info(f"Request: {request_url} | Status Code: {request.status_code}")
+        log.info(f"Request: {clean_url} | Status Code: {request.status_code}")
         return json.loads(request.content)
 
     if request.status_code != 200:
-        log.warning(f"Request: {request_url} | Status Code: {request.status_code}")
+        log.warning(f"Request: {clean_url} | Status Code: {request.status_code}")
         try:
             error_message = json.loads(request.content)
         except JSONDecodeError as exc:
-            log.exception(f"{exc} {request_url}")
+            log.exception(f"{exc} {clean_url}")
             error_message = "Failed to load message"
-        warning_message = f"{request.status_code} {error_message} {request_url}"
+        warning_message = f"{request.status_code} {error_message} {clean_url}"
         warnings.warn(warning_message, UserWarning)
         return None
 
@@ -159,24 +174,23 @@ def response_handler(request_url):
 def post_handler(args):
 
     post_url, headers, file_data = args
-    # print(post_url, headers, file_data)
+    clean_url = _clean_url(post_url)
 
-    headers['Authorization'] = f"Bearer {os.environ['CANVAS_STUDIO_TOKEN']}"
-    # print(headers)
+    headers['Authorization'] = f"Bearer {get_studio_token()}"
 
     caption_post = requests.post(post_url, headers=headers, files=file_data)
     if caption_post.status_code == 201:
-        log.info(f"Request: {post_url} | Status Code: {caption_post.status_code}")
+        log.info(f"Request: {clean_url} | Status Code: {caption_post.status_code}")
         print("Caption file successfully uploaded to Canvas Studio")
         return json.loads(caption_post.content)
     else:
-        log.warning(f"Request: {post_url} | Status Code: {caption_post.status_code}")
+        log.warning(f"Request: {clean_url} | Status Code: {caption_post.status_code}")
         try:
             error_message = json.loads(caption_post.content)
         except JSONDecodeError as exc:
-            log.exception(f"{exc} {post_url}")
+            log.exception(f"{exc} {clean_url}")
             error_message = "Failed to load message"
-        warning_message = f"{caption_post.status_code} {error_message} {post_url}"
+        warning_message = f"{caption_post.status_code} {error_message} {clean_url}"
         warnings.warn(warning_message, UserWarning)
         return None
 
@@ -184,7 +198,7 @@ def post_handler(args):
 def download_handler(request_url):
 
     headers = {"accept": "application/json",
-               "Authorization": f"Bearer {os.environ['CANVAS_STUDIO_TOKEN']}"}
+               "Authorization": f"Bearer {get_studio_token()}"}
     request = requests.get(request_url, headers=headers)
     return request.content
 

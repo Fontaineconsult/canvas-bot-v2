@@ -8,6 +8,21 @@ import logging
 import tools.logger
 log = logging.getLogger(__name__)
 
+# Private credential store — secrets stay here instead of os.environ
+_credentials = {}
+
+
+def get_access_token():
+    return _credentials.get("ACCESS_TOKEN")
+
+
+def get_studio_token():
+    return _credentials.get("CANVAS_STUDIO_TOKEN")
+
+
+def get_studio_refresh_token():
+    return _credentials.get("CANVAS_STUDIO_RE_AUTH_TOKEN")
+
 
 # try:
 #     import logging
@@ -62,7 +77,7 @@ def set_canvas_api_key_to_environment_variable():
 
     api_key = keyring.get_password("ACCESS_TOKEN", "canvas_bot")
     if api_key:
-        os.environ["ACCESS_TOKEN"] = api_key
+        _credentials["ACCESS_TOKEN"] = api_key
         log.info("Access Token for Canvas Bot Set")
         return True
     else:
@@ -81,8 +96,8 @@ def set_canvas_studio_api_key_to_environment_variable(token=None, re_auth=None):
     studio_token, studio_re_auth_token = get_canvas_studio_tokens()
 
     if studio_token and studio_re_auth_token:
-        os.environ["CANVAS_STUDIO_TOKEN"] = studio_token
-        os.environ["CANVAS_STUDIO_RE_AUTH_TOKEN"] = studio_re_auth_token
+        _credentials["CANVAS_STUDIO_TOKEN"] = studio_token
+        _credentials["CANVAS_STUDIO_RE_AUTH_TOKEN"] = studio_re_auth_token
         log.info("Studio Tokens for Canvas Bot Set")
         return True
     else:
@@ -214,12 +229,7 @@ def delete_config_file_from_appdata():
 
 
 def clear_env_settings():
-    try:
-        del os.environ["ACCESS_TOKEN"]
-        del os.environ["CANVAS_STUDIO_TOKEN"]
-        del os.environ["CANVAS_STUDIO_RE_AUTH_TOKEN"]
-    except KeyError:
-        pass
+    _credentials.clear()
 
 
 def save_youtube_api_key(youtube_key):

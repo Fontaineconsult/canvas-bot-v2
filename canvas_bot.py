@@ -12,20 +12,35 @@ from network.set_config import save_config_data
 from network.studio_api import authorize_studio_token, refresh_studio_token
 from tools.canvas_studio_caption_upload import add_caption_to_canvas_studio_video
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 version = __version__
 log = logging.getLogger(__name__)
 
 
+def _validate_course_id(course_id):
+    """Check that a course ID is numeric. Returns True if valid."""
+    return course_id.strip().isdigit()
+
+
 def read_course_list(course_list_file: str):
     """
-    Reads a text file containing a list of course IDs
+    Reads a text file containing a list of course IDs (one per line).
+    Skips blank lines and warns on non-numeric IDs.
     :param course_list_file: The path to the text file
-    :return: A list of course IDs
+    :return: A list of valid course IDs
     """
+    valid_ids = []
     with open(course_list_file, 'r') as f:
-        course_list = [line.strip() for line in f]
-    return course_list
+        for line_num, line in enumerate(f, 1):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if not _validate_course_id(stripped):
+                print(f"Warning: Skipping invalid course ID '{stripped}' on line {line_num} (must be numeric)")
+                log.warning(f"Invalid course ID '{stripped}' on line {line_num} of {course_list_file}")
+                continue
+            valid_ids.append(stripped)
+    return valid_ids
 
 
 def check_if_api_key_exists():
@@ -800,6 +815,9 @@ if __name__=='__main__':
                         **params)
 
         if course_id:
+            if not _validate_course_id(course_id):
+                print(f"Error: Invalid course ID '{course_id}' — must be numeric.")
+                sys.exit(1)
             run_bot(ctx,
                     course_id,
                     **params)
@@ -821,6 +839,7 @@ if __name__=='__main__':
             from gui.app import CanvasBotGUI
             CanvasBotGUI().run()
         except Exception as exc:
+            log.exception(f"Unhandled error: {type(exc).__name__}: {exc}")
             # Show console again so the error is visible
             ctypes.windll.user32.ShowWindow(
                 ctypes.windll.kernel32.GetConsoleWindow(), 5  # SW_SHOW
@@ -834,7 +853,7 @@ if __name__=='__main__':
         try:
             main()
         except Exception as exc:
-            log.exception(exc)
+            log.exception(f"Unhandled error: {type(exc).__name__}: {exc}")
             raise exc
 
 
