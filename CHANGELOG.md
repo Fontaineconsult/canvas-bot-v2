@@ -4,6 +4,14 @@
 
 ### SOC 2 Remediation — Logging & Security Hardening
 
+#### Credential Store Migration (High — H1)
+- **Moved API tokens from `os.environ` to a private credential store** — `ACCESS_TOKEN`, `CANVAS_STUDIO_TOKEN`, and `CANVAS_STUDIO_RE_AUTH_TOKEN` are now stored in a module-level `_credentials` dict in `network/cred.py` with getter functions (`get_access_token()`, `get_studio_token()`, `get_studio_refresh_token()`). Tokens are no longer visible to child processes, debugging tools, or any code reading `os.environ`.
+- Files changed: `network/cred.py`, `network/api.py`, `network/studio_api.py`
+
+#### Shell Injection Prevention (High — H1)
+- **Removed `shell=True` from GUI subprocess calls** — `_launch_cli()` in `gui/app.py` now uses an argument list with `subprocess.CREATE_NEW_CONSOLE` instead of `shell=True` with string formatting, preventing shell injection and environment leakage to child processes.
+- Files changed: `gui/app.py`
+
 #### SSL Certificate Verification (Critical — C1)
 - **Enabled SSL verification on all Canvas API calls** — removed `verify=False` and `urllib3.disable_warnings()` from `network/api.py`. All API requests now validate TLS certificates, preventing man-in-the-middle interception of access tokens.
 - Files changed: `network/api.py`
@@ -35,6 +43,10 @@
 - **Global exception hook** — added `sys.excepthook` override in `tools/logger.py` as a safety net for truly uncaught exceptions that bypass all `try/except` blocks.
 - Added `logging.getLogger(__name__)` to `gui/app.py` (previously had no logger)
 - Files changed: `tools/logger.py`, `gui/app.py`, `canvas_bot.py`
+
+#### Course ID Input Validation (Low — L2)
+- **Added numeric validation for course IDs** — both CLI (`--course_id`) and GUI validate that course IDs are numeric before making API calls. Batch course list files (`--course_id_list`) skip invalid entries with per-line warnings. Blank lines in course list files are silently ignored.
+- Files changed: `canvas_bot.py`, `gui/app.py`, `gui/validation.py` (new)
 
 ### Bug Fixes
 - **Fixed COM initialization on GUI worker thread** — `create_windows_shortcut_from_url()` uses `win32com.client.Dispatch` which requires COM initialization per thread. Added `pythoncom.CoInitialize()` at the start of the GUI worker thread and `CoUninitialize()` in the `finally` block. Fixes `pywintypes.com_error: CoInitialize has not been called` when downloading files from the GUI.

@@ -147,7 +147,7 @@ class CanvasBotGUI:
         ctk.set_default_color_theme("blue")
 
         self.root = ctk.CTk()
-        self.root.title("Canvas Bot v1.2.0")
+        self.root.title("Canvas Bot v1.2.1")
         self.root.geometry("650x750")
         self.root.minsize(550, 600)
 
@@ -293,7 +293,7 @@ class CanvasBotGUI:
 
         ctk.CTkLabel(
             title_frame,
-            text="v1.2.0",
+            text="v1.2.1",
             font=ctk.CTkFont(size=12),
             text_color="gray",
         ).pack(side="left", padx=(8, 0), pady=(4, 0))
@@ -617,16 +617,28 @@ class CanvasBotGUI:
                 self._finish_run()
                 return
 
-            # Build course list
+            # Build and validate course list
+            from gui.validation import validate_course_id, validate_course_list
+
             course_ids = []
             if self.var_course_id.get().strip():
-                course_ids = [self.var_course_id.get().strip()]
+                cid = self.var_course_id.get().strip()
+                error = validate_course_id(cid)
+                if error:
+                    self._set_status("Error")
+                    print(f"ERROR: {error}")
+                    self._finish_run()
+                    return
+                course_ids = [cid]
             elif self.var_course_list.get().strip():
-                course_ids = read_course_list(self.var_course_list.get().strip())
+                raw_ids = read_course_list(self.var_course_list.get().strip())
+                course_ids, warnings = validate_course_list(raw_ids)
+                for w in warnings:
+                    print(f"WARNING: {w}")
 
             if not course_ids:
                 self._set_status("Error")
-                print("ERROR: No course IDs to process.")
+                print("ERROR: No valid course IDs to process.")
                 self._finish_run()
                 return
 
@@ -720,7 +732,7 @@ class CanvasBotGUI:
 
         # Title
         ctk.CTkLabel(scroll, text="Canvas Bot", font=ctk.CTkFont(size=20, weight="bold"), anchor="w").pack(fill="x")
-        ctk.CTkLabel(scroll, text="v1.2.0", font=ctk.CTkFont(size=13), text_color="gray", anchor="w").pack(fill="x")
+        ctk.CTkLabel(scroll, text="v1.2.1", font=ctk.CTkFont(size=13), text_color="gray", anchor="w").pack(fill="x")
 
         # Intro
         heading("What is Canvas Bot?")
