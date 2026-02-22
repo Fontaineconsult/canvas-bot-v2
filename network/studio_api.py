@@ -9,6 +9,8 @@ from requests.exceptions import MissingSchema, JSONDecodeError
 
 
 
+from network.cred import get_studio_token
+
 log = logging.getLogger(__name__)
 
 
@@ -138,7 +140,7 @@ def response_handler(request_url):
     clean_url = _clean_url(request_url)
 
     headers = {"accept": "application/json",
-               "Authorization": f"Bearer {os.environ['CANVAS_STUDIO_TOKEN']}"}
+               "Authorization": f"Bearer {get_studio_token()}"}
 
     try:
         request = requests.get(request_url, headers=headers)
@@ -174,7 +176,7 @@ def post_handler(args):
     post_url, headers, file_data = args
     clean_url = _clean_url(post_url)
 
-    headers['Authorization'] = f"Bearer {os.environ['CANVAS_STUDIO_TOKEN']}"
+    headers['Authorization'] = f"Bearer {get_studio_token()}"
 
     caption_post = requests.post(post_url, headers=headers, files=file_data)
     if caption_post.status_code == 201:
@@ -196,7 +198,7 @@ def post_handler(args):
 def download_handler(request_url):
 
     headers = {"accept": "application/json",
-               "Authorization": f"Bearer {os.environ['CANVAS_STUDIO_TOKEN']}"}
+               "Authorization": f"Bearer {get_studio_token()}"}
     request = requests.get(request_url, headers=headers)
     return request.content
 
