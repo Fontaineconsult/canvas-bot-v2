@@ -4,6 +4,7 @@ import customtkinter as ctk
 
 from gui.widgets import _fix_tcl_paths, _add_focus_ring, Tooltip
 from gui.controller import GUIController
+from gui.content_viewer import ContentViewer
 
 _fix_tcl_paths()
 
@@ -14,9 +15,9 @@ class CanvasBotGUI:
         ctk.set_default_color_theme("blue")
 
         self.root = ctk.CTk()
-        self.root.title("Canvas Bot v1.2.1")
-        self.root.geometry("650x750")
-        self.root.minsize(550, 600)
+        self.root.title("Canvas Bot v1.2.2")
+        self.root.geometry("900x800")
+        self.root.minsize(700, 650)
 
         # Set window icon
         icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'cb.ico')
@@ -30,9 +31,11 @@ class CanvasBotGUI:
         # --- Variables ---
         self.var_course_id = ctk.StringVar()
         self.var_course_list = ctk.StringVar()
-        self.var_download_folder = ctk.StringVar()
-        self.var_excel_folder = ctk.StringVar()
-        self.var_json_folder = ctk.StringVar()
+        self.var_output_folder = ctk.StringVar()
+
+        self.var_download = ctk.BooleanVar()
+        self.var_excel = ctk.BooleanVar()
+        self.var_json = ctk.BooleanVar()
 
         self.var_video = ctk.BooleanVar()
         self.var_audio = ctk.BooleanVar()
@@ -47,24 +50,47 @@ class CanvasBotGUI:
 
         # --- Build UI ---
         self._build_title_bar()
-        self._build_course_selection()
-        self._build_output_folders()
-        self._build_options()
-        self._build_run_button()
-        self._build_output_area()
+
+        # Tabview
+        self.tabview = ctk.CTkTabview(self.root)
+        self.tabview.pack(fill="both", expand=True, padx=15, pady=(5, 15))
+
+        self.tabview.add("Run")
+        self.tabview.add("Content")
+        self.tabview.add("Patterns")
+
+        run_tab = self.tabview.tab("Run")
+
+        self._build_course_selection(run_tab)
+        self._build_output_section(run_tab)
+        self._build_options(run_tab)
+        self._build_run_button(run_tab)
+        self._build_output_area(run_tab)
+
+        # Content Viewer tab
+        self.content_viewer = ContentViewer(self.tabview.tab("Content"), self)
+
+        ctk.CTkLabel(
+            self.tabview.tab("Patterns"),
+            text="Pattern Manager (coming soon)",
+            font=ctk.CTkFont(size=14),
+            text_color="gray",
+        ).pack(expand=True)
 
         # --- Validation bindings ---
         self.var_course_id.trace_add("write", self.controller.on_course_id_changed)
         self.var_course_list.trace_add("write", self.controller.on_course_list_changed)
-        self.var_download_folder.trace_add("write", self.controller.validate_run)
-        self.var_excel_folder.trace_add("write", self.controller.validate_run)
-        self.var_json_folder.trace_add("write", self.controller.validate_run)
+        self.var_output_folder.trace_add("write", self.controller.validate_run)
+        self.var_output_folder.trace_add("write", lambda *_: self.content_viewer.refresh_course_list())
 
         # --- Keyboard shortcuts ---
         self.root.bind("<Alt-r>", lambda e: self.controller.on_run() if self.run_btn.cget("state") == "normal" else None)
         self.root.bind("<Alt-v>", lambda e: self.controller.view_config())
         self.root.bind("<Alt-c>", lambda e: self.controller.reset_config())
         self.root.bind("<Alt-a>", lambda e: self.controller.show_about())
+        self.root.bind("<Control-Key-1>", lambda e: self.tabview.set("Run"))
+        self.root.bind("<Control-Key-2>", lambda e: self.tabview.set("Content"))
+        self.root.bind("<Control-Key-3>", lambda e: self.tabview.set("Patterns"))
 
         # --- Load saved settings ---
         self.controller.load_settings()
@@ -99,7 +125,7 @@ class CanvasBotGUI:
 
         ctk.CTkLabel(
             title_frame,
-            text="v1.2.1",
+            text="v1.2.2",
             font=ctk.CTkFont(size=12),
             text_color="gray",
         ).pack(side="left", padx=(8, 0), pady=(4, 0))
@@ -136,8 +162,8 @@ class CanvasBotGUI:
 
     # ── Course Selection ──
 
-    def _build_course_selection(self):
-        section = self._make_section("Course Selection")
+    def _build_course_selection(self, parent):
+        section = self._make_section("Course Selection", parent)
 
         # Course ID row
         id_frame = ctk.CTkFrame(section, fg_color="transparent")
@@ -171,37 +197,57 @@ class CanvasBotGUI:
         _add_focus_ring(browse_list_btn)
         Tooltip(browse_list_btn, "Browse for a course list text file")
 
-    # ── Output Folders ──
+    # ── Output Section (single folder + action checkboxes) ──
 
-    def _build_output_folders(self):
-        section = self._make_section("Output Folders")
+    def _build_output_section(self, parent):
+        section = self._make_section("Output", parent)
 
-        self._make_folder_row(section, "Download Folder:", self.var_download_folder,
-                              "Directory where downloaded files will be saved")
-        self._make_folder_row(section, "Excel Folder:", self.var_excel_folder,
-                              "Directory where Excel accessibility reports will be saved")
-        self._make_folder_row(section, "JSON Folder:", self.var_json_folder,
-                              "Directory where JSON content inventories will be saved")
+        # Folder row
+        folder_row = ctk.CTkFrame(section, fg_color="transparent")
+        folder_row.pack(fill="x", pady=(0, 6))
 
-    def _make_folder_row(self, parent, label_text, variable, tooltip_text):
-        row = ctk.CTkFrame(parent, fg_color="transparent")
-        row.pack(fill="x", pady=2)
-
-        ctk.CTkLabel(row, text=label_text, width=120, anchor="w").pack(side="left")
-        entry = ctk.CTkEntry(row, textvariable=variable, placeholder_text="Select a folder...")
+        ctk.CTkLabel(folder_row, text="Output Folder:", width=110, anchor="w").pack(side="left")
+        entry = ctk.CTkEntry(folder_row, textvariable=self.var_output_folder,
+                             placeholder_text="Select a folder...")
         entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
-        Tooltip(entry, tooltip_text)
+        Tooltip(entry, "Directory where all output (downloads, Excel reports, JSON) will be saved")
 
-        browse_btn = ctk.CTkButton(row, text="Browse", width=70, command=lambda: self.controller.browse_folder(variable))
+        browse_btn = ctk.CTkButton(folder_row, text="Browse", width=70,
+                                   command=lambda: self.controller.browse_folder(self.var_output_folder))
         browse_btn.pack(side="right")
         _add_focus_ring(browse_btn)
-        Tooltip(browse_btn, f"Browse for {label_text.lower().replace(':', '')} location")
+        Tooltip(browse_btn, "Browse for output folder location")
+
+        # Action checkboxes row
+        actions_row = ctk.CTkFrame(section, fg_color="transparent")
+        actions_row.pack(fill="x")
+
+        cb_download = ctk.CTkCheckBox(actions_row, text="Download files",
+                                      variable=self.var_download,
+                                      command=self.controller.validate_run)
+        cb_download.pack(side="left", padx=(0, 15))
+        _add_focus_ring(cb_download)
+        Tooltip(cb_download, "Download course documents to the output folder")
+
+        cb_excel = ctk.CTkCheckBox(actions_row, text="Export to Excel",
+                                   variable=self.var_excel,
+                                   command=self.controller.validate_run)
+        cb_excel.pack(side="left", padx=(0, 15))
+        _add_focus_ring(cb_excel)
+        Tooltip(cb_excel, "Generate Excel accessibility report in the output folder")
+
+        cb_json = ctk.CTkCheckBox(actions_row, text="Export to JSON",
+                                  variable=self.var_json,
+                                  command=self.controller.validate_run)
+        cb_json.pack(side="left")
+        _add_focus_ring(cb_json)
+        Tooltip(cb_json, "Save content inventory as JSON in the output folder")
 
     # ── Options ──
 
-    def _build_options(self):
-        frame = ctk.CTkFrame(self.root)
-        frame.pack(fill="x", padx=15, pady=(10, 0))
+    def _build_options(self, parent):
+        frame = ctk.CTkFrame(parent)
+        frame.pack(fill="x", pady=(10, 0))
 
         # Two columns side by side
         columns = ctk.CTkFrame(frame, fg_color="transparent")
@@ -258,9 +304,9 @@ class CanvasBotGUI:
 
     # ── Run Button ──
 
-    def _build_run_button(self):
-        run_frame = ctk.CTkFrame(self.root, fg_color="transparent")
-        run_frame.pack(fill="x", padx=15, pady=(10, 0))
+    def _build_run_button(self, parent):
+        run_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        run_frame.pack(fill="x", pady=(10, 0))
 
         self.run_btn = ctk.CTkButton(
             run_frame,
@@ -276,9 +322,9 @@ class CanvasBotGUI:
 
     # ── Output Area ──
 
-    def _build_output_area(self):
-        output_frame = ctk.CTkFrame(self.root, fg_color="transparent")
-        output_frame.pack(fill="both", expand=True, padx=15, pady=(10, 15))
+    def _build_output_area(self, parent):
+        output_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        output_frame.pack(fill="both", expand=True, pady=(10, 0))
 
         self.status_label = ctk.CTkLabel(
             output_frame,
@@ -297,9 +343,11 @@ class CanvasBotGUI:
 
     # ── Section Helper ──
 
-    def _make_section(self, title):
-        frame = ctk.CTkFrame(self.root)
-        frame.pack(fill="x", padx=15, pady=(10, 0))
+    def _make_section(self, title, parent=None):
+        if parent is None:
+            parent = self.root
+        frame = ctk.CTkFrame(parent)
+        frame.pack(fill="x", pady=(10, 0))
 
         ctk.CTkLabel(
             frame,

@@ -1,5 +1,35 @@
 # Changelog
 
+## v1.2.2
+
+### GUI Tabbed Layout
+- **Reorganized GUI into three tabs** — the main window now uses a `CTkTabview` with **Run**, **Content**, and **Patterns** tabs. All existing controls (course selection, output, options, run button, log area) are under the Run tab. Window enlarged to 900x800 with 700x650 minimum.
+- **Consolidated output folders** — replaced three separate folder pickers (Download, Excel, JSON) with a single Output Folder and three action checkboxes (Download files, Export to Excel, Export to JSON). Old settings are migrated automatically.
+- **Tab keyboard shortcuts** — `Ctrl+1/2/3` switch between Run, Content, and Patterns tabs.
+
+### Content Viewer (Content Tab)
+- **Added Content Viewer** — a persistent browser for all previously scanned courses. Scans the output folder for `.manifest/` JSON files and populates a course dropdown.
+- **Course dropdown with auto-refresh** — lists all scanned courses by folder name. Automatically refreshes after a scan completes or when the output folder changes. Manual Refresh button available.
+- **Organized content tables** — content displayed in nested sub-tabs: Documents (Documents | Document Sites), Videos (Video Sites | Video Files), Audio (Audio Files | Audio Sites), Images, and Unsorted. Each table supports column-header sorting.
+- **Summary banner** — shows course name, ID, and item counts (e.g., "87 items: 20 docs, 12 videos, 3 images, 47 unsorted").
+- **Detail panel** — clicking a row shows all fields in a read-only panel with clickable URLs that open in the default browser.
+- **Downloaded column** — document, video, audio, and image file tables show whether each file exists at its expected download path. Paths are normalized to handle mixed separators.
+- **Open Folder button** — opens the selected course's folder in the file explorer.
+- **Open File Location button** — opens the folder containing the selected file's download path.
+- **Open Source Page button** — opens the Canvas source page URL for the selected item in the default browser.
+- **Context-aware placeholder messages** — shows different messages when no output folder is set, when the folder is not accessible (e.g., disconnected network drive), or when no scanned courses are found.
+- **Automatic content.json persistence** — every scan saves content data to `{course_folder}/.manifest/{course_id}.json` for later browsing without re-scanning.
+
+### Reusable Table Widget
+- **Created `gui/table_widget.py`** — `ContentTable` class wrapping `ttk.Treeview` with vertical and horizontal scrollbars, column-header click sorting with arrow indicators, alternating row colors, and automatic dark/light theme matching via CTk appearance mode.
+
+### Internal
+- **MVC refactor** — GUI split into `gui/app.py` (view), `gui/controller.py` (controller), and `gui/widgets.py` (shared widgets). Controller handles settings persistence, validation, run logic, and about dialog.
+- **`create_download_manifest()` now returns the manifest directory path** for reuse by callers.
+- Files changed: `gui/app.py`, `gui/controller.py` (new), `gui/widgets.py` (new), `gui/table_widget.py` (new), `gui/content_viewer.py` (new), `config/yaml_io.py`
+
+---
+
 ## v1.2.1
 
 ### SOC 2 Remediation — Logging & Security Hardening

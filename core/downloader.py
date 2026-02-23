@@ -689,10 +689,12 @@ class DownloaderMixin:
 
                 return filename
 
-            except PermissionError as exc:
-                log.exception(f"Permission Error: {exc}, {filename}")
-                print(f"  {Fore.RED}\u2717{Style.RESET_ALL} Permission denied: {_truncate_title(os.path.basename(filename))} {Fore.LIGHTBLACK_EX}(creating shortcut){Style.RESET_ALL}")
-                return create_windows_shortcut_from_url(url, filename)
+            except OSError as exc:
+                log.exception(f"OS Error during file write: {exc}, {filename}")
+                print(f"\n  {Fore.RED}\u2717 Unable to save file: {_truncate_title(os.path.basename(filename))}{Style.RESET_ALL}")
+                print(f"  {Fore.RED}  The download destination is no longer accessible. "
+                      f"Check that the drive is connected and try again.{Style.RESET_ALL}")
+                raise SystemExit(1)
 
         except requests.exceptions.ConnectionError as exc:
             log.exception(f"Connection Error: {exc}, {url}")

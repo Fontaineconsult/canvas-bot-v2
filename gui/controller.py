@@ -41,9 +41,18 @@ class GUIController:
 
         self.view.var_course_id.set(data.get("course_id", ""))
         self.view.var_course_list.set(data.get("course_list", ""))
-        self.view.var_download_folder.set(data.get("download_folder", ""))
-        self.view.var_excel_folder.set(data.get("excel_folder", ""))
-        self.view.var_json_folder.set(data.get("json_folder", ""))
+
+        # Migrate from old 3-folder settings to single output_folder
+        output_folder = data.get("output_folder", "")
+        if not output_folder:
+            output_folder = (data.get("download_folder", "")
+                             or data.get("excel_folder", "")
+                             or data.get("json_folder", ""))
+        self.view.var_output_folder.set(output_folder)
+
+        self.view.var_download.set(data.get("download", False))
+        self.view.var_excel.set(data.get("excel", False))
+        self.view.var_json.set(data.get("json", False))
         self.view.var_video.set(data.get("include_video", False))
         self.view.var_audio.set(data.get("include_audio", False))
         self.view.var_image.set(data.get("include_image", False))
@@ -58,9 +67,10 @@ class GUIController:
             data = {
                 "course_id": self.view.var_course_id.get(),
                 "course_list": self.view.var_course_list.get(),
-                "download_folder": self.view.var_download_folder.get(),
-                "excel_folder": self.view.var_excel_folder.get(),
-                "json_folder": self.view.var_json_folder.get(),
+                "output_folder": self.view.var_output_folder.get(),
+                "download": self.view.var_download.get(),
+                "excel": self.view.var_excel.get(),
+                "json": self.view.var_json.get(),
                 "include_video": self.view.var_video.get(),
                 "include_audio": self.view.var_audio.get(),
                 "include_image": self.view.var_image.get(),
@@ -201,13 +211,18 @@ class GUIController:
     def validate_run(self, *_):
         if self._running:
             return
-        has_course = self.view.var_course_id.get().strip() or self.view.var_course_list.get().strip()
-        has_output = (self.view.var_download_folder.get().strip()
-                      or self.view.var_excel_folder.get().strip()
-                      or self.view.var_json_folder.get().strip()
-                      or self.view.var_content_tree.get()
-                      or self.view.var_full_tree.get())
-        if has_course and has_output:
+        has_course = (self.view.var_course_id.get().strip()
+                      or self.view.var_course_list.get().strip())
+
+        output_folder = self.view.var_output_folder.get().strip()
+        has_action = (output_folder
+                      and (self.view.var_download.get()
+                           or self.view.var_excel.get()
+                           or self.view.var_json.get()))
+        has_tree = (self.view.var_content_tree.get()
+                    or self.view.var_full_tree.get())
+
+        if has_course and (has_action or has_tree):
             self.view.run_btn.configure(state="normal")
         else:
             self.view.run_btn.configure(state="disabled")
@@ -299,9 +314,10 @@ class GUIController:
                 "flatten": self.view.var_flatten.get(),
             }
 
-            download_folder = self.view.var_download_folder.get().strip() or None
-            excel_folder = self.view.var_excel_folder.get().strip() or None
-            json_folder = self.view.var_json_folder.get().strip() or None
+            output_folder = self.view.var_output_folder.get().strip() or None
+            do_download = self.view.var_download.get()
+            do_excel = self.view.var_excel.get()
+            do_json = self.view.var_json.get()
 
             total = len(course_ids)
             for i, course_id in enumerate(course_ids, 1):
@@ -313,23 +329,39 @@ class GUIController:
                 bot = CanvasBot(course_id)
                 bot.start()
 
+                # Compute course subfolder once for all operations
+                course_folder = None
+                if output_folder and bot.exists:
+                    from tools.string_checking.url_cleaning import sanitize_windows_filename
+                    from config.yaml_io import create_download_manifest
+                    course_folder = os.path.join(
+                        os.path.normpath(output_folder),
+                        f"{sanitize_windows_filename(bot.course_name)} - {bot.course_id}",
+                    )
+
+                # Save content.json to .manifest/ for Content Viewer
+                if course_folder:
+                    manifest_dir = create_download_manifest(course_folder)
+                    bot.save_content_as_json(manifest_dir, course_folder, **params)
+
                 if self.view.var_content_tree.get():
                     bot.print_content_tree()
 
                 if self.view.var_full_tree.get():
                     bot.print_full_course()
 
-                if download_folder:
-                    bot.download_files(download_folder, **params)
+                if output_folder and do_download:
+                    bot.download_files(output_folder, **params)
 
-                if json_folder:
-                    bot.save_content_as_json(json_folder, download_folder, **params)
+                if output_folder and do_json:
+                    bot.save_content_as_json(output_folder, course_folder, **params)
 
-                if excel_folder:
-                    bot.save_content_as_excel(excel_folder, **params)
+                if output_folder and do_excel:
+                    bot.save_content_as_excel(output_folder, **params)
 
             self.set_status("Complete")
             print(f"\nAll done — {total} course(s) processed.")
+            self.view.root.after(0, self._on_scan_complete)
 
         except Exception as exc:
             log.exception(f"Unhandled error: {type(exc).__name__}: {exc}")
@@ -339,6 +371,12 @@ class GUIController:
         finally:
             pythoncom.CoUninitialize()
             self._finish_run()
+
+    def _on_scan_complete(self):
+        """Called on the main thread after all courses have been processed."""
+        # Refresh Content Viewer if it exists
+        if hasattr(self.view, "content_viewer"):
+            self.view.content_viewer.refresh_course_list()
 
     def _finish_run(self):
         # Restore stdout/stderr
@@ -381,7 +419,7 @@ class GUIController:
 
         # Title
         ctk.CTkLabel(scroll, text="Canvas Bot", font=ctk.CTkFont(size=20, weight="bold"), anchor="w").pack(fill="x")
-        ctk.CTkLabel(scroll, text="v1.2.1", font=ctk.CTkFont(size=13), text_color="gray", anchor="w").pack(fill="x")
+        ctk.CTkLabel(scroll, text="v1.2.2", font=ctk.CTkFont(size=13), text_color="gray", anchor="w").pack(fill="x")
 
         # Intro
         heading("What is Canvas Bot?")
@@ -399,23 +437,21 @@ class GUIController:
             "or select a .txt file containing one course ID per line for batch processing."
         )
 
-        heading("Output Folders")
+        heading("Output")
         body(
-            "Download Folder \u2014 where course files (PDFs, DOCX, media, etc.) will be saved, "
+            "Select an output folder and check the actions you want to perform:"
+        )
+        body(
+            "Download files \u2014 downloads course documents (PDFs, DOCX, media, etc.) "
             "organized into subfolders by module and resource type."
         )
         body(
-            "Excel Folder \u2014 where accessibility audit workbooks (.xlsm) will be generated. "
-            "Each workbook contains categorized sheets for documents, videos, audio, and images "
-            "with tracking columns and conditional formatting."
+            "Export to Excel \u2014 generates accessibility audit workbooks (.xlsm) "
+            "with categorized sheets, tracking columns, and conditional formatting."
         )
         body(
-            "JSON Folder \u2014 where raw content inventories will be saved as .json files for "
+            "Export to JSON \u2014 saves raw content inventories as .json files for "
             "further processing or integration with other tools."
-        )
-        body(
-            "You can use any combination of output folders. At least one output folder or "
-            "display option is required to run."
         )
 
         heading("Download Options")
