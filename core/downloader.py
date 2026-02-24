@@ -577,7 +577,7 @@ class DownloaderMixin:
                     shortcut_folders.add(target_folder)
             elif parent_type in ("Module", "ModuleItem"):
                 relative_parts = os.path.relpath(full_file_path, root_directory).split(os.sep)
-                module_folder = os.path.join(root_directory, relative_parts[0], relative_parts[1])
+                module_folder = os.path.join(root_directory, *relative_parts[:3])
                 if module_folder not in shortcut_folders:
                     source_url = get_source_page_url(node)
                     if source_url:
