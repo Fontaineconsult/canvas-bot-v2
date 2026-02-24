@@ -18,11 +18,8 @@ cpage = [
 bot = CanvasBot(str(67627))
 bot.start()
 bot.print_content_tree()
-bot.download_files(
-    directory=r"C:\Users\Fonta\PycharmProjects\canvas-bot-v2\test_data\dl",
-    include_video_files=True,
-    include_audio_files=True
-)
+
+
 # bot.save_content_as_excel(excel_directory=r"C:\Users\Fonta\PycharmProjects\canvas-bot-v2\test_data\dl")
 # bot.clear_folder_contents(directory=r"C:\Users\Fonta\PycharmProjects\canvas-bot-v2\test_data\dl")
 # bot.save_content_as_json(json_save_directory=r"C:\Users\913678186\IdeaProjects\canvas-bot-v2",

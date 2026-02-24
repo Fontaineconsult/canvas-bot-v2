@@ -7,7 +7,7 @@ from tools.captioning_check import get_youtube_caption_info
 
 
 
-def get_source_page_url(node) -> int:
+def get_source_page_url(node) -> str:
 
     """
     Get the url of the page that the node is on.
@@ -18,7 +18,11 @@ def get_source_page_url(node) -> int:
         return getattr(node.parent, "html_url")
 
     else:
-        return getattr(node.parent, "url", None)
+        if node.parent.__class__.__name__ == "Module":
+            url = getattr(node.parent, "url", None)
+            return f"{url}/modules#{node.parent.id}"
+        else:
+            return getattr(node.parent, "url", None)
 
 def return_node_of_type(node, node_type):
 

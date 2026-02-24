@@ -39,6 +39,7 @@ class Module(Node):
         super().__init__(parent, root, api_dict['id'], api_dict['name'])
         self._expand_api_dict_to_class_attributes(api_dict)
         self.items_url = api_dict['items_url']
+        self.module_id = api_dict['id']
         self.url = root.course_url
         self.position = api_dict.get('position', 0)
         self.identify_content()
