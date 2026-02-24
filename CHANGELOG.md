@@ -20,13 +20,42 @@
 - **Context-aware placeholder messages** — shows different messages when no output folder is set, when the folder is not accessible (e.g., disconnected network drive), or when no scanned courses are found.
 - **Automatic content.json persistence** — every scan saves content data to `{course_folder}/.manifest/{course_id}.json` for later browsing without re-scanning.
 
+### Pattern Manager (Patterns Tab)
+- **Added Pattern Manager** — full GUI for managing regex patterns from `re.yaml`. Two-column layout: scrollable category list on the left, pattern table with action buttons on the right, test URL panel spanning the bottom.
+- **Category list** — displays all pattern categories from `read_re(substitute=False)` with item counts. String-type categories (e.g., `resource_node_re`) are visually dimmed; list-type categories are fully interactive. Selected category is highlighted.
+- **Category visibility filter** — a `_CATEGORY_VISIBILITY` dictionary controls which categories appear in the GUI. Internal categories (`resource_node_re`, `resource_node_types_re`, `canvas_user_file_content_regex`, `canvas_file_content_regex`) are hidden by default. Hidden categories still function in the pipeline.
+- **Pattern display** — selecting a category populates a `ContentTable` with numbered patterns. String-type categories show a single read-only row with add/remove disabled. Patterns with `{PLACEHOLDER}` tokens (e.g., `{CANVAS_DOMAIN}`) are displayed with substituted values (e.g., `sfsu`) for readability; writes use the raw tokens.
+- **Add Pattern** — opens a dialog with inline regex validation (`re.compile`) and duplicate checking. On success, appends to the category and saves via `write_re()`.
+- **Remove Pattern** — confirmation dialog before removing the selected pattern from the category and saving.
+- **Validate** — compiles the selected pattern with `re.IGNORECASE` and reports valid/invalid, group count, and flags in a status label.
+- **Test URL** — enter a URL or filename and test against all compiled matchers. Uses `importlib.reload(sorters.sorters)` to pick up unsaved edits. Shows matches in green or "No matches (Unsorted)" in orange. Enter key triggers test.
+- **Reset All to Defaults** — confirmation dialog, then calls `reset_re()` to delete the user's AppData copy. Next load recreates from the bundled default.
+
+### Expanded Default Patterns
+- **Document patterns** — added 9 accessibility-relevant file types to `document_content_regex`: `.odt`, `.odp`, `.ods`, `.key`, `.numbers`, `.pub`, `.epub`, `.xps`, `.7z`.
+- **Video site patterns** — added 47 new patterns to `web_video_resources_regex` covering enterprise platforms (Panopto, Kaltura, YuJa, Wistia, Brightcove, Echo360), education streaming (Kanopy, Docuseek, Swank, PBS, Khan Academy), screen recording (ScreenPal, Screencast-O-Matic), collaboration (Flipgrid/Flip, Vidyard, Loom), social media (Twitch, Instagram Reels, LinkedIn Video, Facebook Watch, TikTok), enterprise (Microsoft Stream, Google Drive preview, Bunny Stream CDN), and more (Rumble, Odysee, BitChute, PeerTube, Streamable, C-SPAN).
+- **Institution-specific video patterns** — populated `institution_video_services_regex` (previously empty) with 12 `{CANVAS_DOMAIN}`-prefixed patterns for platforms that use institution subdomains: Panopto, Kaltura, YuJa, Echo360, Kanopy, ShareStream, Ensemble, and ScreenPal.
+
 ### Reusable Table Widget
 - **Created `gui/table_widget.py`** — `ContentTable` class wrapping `ttk.Treeview` with vertical and horizontal scrollbars, column-header click sorting with arrow indicators, alternating row colors, and automatic dark/light theme matching via CTk appearance mode.
+
+### Module Anchor URLs
+- **Improved source page URLs for Module content** — `get_source_page_url()` in `core/content_scaffolds.py` now constructs `{course_url}/modules#{module_id}` when content lives inside a Module (which has no direct `html_url`). This creates an anchor link that scrolls directly to the correct module on the Canvas modules page, instead of linking to the generic modules listing.
+- Files changed: `core/content_scaffolds.py`
+
+### Accessibility & Usability
+- **Focus rings and tooltips** — all interactive elements on the Content and Patterns tabs now show a blue focus ring on keyboard navigation and display descriptive tooltips on hover/focus, matching the Run tab's accessibility features.
+- **Content tab auto-refresh** — switching to the Content tab automatically refreshes the course list, ensuring the dropdown reflects any new scans without needing to click Refresh manually.
+
+### Stability
+- **OSError handler for disconnected drives** — `core/downloader.py` now catches `OSError` during file writes (e.g., network drive disconnected mid-download) and exits cleanly with a message and `SystemExit(1)` instead of an unhandled traceback.
+- **Pattern Manager placeholder substitution fix** — `load_config_data_from_appdata()` is now called when the Pattern Manager loads, ensuring `{CANVAS_DOMAIN}` and other placeholder tokens are substituted with actual values (e.g., `sfsu`) in the GUI display. Previously, env vars were only populated during course processing, causing raw `{CANVAS_DOMAIN}` tokens to appear in the Patterns tab.
+- Files changed: `core/downloader.py`, `gui/pattern_manager.py`
 
 ### Internal
 - **MVC refactor** — GUI split into `gui/app.py` (view), `gui/controller.py` (controller), and `gui/widgets.py` (shared widgets). Controller handles settings persistence, validation, run logic, and about dialog.
 - **`create_download_manifest()` now returns the manifest directory path** for reuse by callers.
-- Files changed: `gui/app.py`, `gui/controller.py` (new), `gui/widgets.py` (new), `gui/table_widget.py` (new), `gui/content_viewer.py` (new), `config/yaml_io.py`
+- Files changed: `gui/app.py`, `gui/controller.py` (new), `gui/widgets.py` (new), `gui/table_widget.py` (new), `gui/content_viewer.py` (new), `gui/pattern_manager.py` (new), `config/re.yaml`, `config/yaml_io.py`, `core/content_scaffolds.py`, `core/downloader.py`
 
 ---
 

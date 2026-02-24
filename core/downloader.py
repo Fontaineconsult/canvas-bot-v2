@@ -579,7 +579,7 @@ class DownloaderMixin:
                 relative_parts = os.path.relpath(full_file_path, root_directory).split(os.sep)
                 module_folder = os.path.join(root_directory, relative_parts[0], relative_parts[1])
                 if module_folder not in shortcut_folders:
-                    source_url = node.root.course_url
+                    source_url = get_source_page_url(node)
                     if source_url:
                         shortcut_path = os.path.join(module_folder, "Content Location")
                         if not os.path.exists(module_folder):

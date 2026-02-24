@@ -197,9 +197,19 @@ def post_handler(args):
 
 def download_handler(request_url):
 
+    clean_url = _clean_url(request_url)
     headers = {"accept": "application/json",
                "Authorization": f"Bearer {get_studio_token()}"}
-    request = requests.get(request_url, headers=headers)
+    try:
+        request = requests.get(request_url, headers=headers)
+    except requests.exceptions.ConnectionError as exc:
+        log.error(f"Connection error: {exc} | URL: {clean_url}")
+        warnings.warn(f"Connection error\n    {clean_url}", UserWarning)
+        return None
+    except MissingSchema as exc:
+        log.error(f"Invalid URL: {exc} | URL: {clean_url}")
+        warnings.warn(f"Invalid URL\n    {clean_url}", UserWarning)
+        return None
     return request.content
 
 

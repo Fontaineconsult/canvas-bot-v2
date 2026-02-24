@@ -167,10 +167,10 @@ CanvasBot classifies content into these categories:
 
 | Type | Description | Examples |
 |------|-------------|----------|
-| Documents | Downloadable document files | PDF, DOCX, PPTX, XLSX |
+| Documents | Downloadable document files | PDF, DOCX, PPTX, XLSX, ODT, EPUB, Pages |
 | Document Sites | Cloud document platforms | Google Docs, OneDrive |
 | Video Files | Downloadable video files | MP4, MOV, MKV |
-| Video Sites | Video hosting platforms | YouTube, Vimeo, Zoom |
+| Video Sites | Video hosting platforms | YouTube, Vimeo, Panopto, Kaltura, YuJa, Echo360, Zoom, Wistia, Brightcove, Kanopy |
 | Audio Files | Downloadable audio files | MP3, M4A, WAV |
 | Audio Sites | Audio/podcast platforms | Podcast links |
 | Image Files | Image files | JPG, PNG, GIF |
@@ -215,12 +215,13 @@ On first run, you'll be prompted for:
 
 Double-click the executable or run `python canvas_bot.py` with no arguments to launch the graphical interface.
 
-The GUI provides:
-- **Course Selection** — enter a single course ID or browse for a `.txt` file with one course ID per line for batch processing
-- **Output Folders** — separate folder pickers for Download, Excel, and JSON output
-- **Download Options** — checkboxes for video, audio, image files, hidden content, and flat folder structure
-- **Display Options** — print content tree or full course tree (single course only)
-- **Real-time log** — scrollable output area showing progress as courses are processed
+The GUI is organized into three tabs:
+
+- **Run tab** — course selection (single ID or batch `.txt` file), a single output folder with action checkboxes (Download files, Export to Excel, Export to JSON), download options (video, audio, image, hidden, flatten), display options (content tree, full course tree), real-time log output
+- **Content tab** — a persistent browser for all previously scanned courses. Select a course from the dropdown to view its content organized into nested sub-tabs (Documents, Videos, Audio, Images, Unsorted) with sortable tables, a summary banner, detail panel with clickable URLs, and buttons to open file locations or source pages
+- **Patterns tab** — view, add, remove, validate, and test regex patterns from `re.yaml` without the CLI. Left column lists all pattern categories with counts; right column shows patterns in the selected category with Add, Remove, and Validate buttons; bottom panel tests a URL or filename against all compiled matchers
+
+Additional features:
 - **Settings persistence** — all inputs are saved across sessions
 - **About dialog** — click "About" for a guide to every GUI element and first-time setup instructions
 
@@ -228,7 +229,7 @@ Configuration buttons in the title bar:
 - **View Config** — opens a terminal showing current configuration status
 - **Reset Config** — opens a dialog to reset Canvas API or Canvas Studio credentials
 
-Keyboard shortcuts: `Alt+R` Run, `Alt+V` View Config, `Alt+C` Reset Config, `Alt+A` About. All dialogs close with `Escape`.
+Keyboard shortcuts: `Alt+R` Run, `Alt+V` View Config, `Alt+C` Reset Config, `Alt+A` About, `Ctrl+1/2/3` switch tabs. All dialogs close with `Escape`.
 
 ### CLI Mode
 
@@ -364,7 +365,13 @@ Canvasbot.exe --course_id 12345 --print_full_course
 
 ### Pattern Management
 
-CanvasBot uses regex patterns to classify content. You can manage these patterns via CLI:
+CanvasBot decides how to classify every URL and filename it discovers by testing it against a series of [regular expression](https://en.wikipedia.org/wiki/Regular_expression) (regex) patterns. These patterns are organized into categories like `document_content_regex`, `web_video_resources_regex`, `ignore_list_regex`, and so on. When a URL matches a pattern in a category, CanvasBot assigns it to that content type — for example, a URL ending in `.pdf` matches `document_content_regex` and becomes a Document node, while a YouTube link matches `web_video_resources_regex` and becomes a VideoSite node. URLs that don't match any pattern are classified as Unsorted.
+
+The default patterns cover common file types and popular platforms (YouTube, Vimeo, Google Docs, Box, etc.), but every institution has its own tools and services. You can add patterns to recognize institution-specific video platforms, custom document hosting, or any other content source that CanvasBot doesn't detect out of the box. You can also remove patterns that produce false positives or add entries to the ignore list to skip URLs you don't care about.
+
+Patterns use Python's `re` module syntax with case-insensitive matching. If you're new to regular expressions, [Pythex](https://pythex.org/) is a helpful tool for building and testing patterns interactively before adding them to CanvasBot.
+
+Patterns can be managed from the **Patterns tab** in the GUI or via CLI flags:
 
 #### List Patterns
 
@@ -602,6 +609,29 @@ For bug reports and feature requests: [GitHub Issues](https://github.com/Fontain
 
 ## Version History
 
+### 1.2.2
+
+**GUI:**
+- **Tabbed interface** — reorganized the GUI into three tabs (Run, Content, Patterns) with `Ctrl+1/2/3` keyboard shortcuts to switch between them.
+- **Consolidated output** — replaced three separate folder pickers with a single Output Folder and three action checkboxes (Download files, Export to Excel, Export to JSON).
+- **Content Viewer** — a persistent browser for all previously scanned courses. Scans the output folder for `.manifest/` JSON files and populates a course dropdown. Content is displayed in nested sub-tabs (Documents, Videos, Audio, Images, Unsorted) with sortable tables, a summary banner, a detail panel with clickable URLs, and buttons to open file locations or source pages. A "Downloaded" column checks whether each file exists at its expected path.
+- **Pattern Manager** — full GUI for managing regex patterns from `re.yaml`. Left column lists all pattern categories with counts; right column shows patterns for the selected category with Add, Remove, and Validate buttons. Bottom panel tests a URL or filename against all compiled matchers with live reload. "Reset All to Defaults" restores the bundled `re.yaml`. Category visibility is configurable at the code level to hide internal categories. Patterns with `{CANVAS_DOMAIN}` placeholders display substituted values for readability.
+- **Reusable table widget** — `ContentTable` class wrapping `ttk.Treeview` with scrollbars, column-header sorting, alternating row colors, and automatic dark/light theme matching.
+- **Focus rings and tooltips** — all interactive elements across Content and Patterns tabs show focus rings and descriptive tooltips, matching the Run tab's accessibility features.
+- **Content tab auto-refresh** — switching to the Content tab automatically refreshes the course list.
+
+**Default Patterns:**
+- **Expanded document patterns** — added 9 accessibility-relevant file types: ODT, ODP, ODS, Key, Numbers, Pub, EPUB, XPS, 7z.
+- **Expanded video site patterns** — added 47 new video platform patterns covering Panopto, Kaltura, YuJa, Wistia, Brightcove, Echo360, Kanopy, Loom, ScreenPal, Flipgrid/Flip, Microsoft Stream, Twitch, Instagram Reels, LinkedIn Video, and many more.
+- **Institution-specific video patterns** — populated the `institution_video_services_regex` category with 12 `{CANVAS_DOMAIN}`-prefixed patterns for platforms that use institution subdomains (Panopto, Kaltura, YuJa, Echo360, Kanopy, ShareStream, Ensemble, ScreenPal).
+
+**Content Pipeline:**
+- **Module anchor URLs in source page links** — when content is discovered inside a Module (which has no direct `html_url`), the source page URL is now constructed as `{course_url}/modules#{module_id}`. This creates an anchor link that scrolls directly to the correct module on the Canvas modules page, rather than linking to the generic modules listing.
+
+**Stability:**
+- **OSError handler for disconnected drives** — the downloader now catches `OSError` during file writes (e.g., when a network drive is disconnected mid-download) and exits cleanly with a message instead of crashing with a traceback.
+- **Pattern placeholder substitution fix** — environment variables are now loaded at Pattern Manager init time so `{CANVAS_DOMAIN}` tokens display correctly.
+
 ### 1.2.0
 
 **GUI:**
@@ -677,6 +707,8 @@ For bug reports and feature requests: [GitHub Issues](https://github.com/Fontain
 
 - [ ] LTI / SCORM / External Tool detection — identify third-party content that is outside institutional control for accessibility compliance review
 - [x] GUI interface (added in v1.2.0)
+- [x] Content Viewer for browsing scanned course data (added in v1.2.2)
+- [x] Pattern Manager GUI for regex CRUD (added in v1.2.2)
 - [ ] Better Box/Dropbox/Google Drive support
 - [ ] Batch accessibility reporting
 

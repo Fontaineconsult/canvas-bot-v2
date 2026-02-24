@@ -5,6 +5,7 @@ import customtkinter as ctk
 from gui.widgets import _fix_tcl_paths, _add_focus_ring, Tooltip
 from gui.controller import GUIController
 from gui.content_viewer import ContentViewer
+from gui.pattern_manager import PatternManager
 
 _fix_tcl_paths()
 
@@ -52,7 +53,7 @@ class CanvasBotGUI:
         self._build_title_bar()
 
         # Tabview
-        self.tabview = ctk.CTkTabview(self.root)
+        self.tabview = ctk.CTkTabview(self.root, command=self._on_tab_changed)
         self.tabview.pack(fill="both", expand=True, padx=15, pady=(5, 15))
 
         self.tabview.add("Run")
@@ -70,12 +71,8 @@ class CanvasBotGUI:
         # Content Viewer tab
         self.content_viewer = ContentViewer(self.tabview.tab("Content"), self)
 
-        ctk.CTkLabel(
-            self.tabview.tab("Patterns"),
-            text="Pattern Manager (coming soon)",
-            font=ctk.CTkFont(size=14),
-            text_color="gray",
-        ).pack(expand=True)
+        # Pattern Manager tab
+        self.pattern_manager = PatternManager(self.tabview.tab("Patterns"))
 
         # --- Validation bindings ---
         self.var_course_id.trace_add("write", self.controller.on_course_id_changed)
@@ -359,6 +356,10 @@ class CanvasBotGUI:
         content = ctk.CTkFrame(frame, fg_color="transparent")
         content.pack(fill="x", padx=10, pady=(0, 8))
         return content
+
+    def _on_tab_changed(self):
+        if self.tabview.get() == "Content":
+            self.content_viewer.refresh_course_list()
 
     def run(self):
         self.root.mainloop()

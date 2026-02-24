@@ -2,7 +2,7 @@ import os
 import logging
 
 import requests
-from requests.exceptions import MissingSchema
+from requests.exceptions import ConnectionError as RequestsConnectionError, MissingSchema
 import json
 import warnings
 
@@ -40,9 +40,9 @@ def response_handler(request_url):
     try:
         # Perform the GET request
         request = requests.get(request_url, verify=True)
-    except ConnectionError as exc:
+    except RequestsConnectionError as exc:
         # Log and warn for connection errors
-        log.exception(f"Connection error occurred: {exc} | URL: {clean_url}")
+        log.error(f"Connection error: {exc} | URL: {clean_url}")
         warnings.warn(f"Connection error\n    {clean_url}", UserWarning)
         return False
     except MissingSchema as exc:
