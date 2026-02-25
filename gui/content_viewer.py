@@ -1,5 +1,7 @@
+import glob
 import json
 import os
+import re
 import webbrowser
 import customtkinter as ctk
 
@@ -65,6 +67,8 @@ _COLUMNS = {
         {"id": "is_hidden", "heading": "Hidden", "width": 80},
     ],
 }
+
+_DATE_FOLDER_RE = re.compile(r'(?<=[\\/])\d{2}-\d{2}-\d{4}(?=[\\/])')
 
 
 class ContentViewer:
@@ -168,11 +172,13 @@ class ContentViewer:
         self._tables["documents"] = ContentTable(
             self._docs_tabview.tab("Documents"),
             _COLUMNS["documents"], on_select=self._on_row_select,
+            placeholder="No Documents Found",
         )
         self._tables["documents"].pack(fill="both", expand=True)
         self._tables["document_sites"] = ContentTable(
             self._docs_tabview.tab("Document Sites"),
             _COLUMNS["document_sites"], on_select=self._on_row_select,
+            placeholder="No Document Sites Found",
         )
         self._tables["document_sites"].pack(fill="both", expand=True)
 
@@ -184,11 +190,13 @@ class ContentViewer:
         self._tables["video_sites"] = ContentTable(
             self._vids_tabview.tab("Video Sites"),
             _COLUMNS["video_sites"], on_select=self._on_row_select,
+            placeholder="No Video Sites Found",
         )
         self._tables["video_sites"].pack(fill="both", expand=True)
         self._tables["video_files"] = ContentTable(
             self._vids_tabview.tab("Video Files"),
             _COLUMNS["video_files"], on_select=self._on_row_select,
+            placeholder="No Video Files Found",
         )
         self._tables["video_files"].pack(fill="both", expand=True)
 
@@ -200,11 +208,13 @@ class ContentViewer:
         self._tables["audio_files"] = ContentTable(
             self._audio_tabview.tab("Audio Files"),
             _COLUMNS["audio_files"], on_select=self._on_row_select,
+            placeholder="No Audio Files Found",
         )
         self._tables["audio_files"].pack(fill="both", expand=True)
         self._tables["audio_sites"] = ContentTable(
             self._audio_tabview.tab("Audio Sites"),
             _COLUMNS["audio_sites"], on_select=self._on_row_select,
+            placeholder="No Audio Sites Found",
         )
         self._tables["audio_sites"].pack(fill="both", expand=True)
 
@@ -212,6 +222,7 @@ class ContentViewer:
         self._tables["image_files"] = ContentTable(
             self._tabview.tab("Images"),
             _COLUMNS["image_files"], on_select=self._on_row_select,
+            placeholder="No Image Files Found",
         )
         self._tables["image_files"].pack(fill="both", expand=True)
 
@@ -219,6 +230,7 @@ class ContentViewer:
         self._tables["unsorted"] = ContentTable(
             self._tabview.tab("Unsorted"),
             _COLUMNS["unsorted"], on_select=self._on_row_select,
+            placeholder="No Unsorted Content Found",
         )
         self._tables["unsorted"].pack(fill="both", expand=True)
 
@@ -371,12 +383,26 @@ class ContentViewer:
             self._populate_from_data(self._current_data)
 
     def _check_downloaded(self, rows):
-        """Add a 'downloaded' field to each row based on whether save_path exists."""
+        """Add a 'downloaded' field with the download date or 'No'."""
         for row in rows:
             save_path = row.get("save_path", "")
             if save_path:
                 normalized = os.path.normpath(save_path)
-                row["downloaded"] = "Yes" if os.path.isfile(normalized) else "No"
+                match_path = None
+                if os.path.isfile(normalized):
+                    match_path = normalized
+                else:
+                    # File may exist in a different date folder (downloaded on a previous day)
+                    wildcard_path = _DATE_FOLDER_RE.sub('*', normalized, count=1)
+                    matches = glob.glob(wildcard_path)
+                    if matches:
+                        match_path = matches[0]
+
+                if match_path:
+                    date_match = _DATE_FOLDER_RE.search(match_path)
+                    row["downloaded"] = date_match.group() if date_match else "Yes"
+                else:
+                    row["downloaded"] = "No"
             else:
                 row["downloaded"] = ""
         return rows

@@ -1,10 +1,62 @@
 from datetime import datetime
 from typing import List
+from urllib.parse import unquote_plus
 
 from core.downloader import path_constructor, derive_file_name
 from tools.captioning_check import get_youtube_caption_info
+from tools.string_checking.other_tools import get_extension_from_filename, get_extension_from_mime_type
 
 
+
+
+def _ext(name: str | None) -> str | None:
+    """Extract lowercase extension (without dot) from a filename, or None."""
+    if not name:
+        return None
+    ext = get_extension_from_filename(name)
+    return ext.lower() if ext else None
+
+
+def get_file_type(node) -> str | None:
+    """Derive file type (extension) from a content node using a priority fallback chain."""
+    # 1. Extension from display_name (most reliable human-readable name)
+    ext = _ext(getattr(node, "display_name", None))
+    if ext:
+        return ext
+
+    # 2. Extension from file_name
+    ext = _ext(getattr(node, "file_name", None))
+    if ext:
+        return ext
+
+    # 3. Extension from filename (URL-decoded)
+    if getattr(node, "filename", None):
+        ext = _ext(unquote_plus(node.filename))
+        if ext:
+            return ext
+
+    # 4. mime_class (Canvas short label: "pdf", "doc", "ppt", etc.)
+    if getattr(node, "mime_class", None):
+        return node.mime_class
+
+    # 5. Extension from mime_type via mimetypes module
+    if getattr(node, "mime_type", None):
+        guessed = get_extension_from_mime_type(node.mime_type)
+        if guessed:
+            return guessed.lstrip(".")
+
+    # 6. Extension from title
+    ext = _ext(getattr(node, "title", None))
+    if ext:
+        return ext
+
+    # 7. Extension from url
+    if getattr(node, "url", None):
+        ext = _ext(node.url.split("?")[0].split("/")[-1])
+        if ext:
+            return ext
+
+    return None
 
 
 def get_source_page_url(node) -> str:
@@ -134,7 +186,7 @@ def document_dict(document_node, file_download_directory, flatten):
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(document_node),
-        "file_type": getattr(document_node, "mime_class", None),
+        "file_type": get_file_type(document_node),
         "order": get_order(document_node),
         "path": [node.title for node in build_path(document_node, ignore_root=True) if node.title is not None],
     }
@@ -204,7 +256,7 @@ def video_file_dict(video_file_node, file_download_directory, flatten):
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(video_file_node),
-        "file_type": getattr(video_file_node, "mime_class", None) if hasattr(video_file_node, "mime_class") else getattr(video_file_node, "mime_type", None),
+        "file_type": get_file_type(video_file_node),
         "order": get_order(video_file_node),
         "is_captioned": getattr(video_file_node, "captioned", False),
         "download_url": getattr(video_file_node, "download_url", getattr(video_file_node, "url", None)),
@@ -256,7 +308,7 @@ def audio_file_dict(audio_file_node, file_download_directory, flatten):
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(audio_file_node),
-        "file_type": getattr(audio_file_node, "mime_class", None),
+        "file_type": get_file_type(audio_file_node),
         "order": get_order(audio_file_node),
         "path": [node.title for node in build_path(audio_file_node, ignore_root=True) if node.title is not None],
     }
@@ -298,7 +350,7 @@ def image_file_dict(image_file_node, file_download_directory, flatten):
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(image_file_node),
-        "file_type": getattr(image_file_node, "mime_class", None),
+        "file_type": get_file_type(image_file_node),
         "order": get_order(image_file_node),
         "path": [node.title for node in build_path(image_file_node, ignore_root=True) if node.title is not None],
     }

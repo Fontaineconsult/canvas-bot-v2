@@ -96,6 +96,9 @@ class CanvasBotGUI:
         # --- Check configuration ---
         self.controller.check_config()
 
+        # --- First-run welcome ---
+        self.controller.show_welcome()
+
         # --- Set initial focus ---
         self.entry_course_id.focus_set()
 
@@ -115,18 +118,32 @@ class CanvasBotGUI:
         title_frame = ctk.CTkFrame(self.root, fg_color="transparent")
         title_frame.pack(fill="x", padx=15, pady=(10, 0))
 
+        title_left = ctk.CTkFrame(title_frame, fg_color="transparent")
+        title_left.pack(side="left")
+
+        top_row = ctk.CTkFrame(title_left, fg_color="transparent")
+        top_row.pack(anchor="w")
+
         ctk.CTkLabel(
-            title_frame,
+            top_row,
             text="Canvas Bot",
             font=ctk.CTkFont(size=20, weight="bold"),
         ).pack(side="left")
 
         ctk.CTkLabel(
-            title_frame,
+            top_row,
             text="v1.2.2",
             font=ctk.CTkFont(size=12),
             text_color="gray",
         ).pack(side="left", padx=(8, 0), pady=(4, 0))
+
+        ctk.CTkLabel(
+            title_left,
+            text="Canvas LMS content downloader and inspector",
+            font=ctk.CTkFont(size=11),
+            text_color="gray",
+            height=16,
+        ).pack(anchor="w")
 
         reset_btn = ctk.CTkButton(
             title_frame,

@@ -43,7 +43,7 @@ class ContentTable(ctk.CTkFrame):
         Called with the selected row dict when a row is clicked.
     """
 
-    def __init__(self, parent, columns, on_select=None, **kwargs):
+    def __init__(self, parent, columns, on_select=None, placeholder="", **kwargs):
         super().__init__(parent, fg_color="transparent", **kwargs)
 
         self._columns = columns
@@ -51,6 +51,12 @@ class ContentTable(ctk.CTkFrame):
         self._sort_col = None
         self._sort_asc = True
         self._rows = []  # mirrors treeview content as list[dict]
+
+        # Placeholder shown when table is empty
+        self._placeholder = ctk.CTkLabel(
+            self, text=placeholder,
+            font=ctk.CTkFont(size=14), text_color="gray",
+        )
 
         col_ids = [c["id"] for c in columns]
 
@@ -81,14 +87,14 @@ class ContentTable(ctk.CTkFrame):
             )
 
         # Scrollbars
-        vsb = ttk.Scrollbar(self, orient="vertical", command=self._tree.yview)
-        hsb = ttk.Scrollbar(self, orient="horizontal", command=self._tree.xview)
-        self._tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        self._vsb = ttk.Scrollbar(self, orient="vertical", command=self._tree.yview)
+        self._hsb = ttk.Scrollbar(self, orient="horizontal", command=self._tree.xview)
+        self._tree.configure(yscrollcommand=self._vsb.set, xscrollcommand=self._hsb.set)
 
         # Grid layout
         self._tree.grid(row=0, column=0, sticky="nsew")
-        vsb.grid(row=0, column=1, sticky="ns")
-        hsb.grid(row=1, column=0, sticky="ew")
+        self._vsb.grid(row=0, column=1, sticky="ns")
+        self._hsb.grid(row=1, column=0, sticky="ew")
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
@@ -101,11 +107,21 @@ class ContentTable(ctk.CTkFrame):
         """Clear the table and insert *rows* (list of dicts keyed by column id)."""
         self.clear()
         self._rows = list(rows)
-        for i, row in enumerate(self._rows):
-            values = [row.get(c["id"], "") for c in self._columns]
-            tag = "odd" if i % 2 else "even"
-            self._tree.insert("", "end", iid=str(i), values=values, tags=(tag,))
-        self._apply_row_tags()
+        if not self._rows and self._placeholder.cget("text"):
+            self._tree.grid_remove()
+            self._vsb.grid_remove()
+            self._hsb.grid_remove()
+            self._placeholder.grid(row=0, column=0, sticky="nsew")
+        else:
+            self._placeholder.grid_remove()
+            self._tree.grid()
+            self._vsb.grid()
+            self._hsb.grid()
+            for i, row in enumerate(self._rows):
+                values = [row.get(c["id"], "") for c in self._columns]
+                tag = "odd" if i % 2 else "even"
+                self._tree.insert("", "end", iid=str(i), values=values, tags=(tag,))
+            self._apply_row_tags()
 
     def clear(self):
         """Remove all rows."""

@@ -88,6 +88,130 @@ class GUIController:
         except OSError:
             pass
 
+    # ── First Run ──
+
+    def is_first_run(self):
+        """Check if this is the first time the GUI has been launched."""
+        try:
+            with open(self.settings_path(), "r") as f:
+                data = json.load(f)
+            return data.get("first_run", True)
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            return True
+
+    def _set_first_run_complete(self):
+        """Mark first run as complete in settings."""
+        try:
+            try:
+                with open(self.settings_path(), "r") as f:
+                    data = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError, OSError):
+                data = {}
+            data["first_run"] = False
+            folder = os.path.dirname(self.settings_path())
+            os.makedirs(folder, exist_ok=True)
+            with open(self.settings_path(), "w") as f:
+                json.dump(data, f, indent=4)
+        except OSError:
+            pass
+
+    def show_welcome(self):
+        """Show the first-run welcome and security dialog."""
+        if not self.is_first_run():
+            return
+
+        dialog = ctk.CTkToplevel(self.view.root)
+        dialog.title("Welcome to Canvas Bot")
+        dialog.geometry("560x520")
+        dialog.resizable(False, False)
+        dialog.transient(self.view.root)
+        dialog.grab_set()
+
+        # Center on screen (parent may not be positioned yet at startup)
+        dialog.update_idletasks()
+        screen_w = dialog.winfo_screenwidth()
+        screen_h = dialog.winfo_screenheight()
+        x = (screen_w - 560) // 2
+        y = (screen_h - 520) // 2
+        dialog.geometry(f"+{x}+{y}")
+
+        scroll = ctk.CTkScrollableFrame(dialog, fg_color="transparent")
+        scroll.pack(fill="both", expand=True, padx=15, pady=15)
+
+        def heading(text, color=None):
+            lbl = ctk.CTkLabel(scroll, text=text,
+                               font=ctk.CTkFont(size=15, weight="bold"), anchor="w")
+            if color:
+                lbl.configure(text_color=color)
+            lbl.pack(fill="x", pady=(12, 4))
+
+        def body(text):
+            ctk.CTkLabel(scroll, text=text, font=ctk.CTkFont(size=13),
+                         anchor="w", justify="left", wraplength=500).pack(fill="x", pady=(0, 2))
+
+        # Welcome
+        ctk.CTkLabel(scroll, text="Welcome to Canvas Bot",
+                     font=ctk.CTkFont(size=20, weight="bold"), anchor="w").pack(fill="x")
+        body(
+            "Canvas Bot connects to your institution's Canvas LMS to scan, download, "
+            "and audit course content. Before you get started, please review the "
+            "following security information."
+        )
+
+        # Security warning
+        heading("Security & API Credentials", color="orange")
+        body(
+            "Canvas Bot requires a Canvas API access token to function. "
+            "This token grants read access to course content on your behalf. "
+            "Please follow these best practices:"
+        )
+        body(
+            "1.  Never share your API token with anyone. It provides access "
+            "to all courses visible to your account."
+        )
+        body(
+            "2.  Generate a dedicated token for Canvas Bot. Do not reuse tokens "
+            "from other applications."
+        )
+        body(
+            "3.  Set an expiration date on your token when possible. Rotate "
+            "tokens periodically."
+        )
+        body(
+            "4.  If you suspect your token has been compromised, revoke it "
+            "immediately in Canvas (Account > Settings > Approved Integrations) "
+            "and generate a new one."
+        )
+        body(
+            "5.  Canvas Bot stores your token in the Windows Credential Vault "
+            "(encrypted, per-user). It is never written to plaintext files or "
+            "log entries."
+        )
+        # Getting started
+        heading("Getting Started")
+        body(
+            "1.  Click \"Reset Config\" in the title bar to set up your Canvas "
+            "instance URL and API token."
+        )
+        body(
+            "2.  Enter a course ID, choose an output folder, and select at least "
+            "one action (Download, Excel, or JSON)."
+        )
+        body(
+            "3.  Click Run to start scanning."
+        )
+
+        def _close():
+            self._set_first_run_complete()
+            dialog.destroy()
+
+        close_btn = ctk.CTkButton(dialog, text="Get Started", width=140, command=_close)
+        close_btn.pack(pady=(5, 15))
+        close_btn.focus_set()
+
+        dialog.bind("<Escape>", lambda e: _close())
+        dialog.protocol("WM_DELETE_WINDOW", _close)
+
     # ── Configuration ──
 
     def check_config(self):
