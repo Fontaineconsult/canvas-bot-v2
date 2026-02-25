@@ -35,8 +35,6 @@ class CanvasBotGUI:
         self.var_output_folder = ctk.StringVar()
 
         self.var_download = ctk.BooleanVar()
-        self.var_excel = ctk.BooleanVar()
-        self.var_json = ctk.BooleanVar()
 
         self.var_video = ctk.BooleanVar()
         self.var_audio = ctk.BooleanVar()
@@ -139,7 +137,7 @@ class CanvasBotGUI:
 
         ctk.CTkLabel(
             title_left,
-            text="Canvas LMS content downloader and inspector",
+            text="A Content bridge between the Canvas LMS and your desktop",
             font=ctk.CTkFont(size=11),
             text_color="gray",
             height=16,
@@ -244,19 +242,6 @@ class CanvasBotGUI:
         _add_focus_ring(cb_download)
         Tooltip(cb_download, "Download course documents to the output folder")
 
-        cb_excel = ctk.CTkCheckBox(actions_row, text="Export to Excel",
-                                   variable=self.var_excel,
-                                   command=self.controller.validate_run)
-        cb_excel.pack(side="left", padx=(0, 15))
-        _add_focus_ring(cb_excel)
-        Tooltip(cb_excel, "Generate Excel accessibility report in the output folder")
-
-        cb_json = ctk.CTkCheckBox(actions_row, text="Export to JSON",
-                                  variable=self.var_json,
-                                  command=self.controller.validate_run)
-        cb_json.pack(side="left")
-        _add_focus_ring(cb_json)
-        Tooltip(cb_json, "Save content inventory as JSON in the output folder")
 
     # ── Options ──
 
@@ -264,61 +249,65 @@ class CanvasBotGUI:
         frame = ctk.CTkFrame(parent)
         frame.pack(fill="x", pady=(10, 0))
 
-        # Two columns side by side
+        # Outer two-column layout
         columns = ctk.CTkFrame(frame, fg_color="transparent")
         columns.pack(fill="x", padx=10, pady=8)
         columns.columnconfigure(0, weight=1)
         columns.columnconfigure(1, weight=1)
 
-        # Left column — Download Options
+        # ── Left: Download Options (3 rows x 2 inner columns) ──
         left = ctk.CTkFrame(columns, fg_color="transparent")
         left.grid(row=0, column=0, sticky="nsew")
 
-        ctk.CTkLabel(left, text="Download Options", font=ctk.CTkFont(size=13, weight="bold"), anchor="w").pack(fill="x", pady=(0, 4))
+        ctk.CTkLabel(left, text="Download Options", font=ctk.CTkFont(size=13, weight="bold"), anchor="w").grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
+        left.columnconfigure(0, weight=1)
+        left.columnconfigure(1, weight=1)
 
         cb_video = ctk.CTkCheckBox(left, text="Include video files", variable=self.var_video)
-        cb_video.pack(anchor="w", pady=2)
+        cb_video.grid(row=1, column=0, sticky="w", pady=2)
         _add_focus_ring(cb_video)
         Tooltip(cb_video, "Also download video files (MP4, MOV, MKV, AVI, WebM)")
 
         cb_audio = ctk.CTkCheckBox(left, text="Include audio files", variable=self.var_audio)
-        cb_audio.pack(anchor="w", pady=2)
+        cb_audio.grid(row=1, column=1, sticky="w", pady=2)
         _add_focus_ring(cb_audio)
         Tooltip(cb_audio, "Also download audio files (MP3, M4A, WAV, OGG)")
 
         cb_image = ctk.CTkCheckBox(left, text="Include image files", variable=self.var_image)
-        cb_image.pack(anchor="w", pady=2)
+        cb_image.grid(row=2, column=0, sticky="w", pady=2)
         _add_focus_ring(cb_image)
         Tooltip(cb_image, "Also download image files (JPG, PNG, GIF, SVG, WebP)")
 
         cb_hidden = ctk.CTkCheckBox(left, text="Include hidden content", variable=self.var_hidden)
-        cb_hidden.pack(anchor="w", pady=2)
+        cb_hidden.grid(row=2, column=1, sticky="w", pady=2)
         _add_focus_ring(cb_hidden)
         Tooltip(cb_hidden, "Include content that is hidden or unpublished in Canvas")
 
         cb_inactive = ctk.CTkCheckBox(left, text="Include inactive content", variable=self.var_inactive)
-        cb_inactive.pack(anchor="w", pady=2)
+        cb_inactive.grid(row=3, column=0, sticky="w", pady=2)
         _add_focus_ring(cb_inactive)
         Tooltip(cb_inactive, "Also download files not linked from any active Canvas page")
 
         cb_flatten = ctk.CTkCheckBox(left, text="Flatten folder structure", variable=self.var_flatten)
-        cb_flatten.pack(anchor="w", pady=2)
+        cb_flatten.grid(row=3, column=1, sticky="w", pady=2)
         _add_focus_ring(cb_flatten)
         Tooltip(cb_flatten, "Download all files to a single flat directory instead of preserving module structure")
 
-        # Right column — Display Options
+        # ── Right: Display Options (1 row x 2 inner columns) ──
         right = ctk.CTkFrame(columns, fg_color="transparent")
         right.grid(row=0, column=1, sticky="nsew", padx=(15, 0))
 
-        ctk.CTkLabel(right, text="Display Options", font=ctk.CTkFont(size=13, weight="bold"), anchor="w").pack(fill="x", pady=(0, 4))
+        ctk.CTkLabel(right, text="Display Options", font=ctk.CTkFont(size=13, weight="bold"), anchor="w").grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
+        right.columnconfigure(0, weight=1)
+        right.columnconfigure(1, weight=1)
 
         self.cb_content_tree = ctk.CTkCheckBox(right, text="Print content tree", variable=self.var_content_tree, command=self.controller.on_content_tree_toggled)
-        self.cb_content_tree.pack(anchor="w", pady=2)
+        self.cb_content_tree.grid(row=1, column=0, sticky="w", pady=2)
         _add_focus_ring(self.cb_content_tree)
         Tooltip(self.cb_content_tree, "Print course tree showing only resources that contain content (single course only)")
 
         self.cb_full_tree = ctk.CTkCheckBox(right, text="Print full course tree", variable=self.var_full_tree, command=self.controller.on_full_tree_toggled)
-        self.cb_full_tree.pack(anchor="w", pady=2)
+        self.cb_full_tree.grid(row=1, column=1, sticky="w", pady=2)
         _add_focus_ring(self.cb_full_tree)
         Tooltip(self.cb_full_tree, "Print complete course tree including all resources (single course only)")
 

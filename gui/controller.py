@@ -51,8 +51,6 @@ class GUIController:
         self.view.var_output_folder.set(output_folder)
 
         self.view.var_download.set(data.get("download", False))
-        self.view.var_excel.set(data.get("excel", False))
-        self.view.var_json.set(data.get("json", False))
         self.view.var_video.set(data.get("include_video", False))
         self.view.var_audio.set(data.get("include_audio", False))
         self.view.var_image.set(data.get("include_image", False))
@@ -70,8 +68,6 @@ class GUIController:
                 "course_list": self.view.var_course_list.get(),
                 "output_folder": self.view.var_output_folder.get(),
                 "download": self.view.var_download.get(),
-                "excel": self.view.var_excel.get(),
-                "json": self.view.var_json.get(),
                 "include_video": self.view.var_video.get(),
                 "include_audio": self.view.var_audio.get(),
                 "include_image": self.view.var_image.get(),
@@ -153,9 +149,9 @@ class GUIController:
         ctk.CTkLabel(scroll, text="Welcome to Canvas Bot",
                      font=ctk.CTkFont(size=20, weight="bold"), anchor="w").pack(fill="x")
         body(
-            "Canvas Bot connects to your institution's Canvas LMS to scan, download, "
-            "and audit course content. Before you get started, please review the "
-            "following security information."
+            "Canvas Bot is a bridge between Canvas LMS and your desktop. It scans courses "
+            "to discover content, downloads files, and lets you review items for accessibility. "
+            "Before you get started, please review the following security information."
         )
 
         # Security warning
@@ -341,10 +337,7 @@ class GUIController:
                       or self.view.var_course_list.get().strip())
 
         output_folder = self.view.var_output_folder.get().strip()
-        has_action = (output_folder
-                      and (self.view.var_download.get()
-                           or self.view.var_excel.get()
-                           or self.view.var_json.get()))
+        has_action = output_folder and self.view.var_download.get()
         has_tree = (self.view.var_content_tree.get()
                     or self.view.var_full_tree.get())
 
@@ -446,8 +439,6 @@ class GUIController:
 
             output_folder = self.view.var_output_folder.get().strip() or None
             do_download = self.view.var_download.get()
-            do_excel = self.view.var_excel.get()
-            do_json = self.view.var_json.get()
 
             total = len(course_ids)
             for i, course_id in enumerate(course_ids, 1):
@@ -483,11 +474,6 @@ class GUIController:
                 if output_folder and do_download:
                     bot.download_files(output_folder, **params)
 
-                if output_folder and do_json:
-                    bot.save_content_as_json(output_folder, course_folder, **params)
-
-                if output_folder and do_excel:
-                    bot.save_content_as_excel(output_folder, **params)
 
             self.set_status("Complete")
             print(f"\nAll done — {total} course(s) processed.")
@@ -526,102 +512,189 @@ class GUIController:
     def show_about(self):
         dialog = ctk.CTkToplevel(self.view.root)
         dialog.title("About Canvas Bot")
-        dialog.geometry("520x560")
+        dialog.geometry("620x580")
         dialog.resizable(False, False)
         dialog.transient(self.view.root)
         dialog.grab_set()
 
         # Center on parent
         dialog.update_idletasks()
-        x = self.view.root.winfo_x() + (self.view.root.winfo_width() - 520) // 2
-        y = self.view.root.winfo_y() + (self.view.root.winfo_height() - 560) // 2
+        x = self.view.root.winfo_x() + (self.view.root.winfo_width() - 620) // 2
+        y = self.view.root.winfo_y() + (self.view.root.winfo_height() - 580) // 2
         dialog.geometry(f"+{x}+{y}")
 
-        # Scrollable content
-        scroll = ctk.CTkScrollableFrame(dialog, fg_color="transparent")
-        scroll.pack(fill="both", expand=True, padx=15, pady=15)
+        wrap = 560
 
-        def heading(text):
-            ctk.CTkLabel(scroll, text=text, font=ctk.CTkFont(size=15, weight="bold"), anchor="w").pack(fill="x", pady=(12, 4))
+        def _heading(parent, text):
+            ctk.CTkLabel(parent, text=text, font=ctk.CTkFont(size=15, weight="bold"), anchor="w").pack(fill="x", pady=(12, 4))
 
-        def body(text):
-            ctk.CTkLabel(scroll, text=text, font=ctk.CTkFont(size=13), anchor="w", justify="left", wraplength=460).pack(fill="x", pady=(0, 2))
+        def _body(parent, text):
+            ctk.CTkLabel(parent, text=text, font=ctk.CTkFont(size=13), anchor="w", justify="left", wraplength=wrap).pack(fill="x", pady=(0, 2))
 
-        # Title
-        ctk.CTkLabel(scroll, text="Canvas Bot", font=ctk.CTkFont(size=20, weight="bold"), anchor="w").pack(fill="x")
-        ctk.CTkLabel(scroll, text="v1.2.2", font=ctk.CTkFont(size=13), text_color="gray", anchor="w").pack(fill="x")
+        # ── Tabview ──
+        tabview = ctk.CTkTabview(dialog)
+        tabview.pack(fill="both", expand=True, padx=10, pady=(10, 0))
 
-        # Intro
-        heading("What is Canvas Bot?")
-        body(
-            "Canvas Bot connects to your institution's Canvas LMS and scans course content for "
-            "embedded files, links, and media. It downloads documents, generates Excel accessibility "
-            "reports, and exports content inventories as JSON. It is designed for instructional "
-            "designers and accessibility specialists who need to audit courses at scale."
+        tabview.add("About")
+        tabview.add("Run")
+        tabview.add("Content")
+        tabview.add("Patterns")
+
+        # ── About tab ──
+        about_scroll = ctk.CTkScrollableFrame(tabview.tab("About"), fg_color="transparent")
+        about_scroll.pack(fill="both", expand=True)
+
+        ctk.CTkLabel(about_scroll, text="Canvas Bot", font=ctk.CTkFont(size=20, weight="bold"), anchor="w").pack(fill="x")
+        ctk.CTkLabel(about_scroll, text="v1.2.2", font=ctk.CTkFont(size=13), text_color="gray", anchor="w").pack(fill="x")
+
+        _heading(about_scroll, "What is Canvas Bot?")
+        _body(about_scroll,
+            "Canvas Bot is a bridge between Canvas LMS and your desktop. It connects to your "
+            "institution's Canvas and scans courses to discover all embedded files, links, and media. "
+            "You can download course documents directly to your computer, browse content by type, "
+            "and review items for accessibility. It is designed for instructional designers and "
+            "accessibility specialists who need to audit courses at scale."
         )
 
-        # GUI guide
-        heading("Course Selection")
-        body(
-            "Enter a single Canvas course ID (the number from the course URL, e.g. canvas.edu/courses/12345), "
-            "or select a .txt file containing one course ID per line for batch processing."
-        )
+        _heading(about_scroll, "Getting Started")
+        _body(about_scroll, "1.  Click \"Reset Config\" and choose \"Reset Canvas API Credentials\".")
+        _body(about_scroll, "2.  Enter your institution identifier (e.g. \"sfsu\" for sfsu.instructure.com).")
+        _body(about_scroll, "3.  Paste your Canvas API access token when prompted.")
+        _body(about_scroll, "4.  Enter a course ID, choose an output folder, and click Run.")
 
-        heading("Output")
-        body(
-            "Select an output folder and check the actions you want to perform:"
-        )
-        body(
-            "Download files \u2014 downloads course documents (PDFs, DOCX, media, etc.) "
-            "organized into subfolders by module and resource type."
-        )
-        body(
-            "Export to Excel \u2014 generates accessibility audit workbooks (.xlsm) "
-            "with categorized sheets, tracking columns, and conditional formatting."
-        )
-        body(
-            "Export to JSON \u2014 saves raw content inventories as .json files for "
-            "further processing or integration with other tools."
-        )
-
-        heading("Download Options")
-        body(
-            "By default, only document files (PDF, DOCX, PPTX, etc.) are downloaded. Use the "
-            "checkboxes to also include video, audio, or image files. \"Include hidden content\" "
-            "will pull unpublished items. \"Flatten folder structure\" puts all files in one "
-            "directory instead of preserving the course module hierarchy."
-        )
-
-        heading("Display Options")
-        body(
-            "Available for single-course mode only. \"Print content tree\" shows a tree of course "
-            "resources that contain downloadable content. \"Print full course tree\" shows every "
-            "resource in the course including empty modules and pages."
-        )
-
-        heading("Configuration")
-        body(
+        _heading(about_scroll, "Configuration")
+        _body(about_scroll,
             "Before first use, click \"Reset Config\" to set up your Canvas instance URL and API "
             "access token. You can generate an API token in Canvas under Account > Settings > "
             "New Access Token. Use \"View Config\" to verify your current configuration."
         )
 
-        # First-time setup
-        heading("First-Time Setup")
-        body("1.  Click \"Reset Config\" and choose \"Reset Canvas API Credentials\".")
-        body("2.  Enter your institution identifier (e.g. \"sfsu\" for sfsu.instructure.com).")
-        body("3.  Paste your Canvas API access token when prompted.")
-        body("4.  Enter a course ID, choose an output folder, and click Run.")
+        _heading(about_scroll, "Contact")
+        _body(about_scroll, "Daniel Fontaine")
+        _body(about_scroll, "fontaine@sfsu.edu")
 
-        # Contact
-        heading("Contact")
-        body("Daniel Fontaine")
-        body("fontaine@sfsu.edu")
+        # ── Run tab ──
+        run_scroll = ctk.CTkScrollableFrame(tabview.tab("Run"), fg_color="transparent")
+        run_scroll.pack(fill="both", expand=True)
 
-        # Close button
+        _heading(run_scroll, "Course Selection")
+        _body(run_scroll,
+            "Enter a single Canvas course ID (the number from the course URL, e.g. canvas.edu/courses/12345), "
+            "or select a .txt file containing one course ID per line for batch processing."
+        )
+
+        _heading(run_scroll, "Output")
+        _body(run_scroll,
+            "Select an output folder and check \"Download files\" to download course documents "
+            "(PDFs, DOCX, media, etc.) organized into subfolders by module and resource type. "
+            "After scanning, course content data is automatically saved so you can browse and "
+            "review it in the Content tab."
+        )
+
+        _heading(run_scroll, "Download Options")
+        _body(run_scroll,
+            "By default, only document files (PDF, DOCX, PPTX, etc.) are downloaded. Use the "
+            "checkboxes to also include video, audio, or image files. \"Include hidden content\" "
+            "will pull unpublished items. \"Include inactive content\" downloads files not linked "
+            "from any active page. \"Flatten folder structure\" puts all files in one "
+            "directory instead of preserving the course module hierarchy."
+        )
+
+        _heading(run_scroll, "Display Options")
+        _body(run_scroll,
+            "Available for single-course mode only. \"Print content tree\" shows a tree of course "
+            "resources that contain downloadable content. \"Print full course tree\" shows every "
+            "resource in the course including empty modules and pages."
+        )
+
+        # ── Content tab ──
+        content_scroll = ctk.CTkScrollableFrame(tabview.tab("Content"), fg_color="transparent")
+        content_scroll.pack(fill="both", expand=True)
+
+        _heading(content_scroll, "Content Viewer")
+        _body(content_scroll,
+            "Browse and review content from previously scanned courses. After running a scan "
+            "with an output folder selected, course data is saved automatically and appears here."
+        )
+
+        _heading(content_scroll, "Course Selector")
+        _body(content_scroll,
+            "The dropdown at the top lists all courses found in your output folder. Select a "
+            "course to load its content. Use the Refresh button to re-scan for new data, or "
+            "Open Folder to view the course directory in File Explorer."
+        )
+
+        _heading(content_scroll, "Content Tables")
+        _body(content_scroll,
+            "Content is organized into tabs by type: Documents, Videos, Audio, Images, and Unsorted. "
+            "Some tabs have nested sub-tabs for files vs. sites (e.g. downloadable video files vs. "
+            "YouTube links). Click column headings to sort. Columns show title, type, source page, "
+            "hidden status, download status, and review status."
+        )
+
+        _heading(content_scroll, "Review Status")
+        _body(content_scroll,
+            "Select a row and use the status buttons at the bottom to mark it as Passed, "
+            "Needs Review, or Ignore. Status is saved per-course and persists across sessions. "
+            "Rows are color-coded by status: green for Passed, yellow for Needs Review, "
+            "and gray for Ignore."
+        )
+
+        _heading(content_scroll, "Action Buttons")
+        _body(content_scroll,
+            "Open File Location opens the folder containing a downloaded file. For site-type "
+            "items (document sites, video sites, etc.), this button changes to Open Site and "
+            "opens the URL in your browser. Open Source Page navigates to the Canvas page "
+            "where the content was found."
+        )
+
+        _heading(content_scroll, "Filters")
+        _body(content_scroll,
+            "\"Show Inactive Content\" includes items that are not linked from any active "
+            "Canvas page or are marked as hidden. By default, only active, visible content is shown."
+        )
+
+        # ── Patterns tab ──
+        patterns_scroll = ctk.CTkScrollableFrame(tabview.tab("Patterns"), fg_color="transparent")
+        patterns_scroll.pack(fill="both", expand=True)
+
+        _heading(patterns_scroll, "Pattern Manager")
+        _body(patterns_scroll,
+            "View and edit the regex patterns that Canvas Bot uses to classify content URLs. "
+            "Patterns determine whether a link is categorized as a document, video, audio, image, "
+            "or other content type."
+        )
+
+        _heading(patterns_scroll, "Categories")
+        _body(patterns_scroll,
+            "The left panel lists all pattern categories (Documents, Video Sites, Ignore List, etc.). "
+            "Click a category to view its patterns in the table on the right. The count next to each "
+            "category shows how many patterns it contains."
+        )
+
+        _heading(patterns_scroll, "Editing Patterns")
+        _body(patterns_scroll,
+            "Select a category, then use Add Pattern to create a new regex pattern, or select "
+            "an existing pattern and click Remove Pattern to delete it. Use Validate to check "
+            "that a pattern's regex syntax is correct before saving."
+        )
+
+        _heading(patterns_scroll, "Test URL")
+        _body(patterns_scroll,
+            "Enter a URL or filename in the test box at the bottom and click Test to see which "
+            "pattern categories match it. This is useful for verifying that your patterns "
+            "correctly classify specific URLs."
+        )
+
+        _heading(patterns_scroll, "Reset to Defaults")
+        _body(patterns_scroll,
+            "The \"Reset All to Defaults\" button restores the bundled default patterns. "
+            "Any custom patterns you have added will be lost."
+        )
+
+        # ── Close button ──
         close_btn = ctk.CTkButton(dialog, text="Close", width=120, command=dialog.destroy)
         close_btn.pack(pady=(5, 15))
         close_btn.focus_set()
 
-        # Escape key closes dialog
         dialog.bind("<Escape>", lambda e: dialog.destroy())

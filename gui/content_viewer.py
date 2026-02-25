@@ -12,10 +12,14 @@ from gui.widgets import _add_focus_ring, Tooltip
 # Review status options (add new values here to expand)
 _REVIEW_STATUSES = ["Needs Review", "Passed", "Ignore"]
 _DEFAULT_STATUS = "-"  # unreviewed — no color
+_SHOW_DETAIL_PANEL = False  # Set to True to show the diagnostic detail panel
 
 # Column definitions per content sub-type
+_ORDER_COL = {"id": "order", "heading": "Order", "width": 65}
+
 _COLUMNS = {
     "documents": [
+        _ORDER_COL,
         {"id": "title", "heading": "Title", "width": 150, "stretch": True, "max_chars": 60},
         {"id": "file_type", "heading": "Type", "width": 100},
         {"id": "source_page_type", "heading": "Source", "width": 150},
@@ -24,6 +28,7 @@ _COLUMNS = {
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "document_sites": [
+        _ORDER_COL,
         {"id": "title", "heading": "Title", "width": 165, "stretch": True},
         {"id": "url", "heading": "URL", "width": 235, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 140},
@@ -31,6 +36,7 @@ _COLUMNS = {
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "video_sites": [
+        _ORDER_COL,
         {"id": "title", "heading": "Title", "width": 165, "stretch": True},
         {"id": "url", "heading": "URL", "width": 235, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 140},
@@ -38,6 +44,7 @@ _COLUMNS = {
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "video_files": [
+        _ORDER_COL,
         {"id": "title", "heading": "Title", "width": 175, "stretch": True, "max_chars": 60},
         {"id": "file_type", "heading": "Type", "width": 80},
         {"id": "is_hidden", "heading": "Hidden", "width": 80},
@@ -46,6 +53,7 @@ _COLUMNS = {
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "audio_files": [
+        _ORDER_COL,
         {"id": "title", "heading": "Title", "width": 175, "stretch": True, "max_chars": 60},
         {"id": "file_type", "heading": "Type", "width": 80},
         {"id": "source_page_type", "heading": "Source", "width": 130},
@@ -54,6 +62,7 @@ _COLUMNS = {
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "audio_sites": [
+        _ORDER_COL,
         {"id": "title", "heading": "Title", "width": 165, "stretch": True},
         {"id": "url", "heading": "URL", "width": 235, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 140},
@@ -61,6 +70,7 @@ _COLUMNS = {
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "image_files": [
+        _ORDER_COL,
         {"id": "title", "heading": "Title", "width": 175, "stretch": True, "max_chars": 60},
         {"id": "file_type", "heading": "Type", "width": 80},
         {"id": "source_page_type", "heading": "Source", "width": 130},
@@ -69,6 +79,7 @@ _COLUMNS = {
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "unsorted": [
+        _ORDER_COL,
         {"id": "title", "heading": "Title", "width": 175, "stretch": True},
         {"id": "url", "heading": "URL", "width": 250, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 130},
@@ -246,14 +257,17 @@ class ContentViewer:
         )
         self._tables["unsorted"].pack(fill="both", expand=True)
 
-        # ── Detail panel ──
-        self._detail = ctk.CTkTextbox(
-            self._container, height=120,
-            font=ctk.CTkFont(family="Consolas", size=11),
-            state="disabled",
-        )
-        self._detail.pack(fill="x")
-        self._detail.tag_config("link", foreground="#3B8ED0", underline=True)
+        # ── Detail panel (diagnostic — toggle via _SHOW_DETAIL_PANEL) ──
+        if _SHOW_DETAIL_PANEL:
+            self._detail = ctk.CTkTextbox(
+                self._container, height=120,
+                font=ctk.CTkFont(family="Consolas", size=11),
+                state="disabled",
+            )
+            self._detail.pack(fill="x")
+            self._detail.tag_config("link", foreground="#3B8ED0", underline=True)
+        else:
+            self._detail = None
 
         # ── Action buttons row ──
         btn_row = ctk.CTkFrame(self._container, fg_color="transparent")
@@ -324,9 +338,17 @@ class ContentViewer:
 
         names = sorted(self._course_folders.keys())
         self._dropdown.configure(values=names)
-        self._course_var.set(names[0])
+
+        # Preserve the current selection if it still exists
+        previous = self._course_var.get()
+        if previous in names:
+            selected = previous
+        else:
+            selected = names[0]
+
+        self._course_var.set(selected)
         self._show_container()
-        self._on_course_selected(names[0])
+        self._on_course_selected(selected)
 
     def clear(self):
         """Reset all tables and detail panel."""
@@ -591,6 +613,8 @@ class ContentViewer:
         self._set_detail("\n".join(lines))
 
     def _set_detail(self, text):
+        if self._detail is None:
+            return
         self._detail.configure(state="normal")
         self._detail.delete("1.0", "end")
         if text:

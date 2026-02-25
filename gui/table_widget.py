@@ -217,8 +217,15 @@ class ContentTable(ctk.CTkFrame):
                 suffix = " \u25b2" if self._sort_asc else " \u25bc"
             self._tree.heading(col["id"], text=col["heading"] + suffix)
 
-        # Sort rows
-        self._rows.sort(key=lambda r: str(r.get(col_id, "")).lower(), reverse=not self._sort_asc)
+        # Sort rows (numeric-aware: pure digit values sort numerically)
+        def _sort_key(r):
+            val = r.get(col_id, "")
+            s = str(val)
+            if s.isdigit():
+                return (0, int(s), "")
+            return (1, 0, s.lower())
+
+        self._rows.sort(key=_sort_key, reverse=not self._sort_asc)
         # Re-populate without clearing _rows
         self._tree.delete(*self._tree.get_children())
         for i, row in enumerate(self._rows):
