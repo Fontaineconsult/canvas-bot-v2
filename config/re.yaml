@@ -31,6 +31,8 @@ document_content_regex:
 - .*\.epub
 - .*\.xps
 - .*\.7z
+- .*.\.srt
+- .*.\.vtt
 ignore_links_regex:
 - https://{CANVAS_DOMAIN}.instructure.com/courses/[0-9]{0,7}/(pages/|quizzes/|discussion_topics/|assignments/|announcements/|items/|modules/).*.[0-9]{0,7}
 - .*.{BOX_DOMAIN}/s/.*.
