@@ -39,7 +39,7 @@
 ### Active Content Filtering
 - **`--include_inactive_content` CLI flag** — by default, downloads now skip files that are not linked from any active Canvas page (i.e., `get_source_page_url()` returns falsy). Pass `--include_inactive_content` to override and download everything. Defaults to active-only to download the least number of files and those most useful.
 - **"Include inactive content" GUI checkbox** — added to the Download Options column on the Run tab. Setting is persisted across sessions.
-- **Content Viewer filter bar** — added a "Filters" row between the summary banner and content tabs with a "Show Inactive Content" checkbox (default off). When off, rows without a `source_page_url` are hidden from all tables. Toggling re-populates tables instantly without reloading from disk.
+- **Content Viewer filter bar** — added a "Filters" row between the summary banner and content tabs with a "Show Inactive Content" checkbox (default off). When off, rows without a `source_page_url` and rows with `is_hidden: true` are hidden from all tables. Toggling re-populates tables instantly without reloading from disk.
 - Files changed: `canvas_bot.py`, `gui/app.py`, `gui/controller.py`, `gui/content_viewer.py`, `core/downloader.py`
 
 ### Reusable Table Widget
@@ -56,6 +56,8 @@
 ### Content Viewer Improvements
 - **Downloaded column shows download date** — the "Downloaded" column in file tables now displays the actual download date (from the date-stamped folder on disk) instead of "Yes". Shows "No" when the file is not found. Uses glob-based search across date folders so files downloaded on previous days are correctly detected.
 - **Empty table placeholders** — tables with no content now display a "No {Content Type} Found" message instead of an empty table. Scrollbars are hidden when the placeholder is shown.
+- **Image title fallback** — image file rows now display `file_name` in the Title column when `title` is empty.
+- **Removed captioning column** — removed the "Captioned" column from the Video Sites table as the captioning detection system is not functional.
 - Files changed: `gui/content_viewer.py`, `gui/table_widget.py`
 
 ### Robust File Type Detection
@@ -67,7 +69,8 @@
 - **Pattern Manager placeholder substitution fix** — `load_config_data_from_appdata()` is now called when the Pattern Manager loads, ensuring `{CANVAS_DOMAIN}` and other placeholder tokens are substituted with actual values (e.g., `sfsu`) in the GUI display. Previously, env vars were only populated during course processing, causing raw `{CANVAS_DOMAIN}` tokens to appear in the Patterns tab.
 - **Regex pattern reloading after config load** — added `reload_patterns()` to `sorters/sorters.py` that recompiles all regex patterns with current environment variables. Called automatically before each scan run. Previously, patterns with domain placeholders (`{CANVAS_STUDIO_DOMAIN}`, `{CANVAS_DOMAIN}`, `{BOX_DOMAIN}`) were compiled at module import time before config was loaded, so they contained literal placeholder text and never matched. This caused Canvas Studio embeds, Canvas media embeds, and Box links to be classified as Unsorted.
 - **Canvas Studio downloads use correct URL** — the downloader now uses `download_url` (the DRM video stream URL) for Canvas Studio embeds instead of `url` (the Studio page URL). Previously, Studio video downloads would fail or create shortcuts because the page URL is not a direct file download.
-- Files changed: `core/downloader.py`, `gui/pattern_manager.py`, `sorters/sorters.py`, `core/node_factory.py`, `resource_nodes/content_nodes.py`, `gui/controller.py`
+- **Fixed `is_hidden()` only checking the first node** — `return False` was indented inside the `for` loop, causing the function to return after checking only the leaf node instead of walking the entire ancestor chain. Content inside a hidden or unpublished module/page now correctly reports `is_hidden: True`.
+- Files changed: `core/downloader.py`, `gui/pattern_manager.py`, `sorters/sorters.py`, `core/node_factory.py`, `resource_nodes/content_nodes.py`, `gui/controller.py`, `core/content_scaffolds.py`
 
 ### Internal
 - **MVC refactor** — GUI split into `gui/app.py` (view), `gui/controller.py` (controller), and `gui/widgets.py` (shared widgets). Controller handles settings persistence, validation, run logic, and about dialog.

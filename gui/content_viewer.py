@@ -9,61 +9,71 @@ from gui.table_widget import ContentTable
 from gui.widgets import _add_focus_ring, Tooltip
 
 
+# Review status options (add new values here to expand)
+_REVIEW_STATUSES = ["Needs Review", "Passed", "Ignore"]
+_DEFAULT_STATUS = "-"  # unreviewed — no color
+
 # Column definitions per content sub-type
 _COLUMNS = {
     "documents": [
-        {"id": "title", "heading": "Title", "width": 175, "stretch": True},
-        {"id": "file_type", "heading": "Type", "width": 80},
-        {"id": "source_page_type", "heading": "Source", "width": 130},
-        {"id": "is_hidden", "heading": "Hidden", "width": 80},
-        {"id": "downloaded", "heading": "Downloaded", "width": 110},
-        {"id": "order", "heading": "Order", "width": 70},
+        {"id": "title", "heading": "Title", "width": 150, "stretch": True, "max_chars": 60},
+        {"id": "file_type", "heading": "Type", "width": 100},
+        {"id": "source_page_type", "heading": "Source", "width": 150},
+        {"id": "is_hidden", "heading": "Hidden", "width": 100},
+        {"id": "downloaded", "heading": "Downloaded", "width": 130},
+        {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "document_sites": [
-        {"id": "title", "heading": "Title", "width": 175, "stretch": True},
-        {"id": "url", "heading": "URL", "width": 250, "stretch": True},
-        {"id": "source_page_type", "heading": "Source", "width": 130},
-        {"id": "is_hidden", "heading": "Hidden", "width": 80},
-        {"id": "order", "heading": "Order", "width": 70},
+        {"id": "title", "heading": "Title", "width": 165, "stretch": True},
+        {"id": "url", "heading": "URL", "width": 235, "stretch": True},
+        {"id": "source_page_type", "heading": "Source", "width": 140},
+        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "video_sites": [
-        {"id": "title", "heading": "Title", "width": 175, "stretch": True},
-        {"id": "url", "heading": "URL", "width": 250, "stretch": True},
-        {"id": "source_page_type", "heading": "Source", "width": 130},
-        {"id": "is_hidden", "heading": "Hidden", "width": 80},
+        {"id": "title", "heading": "Title", "width": 165, "stretch": True},
+        {"id": "url", "heading": "URL", "width": 235, "stretch": True},
+        {"id": "source_page_type", "heading": "Source", "width": 140},
+        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "video_files": [
-        {"id": "title", "heading": "Title", "width": 175, "stretch": True},
+        {"id": "title", "heading": "Title", "width": 175, "stretch": True, "max_chars": 60},
         {"id": "file_type", "heading": "Type", "width": 80},
         {"id": "is_hidden", "heading": "Hidden", "width": 80},
         {"id": "source_page_type", "heading": "Source", "width": 130},
         {"id": "downloaded", "heading": "Downloaded", "width": 110},
+        {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "audio_files": [
-        {"id": "title", "heading": "Title", "width": 175, "stretch": True},
+        {"id": "title", "heading": "Title", "width": 175, "stretch": True, "max_chars": 60},
         {"id": "file_type", "heading": "Type", "width": 80},
         {"id": "source_page_type", "heading": "Source", "width": 130},
         {"id": "is_hidden", "heading": "Hidden", "width": 80},
         {"id": "downloaded", "heading": "Downloaded", "width": 110},
+        {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "audio_sites": [
-        {"id": "title", "heading": "Title", "width": 175, "stretch": True},
-        {"id": "url", "heading": "URL", "width": 250, "stretch": True},
-        {"id": "source_page_type", "heading": "Source", "width": 130},
-        {"id": "is_hidden", "heading": "Hidden", "width": 80},
+        {"id": "title", "heading": "Title", "width": 165, "stretch": True},
+        {"id": "url", "heading": "URL", "width": 235, "stretch": True},
+        {"id": "source_page_type", "heading": "Source", "width": 140},
+        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "image_files": [
-        {"id": "title", "heading": "Title", "width": 175, "stretch": True},
+        {"id": "title", "heading": "Title", "width": 175, "stretch": True, "max_chars": 60},
         {"id": "file_type", "heading": "Type", "width": 80},
         {"id": "source_page_type", "heading": "Source", "width": 130},
         {"id": "is_hidden", "heading": "Hidden", "width": 80},
         {"id": "downloaded", "heading": "Downloaded", "width": 110},
+        {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "unsorted": [
         {"id": "title", "heading": "Title", "width": 175, "stretch": True},
         {"id": "url", "heading": "URL", "width": 250, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 130},
         {"id": "is_hidden", "heading": "Hidden", "width": 80},
+        {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
 }
 
@@ -79,7 +89,10 @@ class ContentViewer:
         self._course_folders = {}  # display_name -> folder_path
         self._tables = {}         # sub_type key -> ContentTable
         self._selected_row = None
+        self._selected_table_key = None  # which table the selection is in
         self._current_data = None  # raw JSON data for re-filtering
+        self._review_statuses = {}  # url -> {"status": "Passed"|"Needs Review"|...}
+        self._manifest_dir = None   # current course's .manifest/ path
 
         # Placeholder shown when no data is available
         self._placeholder = ctk.CTkLabel(
@@ -171,13 +184,13 @@ class ContentViewer:
         self._tables["documents"] = ContentTable(
             self._docs_tabview.tab("Documents"),
             _COLUMNS["documents"], on_select=self._on_row_select,
-            placeholder="No Documents Found",
+            placeholder="No Documents Found", status_key="status",
         )
         self._tables["documents"].pack(fill="both", expand=True)
         self._tables["document_sites"] = ContentTable(
             self._docs_tabview.tab("Document Sites"),
             _COLUMNS["document_sites"], on_select=self._on_row_select,
-            placeholder="No Document Sites Found",
+            placeholder="No Document Sites Found", status_key="status",
         )
         self._tables["document_sites"].pack(fill="both", expand=True)
 
@@ -189,13 +202,13 @@ class ContentViewer:
         self._tables["video_sites"] = ContentTable(
             self._vids_tabview.tab("Video Sites"),
             _COLUMNS["video_sites"], on_select=self._on_row_select,
-            placeholder="No Video Sites Found",
+            placeholder="No Video Sites Found", status_key="status",
         )
         self._tables["video_sites"].pack(fill="both", expand=True)
         self._tables["video_files"] = ContentTable(
             self._vids_tabview.tab("Video Files"),
             _COLUMNS["video_files"], on_select=self._on_row_select,
-            placeholder="No Video Files Found",
+            placeholder="No Video Files Found", status_key="status",
         )
         self._tables["video_files"].pack(fill="both", expand=True)
 
@@ -207,13 +220,13 @@ class ContentViewer:
         self._tables["audio_files"] = ContentTable(
             self._audio_tabview.tab("Audio Files"),
             _COLUMNS["audio_files"], on_select=self._on_row_select,
-            placeholder="No Audio Files Found",
+            placeholder="No Audio Files Found", status_key="status",
         )
         self._tables["audio_files"].pack(fill="both", expand=True)
         self._tables["audio_sites"] = ContentTable(
             self._audio_tabview.tab("Audio Sites"),
             _COLUMNS["audio_sites"], on_select=self._on_row_select,
-            placeholder="No Audio Sites Found",
+            placeholder="No Audio Sites Found", status_key="status",
         )
         self._tables["audio_sites"].pack(fill="both", expand=True)
 
@@ -221,7 +234,7 @@ class ContentViewer:
         self._tables["image_files"] = ContentTable(
             self._tabview.tab("Images"),
             _COLUMNS["image_files"], on_select=self._on_row_select,
-            placeholder="No Image Files Found",
+            placeholder="No Image Files Found", status_key="status",
         )
         self._tables["image_files"].pack(fill="both", expand=True)
 
@@ -229,7 +242,7 @@ class ContentViewer:
         self._tables["unsorted"] = ContentTable(
             self._tabview.tab("Unsorted"),
             _COLUMNS["unsorted"], on_select=self._on_row_select,
-            placeholder="No Unsorted Content Found",
+            placeholder="No Unsorted Content Found", status_key="status",
         )
         self._tables["unsorted"].pack(fill="both", expand=True)
 
@@ -261,6 +274,19 @@ class ContentViewer:
         self._open_source_btn.pack(side="left")
         _add_focus_ring(self._open_source_btn)
         Tooltip(self._open_source_btn, "Open the Canvas page where this content was found")
+
+        # Status buttons (right-aligned)
+        self._status_buttons = {}
+        for status in reversed(_REVIEW_STATUSES):
+            btn = ctk.CTkButton(
+                btn_row, text=status, width=110,
+                command=lambda s=status: self._on_status_changed(s),
+                state="disabled",
+            )
+            btn.pack(side="right", padx=(3, 0))
+            _add_focus_ring(btn)
+            Tooltip(btn, f"Mark selected item as '{status}'")
+            self._status_buttons[status] = btn
 
         # Show placeholder initially
         self._show_placeholder()
@@ -308,10 +334,13 @@ class ContentViewer:
             table.clear()
         self._set_detail("")
         self._selected_row = None
+        self._selected_table_key = None
         self._summary_frame.pack_forget()
         self._open_folder_btn.configure(state="disabled")
         self._open_file_btn.configure(state="disabled")
         self._open_source_btn.configure(state="disabled")
+        for btn in self._status_buttons.values():
+            btn.configure(state="disabled")
 
     # ── Internal ──
 
@@ -352,15 +381,55 @@ class ContentViewer:
         if url:
             webbrowser.open(url)
 
+    def _load_review_statuses(self, manifest_dir):
+        """Load review_status.json from the manifest directory."""
+        path = os.path.join(manifest_dir, "review_status.json")
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            return {}
+
+    def _save_review_statuses(self):
+        """Write current review statuses to the manifest directory."""
+        if not self._manifest_dir:
+            return
+        path = os.path.join(self._manifest_dir, "review_status.json")
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(self._review_statuses, f, indent=2)
+        except OSError:
+            pass
+
+    def _on_status_changed(self, value):
+        """Handle status button click — persist and update table."""
+        if not self._selected_row:
+            return
+        url = self._selected_row.get("url", "")
+        if not url:
+            return
+
+        self._review_statuses[url] = {"status": value}
+        self._save_review_statuses()
+
+        # Update the row data and table display
+        self._selected_row["status"] = value
+        if self._selected_table_key and self._selected_table_key in self._tables:
+            table = self._tables[self._selected_table_key]
+            idx = table.get_selected_index()
+            if idx >= 0:
+                table.update_row(idx, self._selected_row)
+
     def _on_course_selected(self, choice):
-        """Load content JSON for the selected course."""
+        """Load content JSON and review statuses for the selected course."""
         folder_path = self._course_folders.get(choice)
         if not folder_path:
             self.clear()
             return
 
         manifest_dir = os.path.join(folder_path, ".manifest")
-        json_files = [f for f in os.listdir(manifest_dir) if f.endswith(".json")]
+        json_files = [f for f in os.listdir(manifest_dir)
+                      if f.endswith(".json") and f != "review_status.json"]
         if not json_files:
             self.clear()
             return
@@ -373,6 +442,8 @@ class ContentViewer:
             self.clear()
             return
 
+        self._manifest_dir = manifest_dir
+        self._review_statuses = self._load_review_statuses(manifest_dir)
         self._current_data = data
         self._populate_from_data(data)
 
@@ -437,6 +508,9 @@ class ContentViewer:
                 for row in rows:
                     if not row.get("title"):
                         row["title"] = row.get("file_name", "")
+            for row in rows:
+                url = row.get("url", "")
+                row["status"] = self._review_statuses.get(url, {}).get("status", _DEFAULT_STATUS)
             self._tables[table_key].populate(rows)
             counts[table_key] = len(rows)
 
@@ -468,13 +542,27 @@ class ContentViewer:
 
         self._open_folder_btn.configure(state="normal")
         self._selected_row = None
+        self._selected_table_key = None
         self._open_file_btn.configure(state="disabled")
         self._open_source_btn.configure(state="disabled")
+        for btn in self._status_buttons.values():
+            btn.configure(state="disabled")
         self._set_detail("")
 
     def _on_row_select(self, row):
         """Show selected row details and enable/disable action buttons."""
         self._selected_row = row
+
+        # Determine which table this selection came from
+        for key, table in self._tables.items():
+            if table.get_selected() is row:
+                self._selected_table_key = key
+                break
+
+        # Enable/disable status buttons
+        has_url = bool(row.get("url"))
+        for btn in self._status_buttons.values():
+            btn.configure(state="normal" if has_url else "disabled")
 
         # Switch button between file location and site URL mode
         save_path = row.get("save_path", "")

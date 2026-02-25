@@ -29,6 +29,20 @@ _THEMES = {
     },
 }
 
+# Row background colors keyed by review status
+_STATUS_COLORS = {
+    "dark": {
+        "Passed": "#1a3a1a",
+        "Needs Review": "#3a2a0a",
+        "Ignore": "#2a2a2a",
+    },
+    "light": {
+        "Passed": "#d4edda",
+        "Needs Review": "#fff3cd",
+        "Ignore": "#e2e3e5",
+    },
+}
+
 
 class ContentTable(ctk.CTkFrame):
     """Reusable table widget wrapping ttk.Treeview with scrollbars, sorting, and CTk theming.
@@ -43,7 +57,7 @@ class ContentTable(ctk.CTkFrame):
         Called with the selected row dict when a row is clicked.
     """
 
-    def __init__(self, parent, columns, on_select=None, placeholder="", **kwargs):
+    def __init__(self, parent, columns, on_select=None, placeholder="", status_key=None, **kwargs):
         super().__init__(parent, fg_color="transparent", **kwargs)
 
         self._columns = columns
@@ -51,6 +65,7 @@ class ContentTable(ctk.CTkFrame):
         self._sort_col = None
         self._sort_asc = True
         self._rows = []  # mirrors treeview content as list[dict]
+        self._status_key = status_key  # row field used for status-based row coloring
 
         # Placeholder shown when table is empty
         self._placeholder = ctk.CTkLabel(
@@ -83,7 +98,8 @@ class ContentTable(ctk.CTkFrame):
                 col["id"],
                 width=col.get("width", 90),
                 stretch=col.get("stretch", False),
-                minwidth=50,
+                anchor=col.get("anchor", "w"),
+                minwidth=col.get("minwidth", 50),
             )
 
         # Scrollbars
@@ -97,6 +113,13 @@ class ContentTable(ctk.CTkFrame):
         self._hsb.grid(row=1, column=0, sticky="ew")
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
+
+        # Proportional column resizing
+        self._proportional_cols = {
+            c["id"]: c["proportion"] for c in columns if "proportion" in c
+        }
+        if self._proportional_cols:
+            self._tree.bind("<Configure>", self._on_resize)
 
         # Selection binding
         self._tree.bind("<<TreeviewSelect>>", self._on_tree_select)
@@ -118,8 +141,8 @@ class ContentTable(ctk.CTkFrame):
             self._vsb.grid()
             self._hsb.grid()
             for i, row in enumerate(self._rows):
-                values = [row.get(c["id"], "") for c in self._columns]
-                tag = "odd" if i % 2 else "even"
+                values = self._values_for_row(row)
+                tag = self._row_tag(i, row)
                 self._tree.insert("", "end", iid=str(i), values=values, tags=(tag,))
             self._apply_row_tags()
 
@@ -138,9 +161,45 @@ class ContentTable(ctk.CTkFrame):
             return self._rows[idx]
         return None
 
+    def get_selected_index(self):
+        """Return the index of the selected row, or -1."""
+        sel = self._tree.selection()
+        if not sel:
+            return -1
+        return int(sel[0])
+
     def get_row_count(self):
         """Return the number of rows currently displayed."""
         return len(self._rows)
+
+    def update_row(self, idx, row):
+        """Update a single row's data and displayed values in place."""
+        if 0 <= idx < len(self._rows):
+            self._rows[idx] = row
+            values = self._values_for_row(row)
+            tag = self._row_tag(idx, row)
+            self._tree.item(str(idx), values=values, tags=(tag,))
+
+    # ── Display helpers ──
+
+    def _display_value(self, col, value):
+        """Truncate value if the column has a max_chars setting."""
+        max_chars = col.get("max_chars")
+        if max_chars and isinstance(value, str) and len(value) > max_chars:
+            return value[:max_chars - 2] + ".."
+        return value
+
+    def _values_for_row(self, row):
+        """Build the display values tuple for a row, applying truncation."""
+        return [self._display_value(c, row.get(c["id"], "")) for c in self._columns]
+
+    def _on_resize(self, event=None):
+        """Resize proportional columns to their fraction of the treeview width."""
+        total_width = self._tree.winfo_width()
+        if total_width < 50:
+            return
+        for col_id, proportion in self._proportional_cols.items():
+            self._tree.column(col_id, width=int(total_width * proportion))
 
     # ── Sorting ──
 
@@ -163,8 +222,8 @@ class ContentTable(ctk.CTkFrame):
         # Re-populate without clearing _rows
         self._tree.delete(*self._tree.get_children())
         for i, row in enumerate(self._rows):
-            values = [row.get(c["id"], "") for c in self._columns]
-            tag = "odd" if i % 2 else "even"
+            values = self._values_for_row(row)
+            tag = self._row_tag(i, row)
             self._tree.insert("", "end", iid=str(i), values=values, tags=(tag,))
         self._apply_row_tags()
 
@@ -198,7 +257,8 @@ class ContentTable(ctk.CTkFrame):
             foreground=t["heading_fg"],
             font=("Segoe UI", 16, "bold"),
             borderwidth=1,
-            relief="flat",
+            relief="groove",
+            bordercolor=t["border"],
         )
         self._style.map(
             "Content.Treeview",
@@ -213,7 +273,21 @@ class ContentTable(ctk.CTkFrame):
         # Tag colors for alternating rows
         self._tag_colors = t
 
+    def _row_tag(self, idx, row):
+        """Return the tag name for a row based on status or alternating index."""
+        if self._status_key:
+            status = row.get(self._status_key, "")
+            if status in _STATUS_COLORS.get("dark", {}):
+                return f"status_{status}"
+        return "odd" if idx % 2 else "even"
+
     def _apply_row_tags(self):
         t = self._tag_colors
         self._tree.tag_configure("even", background=t["bg"])
         self._tree.tag_configure("odd", background=t["row_alt"])
+        # Status-based row colors
+        if self._status_key:
+            mode = ctk.get_appearance_mode().lower()
+            colors = _STATUS_COLORS.get(mode, _STATUS_COLORS["dark"])
+            for status, bg in colors.items():
+                self._tree.tag_configure(f"status_{status}", background=bg)
