@@ -399,6 +399,9 @@ class GUIController:
                 self._finish_run()
                 return
 
+            from sorters.sorters import reload_patterns
+            reload_patterns()
+
             if not set_canvas_api_key_to_environment_variable():
                 self.set_status("Error - No API Token")
                 print("ERROR: No Canvas API access token found.")

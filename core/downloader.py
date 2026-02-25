@@ -594,7 +594,8 @@ class DownloaderMixin:
                         create_windows_shortcut_from_url(source_url, shortcut_path)
                         shortcut_folders.add(module_folder)
 
-            result = self._download_file(node.url, full_file_path, bool(force_to_shortcut.match(node.url)))
+            url = getattr(node, "download_url", None) or node.url
+            result = self._download_file(url, full_file_path, bool(force_to_shortcut.match(node.url)))
 
             # Track result
             if result:

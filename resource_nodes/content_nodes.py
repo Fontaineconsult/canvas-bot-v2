@@ -7,7 +7,6 @@ from network.api import get_file, get_media_object, get_media_objects
 from network.studio_api import get_media_by_id, get_media_sources_by_id, get_media_perspectives_by_id, \
     get_captions_by_media_id
 from resource_nodes.base_content_node import BaseContentNode
-from sorters.sorters import canvas_file_embed, canvas_media_embed
 from tools.string_checking.url_cleaning import is_url, sanitize_windows_filename
 
 from config.yaml_io import read_re
@@ -144,6 +143,8 @@ class CanvasMediaEmbed(BaseContentNode):
         id = None
         download_url = None
         file_name = None
+
+        from sorters.sorters import canvas_file_embed, canvas_media_embed
 
         if canvas_file_embed.match(url) is not None:
             pattern = canvas_file_embed.match(url).group(1)

@@ -53,10 +53,21 @@
 - **Focus rings and tooltips** — all interactive elements on the Content and Patterns tabs now show a blue focus ring on keyboard navigation and display descriptive tooltips on hover/focus, matching the Run tab's accessibility features.
 - **Content tab auto-refresh** — switching to the Content tab automatically refreshes the course list, ensuring the dropdown reflects any new scans without needing to click Refresh manually.
 
+### Content Viewer Improvements
+- **Downloaded column shows download date** — the "Downloaded" column in file tables now displays the actual download date (from the date-stamped folder on disk) instead of "Yes". Shows "No" when the file is not found. Uses glob-based search across date folders so files downloaded on previous days are correctly detected.
+- **Empty table placeholders** — tables with no content now display a "No {Content Type} Found" message instead of an empty table. Scrollbars are hidden when the placeholder is shown.
+- Files changed: `gui/content_viewer.py`, `gui/table_widget.py`
+
+### Robust File Type Detection
+- **Centralized `get_file_type()` helper** — replaced inconsistent inline `file_type` logic in 4 scaffold functions (`document_dict`, `video_file_dict`, `audio_file_dict`, `image_file_dict`) with a single `get_file_type(node)` function using a 7-step fallback chain: `display_name` extension, `file_name` extension, URL-decoded `filename` extension, `mime_class`, `mime_type` lookup, `title` extension, URL path extension. Previously, some functions only checked `mime_class` or `mime_type`, causing missing or inconsistent `file_type` values in exports.
+- Files changed: `core/content_scaffolds.py`
+
 ### Stability
 - **OSError handler for disconnected drives** — `core/downloader.py` now catches `OSError` during file writes (e.g., network drive disconnected mid-download) and exits cleanly with a message and `SystemExit(1)` instead of an unhandled traceback.
 - **Pattern Manager placeholder substitution fix** — `load_config_data_from_appdata()` is now called when the Pattern Manager loads, ensuring `{CANVAS_DOMAIN}` and other placeholder tokens are substituted with actual values (e.g., `sfsu`) in the GUI display. Previously, env vars were only populated during course processing, causing raw `{CANVAS_DOMAIN}` tokens to appear in the Patterns tab.
-- Files changed: `core/downloader.py`, `gui/pattern_manager.py`
+- **Regex pattern reloading after config load** — added `reload_patterns()` to `sorters/sorters.py` that recompiles all regex patterns with current environment variables. Called automatically before each scan run. Previously, patterns with domain placeholders (`{CANVAS_STUDIO_DOMAIN}`, `{CANVAS_DOMAIN}`, `{BOX_DOMAIN}`) were compiled at module import time before config was loaded, so they contained literal placeholder text and never matched. This caused Canvas Studio embeds, Canvas media embeds, and Box links to be classified as Unsorted.
+- **Canvas Studio downloads use correct URL** — the downloader now uses `download_url` (the DRM video stream URL) for Canvas Studio embeds instead of `url` (the Studio page URL). Previously, Studio video downloads would fail or create shortcuts because the page URL is not a direct file download.
+- Files changed: `core/downloader.py`, `gui/pattern_manager.py`, `sorters/sorters.py`, `core/node_factory.py`, `resource_nodes/content_nodes.py`, `gui/controller.py`
 
 ### Internal
 - **MVC refactor** — GUI split into `gui/app.py` (view), `gui/controller.py` (controller), and `gui/widgets.py` (shared widgets). Controller handles settings persistence, validation, run logic, and about dialog.

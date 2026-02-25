@@ -434,6 +434,10 @@ class ContentViewer:
                 rows = [r for r in rows if r.get("source_page_url")]
             if table_key in downloadable:
                 rows = self._check_downloaded(rows)
+            if table_key == "image_files":
+                for row in rows:
+                    if not row.get("title"):
+                        row["title"] = row.get("file_name", "")
             self._tables[table_key].populate(rows)
             counts[table_key] = len(rows)
 

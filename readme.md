@@ -630,9 +630,18 @@ For bug reports and feature requests: [GitHub Issues](https://github.com/Fontain
 - **Module anchor URLs in source page links** — when content is discovered inside a Module (which has no direct `html_url`), the source page URL is now constructed as `{course_url}/modules#{module_id}`. This creates an anchor link that scrolls directly to the correct module on the Canvas modules page, rather than linking to the generic modules listing.
 - **Active content filtering** — downloads now skip files not linked from any active Canvas page by default. Use `--include_inactive_content` (CLI) or the "Include inactive content" checkbox (GUI) to override. The Content Viewer also has a "Show Inactive Content" filter toggle.
 
+**Content Viewer:**
+- **Downloaded column shows download date** — file tables now display the actual download date (from the date-stamped folder on disk) instead of "Yes", with glob-based search across date folders for files downloaded on previous days.
+- **Empty table placeholders** — tables with no content show "No {Content Type} Found" instead of an empty table.
+
+**Content Pipeline:**
+- **Robust file type detection** — centralized `get_file_type()` helper with a 7-step fallback chain replaces inconsistent inline logic, improving `file_type` accuracy in JSON and Excel exports.
+- **Canvas Studio downloads use correct URL** — Studio video downloads now use the DRM video stream URL instead of the Studio page URL.
+
 **Stability:**
 - **OSError handler for disconnected drives** — the downloader now catches `OSError` during file writes (e.g., when a network drive is disconnected mid-download) and exits cleanly with a message instead of crashing with a traceback.
 - **Pattern placeholder substitution fix** — environment variables are now loaded at Pattern Manager init time so `{CANVAS_DOMAIN}` tokens display correctly.
+- **Regex pattern reloading** — patterns with domain placeholders (`{CANVAS_STUDIO_DOMAIN}`, `{CANVAS_DOMAIN}`, etc.) are now recompiled after config loads, fixing Canvas Studio embeds and Box links being classified as Unsorted.
 
 ### 1.2.0
 
