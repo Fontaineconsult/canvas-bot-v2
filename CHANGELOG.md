@@ -58,6 +58,10 @@
 - **Empty table placeholders** — tables with no content now display a "No {Content Type} Found" message instead of an empty table. Scrollbars are hidden when the placeholder is shown.
 - **Image title fallback** — image file rows now display `file_name` in the Title column when `title` is empty.
 - **Removed captioning column** — removed the "Captioned" column from the Video Sites table as the captioning detection system is not functional.
+- **Review status categorization** — content items can now be marked as "Passed", "Needs Review", or "Ignore" for accessibility auditing workflows. Three status buttons in the action bar (right-aligned). Status is persisted per course in `.manifest/review_status.json`, keyed by URL — all instances of the same URL share one status. Unreviewed items display "-". Easily expandable by adding values to `_REVIEW_STATUSES`.
+- **Status-based row coloring** — table rows are colored by review status: light green for Passed, light orange for Needs Review, light grey for Ignore. Unreviewed rows use the default alternating background. Colors adapt to dark and light modes.
+- **Column border separators** — subtle groove-style borders between column headings for visual clarity.
+- **Title truncation for file tables** — long titles in downloadable content tables (documents, video files, audio files, image files) are truncated with ".." when exceeding 60 characters. Full title remains visible in the detail panel.
 - Files changed: `gui/content_viewer.py`, `gui/table_widget.py`
 
 ### Robust File Type Detection
