@@ -36,6 +36,12 @@
 - **Video site patterns** — added 47 new patterns to `web_video_resources_regex` covering enterprise platforms (Panopto, Kaltura, YuJa, Wistia, Brightcove, Echo360), education streaming (Kanopy, Docuseek, Swank, PBS, Khan Academy), screen recording (ScreenPal, Screencast-O-Matic), collaboration (Flipgrid/Flip, Vidyard, Loom), social media (Twitch, Instagram Reels, LinkedIn Video, Facebook Watch, TikTok), enterprise (Microsoft Stream, Google Drive preview, Bunny Stream CDN), and more (Rumble, Odysee, BitChute, PeerTube, Streamable, C-SPAN).
 - **Institution-specific video patterns** — populated `institution_video_services_regex` (previously empty) with 12 `{CANVAS_DOMAIN}`-prefixed patterns for platforms that use institution subdomains: Panopto, Kaltura, YuJa, Echo360, Kanopy, ShareStream, Ensemble, and ScreenPal.
 
+### Active Content Filtering
+- **`--include_inactive_content` CLI flag** — by default, downloads now skip files that are not linked from any active Canvas page (i.e., `get_source_page_url()` returns falsy). Pass `--include_inactive_content` to override and download everything. Defaults to active-only to download the least number of files and those most useful.
+- **"Include inactive content" GUI checkbox** — added to the Download Options column on the Run tab. Setting is persisted across sessions.
+- **Content Viewer filter bar** — added a "Filters" row between the summary banner and content tabs with a "Show Inactive Content" checkbox (default off). When off, rows without a `source_page_url` are hidden from all tables. Toggling re-populates tables instantly without reloading from disk.
+- Files changed: `canvas_bot.py`, `gui/app.py`, `gui/controller.py`, `gui/content_viewer.py`, `core/downloader.py`
+
 ### Reusable Table Widget
 - **Created `gui/table_widget.py`** — `ContentTable` class wrapping `ttk.Treeview` with vertical and horizontal scrollbars, column-header click sorting with arrow indicators, alternating row colors, and automatic dark/light theme matching via CTk appearance mode.
 

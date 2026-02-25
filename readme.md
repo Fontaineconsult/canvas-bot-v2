@@ -217,8 +217,8 @@ Double-click the executable or run `python canvas_bot.py` with no arguments to l
 
 The GUI is organized into three tabs:
 
-- **Run tab** — course selection (single ID or batch `.txt` file), a single output folder with action checkboxes (Download files, Export to Excel, Export to JSON), download options (video, audio, image, hidden, flatten), display options (content tree, full course tree), real-time log output
-- **Content tab** — a persistent browser for all previously scanned courses. Select a course from the dropdown to view its content organized into nested sub-tabs (Documents, Videos, Audio, Images, Unsorted) with sortable tables, a summary banner, detail panel with clickable URLs, and buttons to open file locations or source pages
+- **Run tab** — course selection (single ID or batch `.txt` file), a single output folder with action checkboxes (Download files, Export to Excel, Export to JSON), download options (video, audio, image, hidden, inactive, flatten), display options (content tree, full course tree), real-time log output
+- **Content tab** — a persistent browser for all previously scanned courses. Select a course from the dropdown to view its content organized into nested sub-tabs (Documents, Videos, Audio, Images, Unsorted) with sortable tables, a summary banner, detail panel with clickable URLs, and buttons to open file locations or source pages. A filter bar lets you toggle visibility of inactive content (items not linked from any active Canvas page).
 - **Patterns tab** — view, add, remove, validate, and test regex patterns from `re.yaml` without the CLI. Left column lists all pattern categories with counts; right column shows patterns in the selected category with Add, Remove, and Validate buttons; bottom panel tests a URL or filename against all compiled matchers
 
 Additional features:
@@ -562,6 +562,7 @@ python -m test.pipeline_testing compare --raw raw.json --processed processed.jso
 | `--include_video_files` | Include video files in download | False |
 | `--include_audio_files` | Include audio files in download | False |
 | `--include_image_files` | Include image files in download | False |
+| `--include_inactive_content` | Include files not linked from any active Canvas page | False |
 | `--flatten` | Download all files to single directory | False |
 | `--download_hidden_files` | Include content hidden from students | False |
 | `--flush_after_download` | Delete files after processing | False |
@@ -627,6 +628,7 @@ For bug reports and feature requests: [GitHub Issues](https://github.com/Fontain
 
 **Content Pipeline:**
 - **Module anchor URLs in source page links** — when content is discovered inside a Module (which has no direct `html_url`), the source page URL is now constructed as `{course_url}/modules#{module_id}`. This creates an anchor link that scrolls directly to the correct module on the Canvas modules page, rather than linking to the generic modules listing.
+- **Active content filtering** — downloads now skip files not linked from any active Canvas page by default. Use `--include_inactive_content` (CLI) or the "Include inactive content" checkbox (GUI) to override. The Content Viewer also has a "Show Inactive Content" filter toggle.
 
 **Stability:**
 - **OSError handler for disconnected drives** — the downloader now catches `OSError` during file writes (e.g., when a network drive is disconnected mid-download) and exits cleanly with a message instead of crashing with a traceback.

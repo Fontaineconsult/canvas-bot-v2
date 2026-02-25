@@ -42,6 +42,7 @@ class CanvasBotGUI:
         self.var_audio = ctk.BooleanVar()
         self.var_image = ctk.BooleanVar()
         self.var_hidden = ctk.BooleanVar()
+        self.var_inactive = ctk.BooleanVar()
         self.var_flatten = ctk.BooleanVar()
         self.var_content_tree = ctk.BooleanVar()
         self.var_full_tree = ctk.BooleanVar()
@@ -277,6 +278,11 @@ class CanvasBotGUI:
         cb_hidden.pack(anchor="w", pady=2)
         _add_focus_ring(cb_hidden)
         Tooltip(cb_hidden, "Include content that is hidden or unpublished in Canvas")
+
+        cb_inactive = ctk.CTkCheckBox(left, text="Include inactive content", variable=self.var_inactive)
+        cb_inactive.pack(anchor="w", pady=2)
+        _add_focus_ring(cb_inactive)
+        Tooltip(cb_inactive, "Also download files not linked from any active Canvas page")
 
         cb_flatten = ctk.CTkCheckBox(left, text="Flatten folder structure", variable=self.var_flatten)
         cb_flatten.pack(anchor="w", pady=2)

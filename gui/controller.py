@@ -57,6 +57,7 @@ class GUIController:
         self.view.var_audio.set(data.get("include_audio", False))
         self.view.var_image.set(data.get("include_image", False))
         self.view.var_hidden.set(data.get("include_hidden", False))
+        self.view.var_inactive.set(data.get("include_inactive", False))
         self.view.var_flatten.set(data.get("flatten", False))
         self.view.var_content_tree.set(data.get("content_tree", False))
         self.view.var_full_tree.set(data.get("full_tree", False))
@@ -75,6 +76,7 @@ class GUIController:
                 "include_audio": self.view.var_audio.get(),
                 "include_image": self.view.var_image.get(),
                 "include_hidden": self.view.var_hidden.get(),
+                "include_inactive": self.view.var_inactive.get(),
                 "flatten": self.view.var_flatten.get(),
                 "content_tree": self.view.var_content_tree.get(),
                 "full_tree": self.view.var_full_tree.get(),
@@ -311,6 +313,7 @@ class GUIController:
                 "include_audio_files": self.view.var_audio.get(),
                 "include_image_files": self.view.var_image.get(),
                 "download_hidden_files": self.view.var_hidden.get(),
+                "only_active_files": not self.view.var_inactive.get(),
                 "flatten": self.view.var_flatten.get(),
             }
 

@@ -510,6 +510,7 @@ class DownloaderMixin:
         log.info(f"Downloading files to {root_directory} with params: {params}")
 
         # Extract params
+        only_active_files = params.get('only_active_files', True)
         include_video_files = params.get('include_video_files', False)
         include_audio_files = params.get('include_audio_files', False)
         include_image_files = params.get('include_image_files', False)
@@ -547,11 +548,17 @@ class DownloaderMixin:
             # Progress indicator
             progress = f"[{idx}/{total_count}]"
 
+            #check if active (has a source_url attribute that is not none)
+            if only_active_files:
+                if not get_source_page_url(node):
+                    print(f"{Fore.YELLOW}{progress}{Style.RESET_ALL} {Fore.MAGENTA}[Inactive]{Style.RESET_ALL} {_truncate_title(node.title)}")
+                    continue
+
             # Check if hidden
             if is_hidden(node):
                 if download_hidden_files:
                     stats['hidden'] += 1
-                    print(f"{Fore.YELLOW}{progress}{Style.RESET_ALL} {Fore.MAGENTA}[hidden]{Style.RESET_ALL} {_truncate_title(node.title)}")
+                    print(f"{Fore.YELLOW}{progress}{Style.RESET_ALL} {Fore.MAGENTA}[Hidden]{Style.RESET_ALL} {_truncate_title(node.title)}")
                 else:
                     continue
 
