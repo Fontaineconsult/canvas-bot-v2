@@ -29,7 +29,6 @@ _COLUMNS = {
     "video_sites": [
         {"id": "title", "heading": "Title", "width": 175, "stretch": True},
         {"id": "url", "heading": "URL", "width": 250, "stretch": True},
-        {"id": "is_captioned", "heading": "Captioned", "width": 105},
         {"id": "source_page_type", "heading": "Source", "width": 130},
         {"id": "is_hidden", "heading": "Hidden", "width": 80},
     ],
@@ -431,7 +430,7 @@ class ContentViewer:
         for table_key, (category, sub_key) in mapping.items():
             rows = content.get(category, {}).get(sub_key, [])
             if not show_inactive:
-                rows = [r for r in rows if r.get("source_page_url")]
+                rows = [r for r in rows if r.get("source_page_url") and not r.get("is_hidden")]
             if table_key in downloadable:
                 rows = self._check_downloaded(rows)
             if table_key == "image_files":

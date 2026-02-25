@@ -122,13 +122,14 @@ def is_hidden(node) -> bool:
     # don't print node, will cause max recursion error
     path_list = build_path(node)
 
+
     for node_ in path_list:
         if node_.__dict__.get("hidden_for_user") is True\
                 or node_.__dict__.get('published') is False\
                 or node_.__dict__.get("hide_from_students") is True \
                 or node_.__dict__.get("locked") is True:
             return True
-        return False
+    return False
 
 
 
