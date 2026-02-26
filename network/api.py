@@ -68,7 +68,7 @@ def response_handler(request_url):
         except json.JSONDecodeError as exc:
             log.exception(f"Failed to decode error JSON: {exc} | URL: {clean_url}")
             error_message = "Failed to parse error response"
-        warnings.warn(f"HTTP {request.status_code} - {error_message}\n    {clean_url}", UserWarning)
+        warnings.warn(f"HTTP {request.status_code} - {error_message}: {clean_url}", UserWarning)
         return None
 
 

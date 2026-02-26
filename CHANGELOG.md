@@ -4,7 +4,11 @@
 
 ### GUI Tabbed Layout
 - **Reorganized GUI into three tabs** — the main window now uses a `CTkTabview` with **Run**, **Content**, and **Patterns** tabs. All existing controls (course selection, output, options, run button, log area) are under the Run tab. Window enlarged to 900x800 with 700x650 minimum.
-- **Consolidated output folders** — replaced three separate folder pickers (Download, Excel, JSON) with a single Output Folder and three action checkboxes (Download files, Export to Excel, Export to JSON). Old settings are migrated automatically.
+- **Consolidated output folders** — replaced three separate folder pickers (Download, Excel, JSON) with a single Output Folder and a Download files checkbox. Old settings are migrated automatically.
+- **Removed Excel and JSON export options** — the GUI no longer exposes Export to Excel or Export to JSON checkboxes. The internal `.manifest/content.json` save for the Content Viewer is unaffected. CLI flags (`--output_as_excel`, `--output_as_json`) remain available.
+- **Reframed as a bridge** — Canvas Bot is now described as a "bridge between Canvas LMS and your desktop" throughout the GUI (title bar subtitle, About dialog, welcome dialog).
+- **Tabbed About dialog** — the About window now has four tabs: About (intro, getting started, contact), Run (course selection, output, options), Content (content viewer guide), and Patterns (pattern manager guide).
+- **Compact options layout** — Download Options and Display Options checkboxes now use a 2-column grid within each section (3x2 and 1x2), reducing the options area height and giving the console output more vertical space.
 - **Tab keyboard shortcuts** — `Ctrl+1/2/3` switch between Run, Content, and Patterns tabs.
 
 ### Content Viewer (Content Tab)
@@ -62,6 +66,8 @@
 - **Status-based row coloring** — table rows are colored by review status: light green for Passed, light orange for Needs Review, light grey for Ignore. Unreviewed rows use the default alternating background. Colors adapt to dark and light modes.
 - **Column border separators** — subtle groove-style borders between column headings for visual clarity.
 - **Title truncation for file tables** — long titles in downloadable content tables (documents, video files, audio files, image files) are truncated with ".." when exceeding 60 characters. Full title remains visible in the detail panel.
+- **Order column restored** — all content tables now show an "Order" column (first column, compact width) displaying the item's position (0–100) within the course. Sorting is numeric-aware so 2 sorts between 1 and 12.
+- **Course selection persists across tab switches** — switching away from the Content tab and back no longer resets the course dropdown to the first entry; the previous selection is preserved if it still exists.
 - Files changed: `gui/content_viewer.py`, `gui/table_widget.py`
 
 ### Robust File Type Detection

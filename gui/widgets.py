@@ -27,6 +27,17 @@ def _fix_tcl_paths():
             return
 
 
+def _underline_char(button, index):
+    """Underline a character in a CTkButton label via the internal tkinter Label.
+
+    Falls back silently if the internal structure changes in a future CTk version.
+    """
+    try:
+        button._text_label.configure(underline=index)
+    except (AttributeError, Exception):
+        pass
+
+
 def _add_focus_ring(widget):
     """Add a visible border when the widget receives keyboard focus, and activate on Enter."""
     widget.configure(border_width=2, border_color=_UNFOCUS_COLOR)

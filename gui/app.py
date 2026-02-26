@@ -2,12 +2,17 @@ import os
 import sys
 import customtkinter as ctk
 
-from gui.widgets import _fix_tcl_paths, _add_focus_ring, Tooltip
+from gui.widgets import _fix_tcl_paths, _add_focus_ring, _underline_char, Tooltip
 from gui.controller import GUIController
 from gui.content_viewer import ContentViewer
 from gui.pattern_manager import PatternManager
 
 _fix_tcl_paths()
+
+# Tab name constants
+TAB_RUN = "Run"           # Alt+U
+TAB_CONTENT = "Content"   # Alt+N
+TAB_PATTERNS = "Patterns" # Alt+P
 
 
 class CanvasBotGUI:
@@ -55,11 +60,14 @@ class CanvasBotGUI:
         self.tabview = ctk.CTkTabview(self.root, command=self._on_tab_changed)
         self.tabview.pack(fill="both", expand=True, padx=15, pady=(5, 15))
 
-        self.tabview.add("Run")
-        self.tabview.add("Content")
-        self.tabview.add("Patterns")
+        self.tabview.add(TAB_RUN)
+        self.tabview.add(TAB_CONTENT)
+        self.tabview.add(TAB_PATTERNS)
 
-        run_tab = self.tabview.tab("Run")
+        # Make tab selector buttons keyboard-navigable
+        self._setup_tab_keyboard_nav()
+
+        run_tab = self.tabview.tab(TAB_RUN)
 
         self._build_course_selection(run_tab)
         self._build_output_section(run_tab)
@@ -68,10 +76,10 @@ class CanvasBotGUI:
         self._build_output_area(run_tab)
 
         # Content Viewer tab
-        self.content_viewer = ContentViewer(self.tabview.tab("Content"), self)
+        self.content_viewer = ContentViewer(self.tabview.tab(TAB_CONTENT), self)
 
         # Pattern Manager tab
-        self.pattern_manager = PatternManager(self.tabview.tab("Patterns"))
+        self.pattern_manager = PatternManager(self.tabview.tab(TAB_PATTERNS))
 
         # --- Validation bindings ---
         self.var_course_id.trace_add("write", self.controller.on_course_id_changed)
@@ -80,13 +88,51 @@ class CanvasBotGUI:
         self.var_output_folder.trace_add("write", lambda *_: self.content_viewer.refresh_course_list())
 
         # --- Keyboard shortcuts ---
+        # Buttons
         self.root.bind("<Alt-r>", lambda e: self.controller.on_run() if self.run_btn.cget("state") == "normal" else None)
         self.root.bind("<Alt-v>", lambda e: self.controller.view_config())
         self.root.bind("<Alt-c>", lambda e: self.controller.reset_config())
         self.root.bind("<Alt-a>", lambda e: self.controller.show_about())
-        self.root.bind("<Control-Key-1>", lambda e: self.tabview.set("Run"))
-        self.root.bind("<Control-Key-2>", lambda e: self.tabview.set("Content"))
-        self.root.bind("<Control-Key-3>", lambda e: self.tabview.set("Patterns"))
+        # Tab selectors
+        self.root.bind("<Alt-u>", lambda e: self.tabview.set(TAB_RUN))
+        self.root.bind("<Alt-n>", lambda e: self.tabview.set(TAB_CONTENT))
+        self.root.bind("<Alt-p>", lambda e: self.tabview.set(TAB_PATTERNS))
+        self.root.bind("<Control-Key-1>", lambda e: self.tabview.set(TAB_RUN))
+        self.root.bind("<Control-Key-2>", lambda e: self.tabview.set(TAB_CONTENT))
+        self.root.bind("<Control-Key-3>", lambda e: self.tabview.set(TAB_PATTERNS))
+
+        # Content tab shortcuts (active only when Content tab is showing)
+        def _on_content(cb):
+            return lambda e: cb() if self.tabview.get() == TAB_CONTENT else None
+        self.root.bind("<Alt-f>", _on_content(self.content_viewer.refresh_course_list))
+        self.root.bind("<Alt-o>", _on_content(self.content_viewer._open_course_folder))
+        self.root.bind("<Alt-s>", _on_content(self.content_viewer._open_source_page))
+        self.root.bind("<Alt-w>", _on_content(lambda: self.content_viewer._on_status_changed("Needs Review")))
+        self.root.bind("<Alt-i>", _on_content(lambda: self.content_viewer._on_status_changed("Ignore")))
+
+        # Patterns tab shortcuts (active only when Patterns tab is showing)
+        def _on_patterns(cb):
+            return lambda e: cb() if self.tabview.get() == TAB_PATTERNS else None
+        self.root.bind("<Alt-m>", _on_patterns(self.pattern_manager._on_remove))
+        self.root.bind("<Alt-l>", _on_patterns(self.pattern_manager._on_validate))
+        self.root.bind("<Alt-t>", _on_patterns(self.pattern_manager._on_test))
+
+        # Shared keys — dispatch based on active tab
+        def _alt_d(e):
+            tab = self.tabview.get()
+            if tab == TAB_CONTENT:
+                self.content_viewer._on_status_changed("Passed")
+            elif tab == TAB_PATTERNS:
+                self.pattern_manager._on_add()
+        self.root.bind("<Alt-d>", _alt_d)
+
+        def _alt_e(e):
+            tab = self.tabview.get()
+            if tab == TAB_CONTENT:
+                self.content_viewer._open_file_or_site()
+            elif tab == TAB_PATTERNS:
+                self.pattern_manager._on_reset()
+        self.root.bind("<Alt-e>", _alt_e)
 
         # --- Load saved settings ---
         self.controller.load_settings()
@@ -145,69 +191,72 @@ class CanvasBotGUI:
 
         reset_btn = ctk.CTkButton(
             title_frame,
-            text="Reset Config (Alt+C)",
+            text="Reset Config",
             width=130,
             command=self.controller.reset_config,
         )
         reset_btn.pack(side="right")
         _add_focus_ring(reset_btn)
-        Tooltip(reset_btn, "Reset Canvas API or Studio credentials")
+        _underline_char(reset_btn, 6)  # C in Config → Alt+C
+        Tooltip(reset_btn, "Reset Canvas API or Studio credentials (Alt+C)")
 
         view_btn = ctk.CTkButton(
             title_frame,
-            text="View Config (Alt+V)",
+            text="View Config",
             width=130,
             command=self.controller.view_config,
         )
         view_btn.pack(side="right", padx=(0, 5))
         _add_focus_ring(view_btn)
-        Tooltip(view_btn, "View current configuration status in a terminal")
+        _underline_char(view_btn, 0)  # V in View → Alt+V
+        Tooltip(view_btn, "View current configuration status in a terminal (Alt+V)")
 
         about_btn = ctk.CTkButton(
             title_frame,
-            text="About (Alt+A)",
+            text="About",
             width=100,
             command=self.controller.show_about,
         )
         about_btn.pack(side="right", padx=(0, 5))
         _add_focus_ring(about_btn)
-        Tooltip(about_btn, "About Canvas Bot and how to use this tool")
+        _underline_char(about_btn, 0)  # A in About → Alt+A
+        Tooltip(about_btn, "About Canvas Bot and how to use this tool (Alt+A)")
 
     # ── Course Selection ──
 
     def _build_course_selection(self, parent):
         section = self._make_section("Course Selection", parent)
 
-        # Course ID row
-        id_frame = ctk.CTkFrame(section, fg_color="transparent")
-        id_frame.pack(fill="x", pady=(0, 4))
+        row = ctk.CTkFrame(section, fg_color="transparent")
+        row.pack(fill="x")
 
-        ctk.CTkLabel(id_frame, text="Course ID:", width=110, anchor="w").pack(side="left")
+        # Course ID (left, compact)
+        ctk.CTkLabel(row, text="Course ID:", anchor="w").pack(side="left")
         self.entry_course_id = ctk.CTkEntry(
-            id_frame, textvariable=self.var_course_id,
-            placeholder_text="Canvas course ID (e.g. 12345)",
+            row, textvariable=self.var_course_id,
+            placeholder_text="e.g. 12345", width=120,
         )
-        self.entry_course_id.pack(side="left", fill="x", expand=True)
+        self.entry_course_id.pack(side="left", padx=(5, 0))
+        _add_focus_ring(self.entry_course_id)
         Tooltip(self.entry_course_id, "Enter the Canvas course ID from the course URL: canvas.edu/courses/[ID]")
 
         # Separator
-        ctk.CTkLabel(section, text="- or -", text_color="gray").pack(pady=2)
+        ctk.CTkLabel(row, text="or", text_color="gray").pack(side="left", padx=10)
 
-        # Course List row
-        list_frame = ctk.CTkFrame(section, fg_color="transparent")
-        list_frame.pack(fill="x")
-
-        ctk.CTkLabel(list_frame, text="Course List:", width=110, anchor="w").pack(side="left")
+        # Course List (right, expands)
+        ctk.CTkLabel(row, text="Course List:", anchor="w").pack(side="left")
         self.entry_course_list = ctk.CTkEntry(
-            list_frame, textvariable=self.var_course_list,
-            placeholder_text="Path to .txt file with course IDs (one per line)",
+            row, textvariable=self.var_course_list,
+            placeholder_text="Path to .txt file (one ID per line)",
         )
-        self.entry_course_list.pack(side="left", fill="x", expand=True, padx=(0, 5))
+        self.entry_course_list.pack(side="left", fill="x", expand=True, padx=(5, 5))
+        _add_focus_ring(self.entry_course_list)
         Tooltip(self.entry_course_list, "Text file with one course ID per line for batch processing")
 
-        browse_list_btn = ctk.CTkButton(list_frame, text="Browse", width=70, command=self.controller.browse_course_list)
+        browse_list_btn = ctk.CTkButton(row, text="Browse", width=70, command=self.controller.browse_course_list)
         browse_list_btn.pack(side="right")
         _add_focus_ring(browse_list_btn)
+        _underline_char(browse_list_btn, 0)  # B
         Tooltip(browse_list_btn, "Browse for a course list text file")
 
     # ── Output Section (single folder + action checkboxes) ──
@@ -223,12 +272,14 @@ class CanvasBotGUI:
         entry = ctk.CTkEntry(folder_row, textvariable=self.var_output_folder,
                              placeholder_text="Select a folder...")
         entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
+        _add_focus_ring(entry)
         Tooltip(entry, "Directory where all output (downloads, Excel reports, JSON) will be saved")
 
         browse_btn = ctk.CTkButton(folder_row, text="Browse", width=70,
                                    command=lambda: self.controller.browse_folder(self.var_output_folder))
         browse_btn.pack(side="right")
         _add_focus_ring(browse_btn)
+        _underline_char(browse_btn, 0)  # B
         Tooltip(browse_btn, "Browse for output folder location")
 
         # Action checkboxes row
@@ -256,58 +307,58 @@ class CanvasBotGUI:
         columns.columnconfigure(1, weight=1)
 
         # ── Left: Download Options (3 rows x 2 inner columns) ──
-        left = ctk.CTkFrame(columns, fg_color="transparent")
-        left.grid(row=0, column=0, sticky="nsew")
+        left = ctk.CTkFrame(columns, fg_color=("gray86", "gray20"), corner_radius=6)
+        left.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
 
-        ctk.CTkLabel(left, text="Download Options", font=ctk.CTkFont(size=13, weight="bold"), anchor="w").grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
+        ctk.CTkLabel(left, text="Download Options", font=ctk.CTkFont(size=13, weight="bold"), anchor="w").grid(row=0, column=0, columnspan=2, sticky="w", padx=8, pady=(6, 4))
         left.columnconfigure(0, weight=1)
         left.columnconfigure(1, weight=1)
 
         cb_video = ctk.CTkCheckBox(left, text="Include video files", variable=self.var_video)
-        cb_video.grid(row=1, column=0, sticky="w", pady=2)
+        cb_video.grid(row=1, column=0, sticky="w", padx=8, pady=2)
         _add_focus_ring(cb_video)
         Tooltip(cb_video, "Also download video files (MP4, MOV, MKV, AVI, WebM)")
 
         cb_audio = ctk.CTkCheckBox(left, text="Include audio files", variable=self.var_audio)
-        cb_audio.grid(row=1, column=1, sticky="w", pady=2)
+        cb_audio.grid(row=1, column=1, sticky="w", padx=8, pady=2)
         _add_focus_ring(cb_audio)
         Tooltip(cb_audio, "Also download audio files (MP3, M4A, WAV, OGG)")
 
         cb_image = ctk.CTkCheckBox(left, text="Include image files", variable=self.var_image)
-        cb_image.grid(row=2, column=0, sticky="w", pady=2)
+        cb_image.grid(row=2, column=0, sticky="w", padx=8, pady=2)
         _add_focus_ring(cb_image)
         Tooltip(cb_image, "Also download image files (JPG, PNG, GIF, SVG, WebP)")
 
         cb_hidden = ctk.CTkCheckBox(left, text="Include hidden content", variable=self.var_hidden)
-        cb_hidden.grid(row=2, column=1, sticky="w", pady=2)
+        cb_hidden.grid(row=2, column=1, sticky="w", padx=8, pady=2)
         _add_focus_ring(cb_hidden)
         Tooltip(cb_hidden, "Include content that is hidden or unpublished in Canvas")
 
         cb_inactive = ctk.CTkCheckBox(left, text="Include inactive content", variable=self.var_inactive)
-        cb_inactive.grid(row=3, column=0, sticky="w", pady=2)
+        cb_inactive.grid(row=3, column=0, sticky="w", padx=8, pady=(2, 6))
         _add_focus_ring(cb_inactive)
         Tooltip(cb_inactive, "Also download files not linked from any active Canvas page")
 
         cb_flatten = ctk.CTkCheckBox(left, text="Flatten folder structure", variable=self.var_flatten)
-        cb_flatten.grid(row=3, column=1, sticky="w", pady=2)
+        cb_flatten.grid(row=3, column=1, sticky="w", padx=8, pady=(2, 6))
         _add_focus_ring(cb_flatten)
         Tooltip(cb_flatten, "Download all files to a single flat directory instead of preserving module structure")
 
         # ── Right: Display Options (1 row x 2 inner columns) ──
-        right = ctk.CTkFrame(columns, fg_color="transparent")
-        right.grid(row=0, column=1, sticky="nsew", padx=(15, 0))
+        right = ctk.CTkFrame(columns, fg_color=("gray86", "gray20"), corner_radius=6)
+        right.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
 
-        ctk.CTkLabel(right, text="Display Options", font=ctk.CTkFont(size=13, weight="bold"), anchor="w").grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
+        ctk.CTkLabel(right, text="Display Options", font=ctk.CTkFont(size=13, weight="bold"), anchor="w").grid(row=0, column=0, columnspan=2, sticky="w", padx=8, pady=(6, 4))
         right.columnconfigure(0, weight=1)
         right.columnconfigure(1, weight=1)
 
         self.cb_content_tree = ctk.CTkCheckBox(right, text="Print content tree", variable=self.var_content_tree, command=self.controller.on_content_tree_toggled)
-        self.cb_content_tree.grid(row=1, column=0, sticky="w", pady=2)
+        self.cb_content_tree.grid(row=1, column=0, sticky="w", padx=8, pady=(2, 6))
         _add_focus_ring(self.cb_content_tree)
         Tooltip(self.cb_content_tree, "Print course tree showing only resources that contain content (single course only)")
 
         self.cb_full_tree = ctk.CTkCheckBox(right, text="Print full course tree", variable=self.var_full_tree, command=self.controller.on_full_tree_toggled)
-        self.cb_full_tree.grid(row=1, column=1, sticky="w", pady=2)
+        self.cb_full_tree.grid(row=1, column=1, sticky="w", padx=8, pady=(2, 6))
         _add_focus_ring(self.cb_full_tree)
         Tooltip(self.cb_full_tree, "Print complete course tree including all resources (single course only)")
 
@@ -319,7 +370,7 @@ class CanvasBotGUI:
 
         self.run_btn = ctk.CTkButton(
             run_frame,
-            text="Run (Alt+R)",
+            text="Run",
             height=36,
             font=ctk.CTkFont(size=14, weight="bold"),
             state="disabled",
@@ -327,7 +378,8 @@ class CanvasBotGUI:
         )
         self.run_btn.pack(fill="x")
         _add_focus_ring(self.run_btn)
-        Tooltip(self.run_btn, "Start processing the selected course(s) with the chosen options")
+        _underline_char(self.run_btn, 0)  # R in Run → Alt+R
+        Tooltip(self.run_btn, "Start processing the selected course(s) with the chosen options (Alt+R)")
 
     # ── Output Area ──
 
@@ -370,8 +422,33 @@ class CanvasBotGUI:
         return content
 
     def _on_tab_changed(self):
-        if self.tabview.get() == "Content":
+        if self.tabview.get() == TAB_CONTENT:
             self.content_viewer.refresh_course_list()
+
+    def _setup_tab_keyboard_nav(self):
+        """Make the tab selector buttons focusable with Left/Right arrow navigation."""
+        tab_names = [TAB_RUN, TAB_CONTENT, TAB_PATTERNS]
+        try:
+            buttons = self.tabview._segmented_button._buttons_dict
+        except AttributeError:
+            return
+
+        for name in tab_names:
+            btn = buttons.get(name)
+            if not btn:
+                continue
+            _add_focus_ring(btn)
+
+            def _nav(event, current=name, direction=0):
+                idx = tab_names.index(current) + direction
+                if 0 <= idx < len(tab_names):
+                    target = tab_names[idx]
+                    self.tabview.set(target)
+                    buttons[target].focus_set()
+                return "break"
+
+            btn.bind("<Left>", lambda e, n=name: _nav(e, n, -1))
+            btn.bind("<Right>", lambda e, n=name: _nav(e, n, 1))
 
     def run(self):
         self.root.mainloop()

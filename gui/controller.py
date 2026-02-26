@@ -7,7 +7,7 @@ import traceback
 import customtkinter as ctk
 from tkinter import filedialog
 
-from gui.widgets import Tooltip, TextRedirector
+from gui.widgets import _add_focus_ring, _underline_char, Tooltip, TextRedirector
 
 log = logging.getLogger(__name__)
 
@@ -203,6 +203,8 @@ class GUIController:
 
         close_btn = ctk.CTkButton(dialog, text="Get Started", width=140, command=_close)
         close_btn.pack(pady=(5, 15))
+        _add_focus_ring(close_btn)
+        _underline_char(close_btn, 0)  # G
         close_btn.focus_set()
 
         dialog.bind("<Escape>", lambda e: _close())
@@ -218,9 +220,9 @@ class GUIController:
             if ok:
                 self.view.status_label.configure(text=f"Status: {message}", text_color=("gray10", "gray90"))
             else:
-                self.view.status_label.configure(text=f"Status: {message}", text_color="orange")
+                self.view.status_label.configure(text=f"Status: WARNING — {message}", text_color="orange")
         except Exception:
-            self.view.status_label.configure(text="Status: Configuration check failed", text_color="orange")
+            self.view.status_label.configure(text="Status: WARNING — Configuration check failed", text_color="orange")
 
     def launch_cli(self, flag):
         import subprocess
@@ -261,6 +263,8 @@ class GUIController:
             command=lambda: [dialog.destroy(), self.launch_cli('--reset_canvas_params')],
         )
         api_btn.pack(pady=5)
+        _add_focus_ring(api_btn)
+        _underline_char(api_btn, 13)  # A in "API"
         api_btn.focus_set()
         Tooltip(api_btn, "Clear and reconfigure Canvas API token and instance URL")
 
@@ -271,6 +275,8 @@ class GUIController:
             command=lambda: [dialog.destroy(), self.launch_cli('--reset_canvas_studio_params')],
         )
         studio_btn.pack(pady=5)
+        _add_focus_ring(studio_btn)
+        _underline_char(studio_btn, 13)  # S in "Studio"
         Tooltip(studio_btn, "Clear and reconfigure Canvas Studio OAuth credentials")
 
         cancel_btn = ctk.CTkButton(
@@ -281,6 +287,8 @@ class GUIController:
             command=dialog.destroy,
         )
         cancel_btn.pack(pady=(10, 0))
+        _add_focus_ring(cancel_btn)
+        _underline_char(cancel_btn, 0)  # C
 
         dialog.bind("<Escape>", lambda e: dialog.destroy())
 
@@ -349,7 +357,8 @@ class GUIController:
     # ── Run Logic ──
 
     def set_status(self, text):
-        self.view.root.after(0, self.view.status_label.configure, {"text": f"Status: {text}"})
+        color = "orange" if text.startswith("Error") else ("gray10", "gray90")
+        self.view.root.after(0, self.view.status_label.configure, {"text": f"Status: {text}", "text_color": color})
 
     def on_run(self):
         if self._running:
@@ -502,7 +511,8 @@ class GUIController:
         # Re-enable controls on the main thread
         def _restore():
             self._running = False
-            self.view.run_btn.configure(text="Run (Alt+R)")
+            self.view.run_btn.configure(text="Run")
+            _underline_char(self.view.run_btn, 0)
             self.validate_run()
 
         self.view.root.after(0, _restore)
@@ -695,6 +705,8 @@ class GUIController:
         # ── Close button ──
         close_btn = ctk.CTkButton(dialog, text="Close", width=120, command=dialog.destroy)
         close_btn.pack(pady=(5, 15))
+        _add_focus_ring(close_btn)
+        _underline_char(close_btn, 0)  # C
         close_btn.focus_set()
 
         dialog.bind("<Escape>", lambda e: dialog.destroy())

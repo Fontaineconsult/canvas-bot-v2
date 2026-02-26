@@ -574,15 +574,7 @@ class DownloaderMixin:
             # Create "Content Location" shortcut to the source Canvas page
             parent_type = node.parent.__class__.__name__
             target_folder = os.path.dirname(full_file_path)
-            if parent_type not in ("Module", "ModuleItem") and target_folder not in shortcut_folders:
-                source_url = get_source_page_url(node)
-                if source_url:
-                    shortcut_path = os.path.join(target_folder, "Content Location")
-                    if not os.path.exists(target_folder):
-                        os.makedirs(target_folder)
-                    create_windows_shortcut_from_url(source_url, shortcut_path)
-                    shortcut_folders.add(target_folder)
-            elif parent_type in ("Module", "ModuleItem"):
+            if not flatten and parent_type in ("Module", "ModuleItem"):
                 relative_parts = os.path.relpath(full_file_path, root_directory).split(os.sep)
                 module_folder = os.path.join(root_directory, *relative_parts[:3])
                 if module_folder not in shortcut_folders:
@@ -593,6 +585,14 @@ class DownloaderMixin:
                             os.makedirs(module_folder)
                         create_windows_shortcut_from_url(source_url, shortcut_path)
                         shortcut_folders.add(module_folder)
+            elif target_folder not in shortcut_folders:
+                source_url = get_source_page_url(node)
+                if source_url:
+                    shortcut_path = os.path.join(target_folder, "Content Location")
+                    if not os.path.exists(target_folder):
+                        os.makedirs(target_folder)
+                    create_windows_shortcut_from_url(source_url, shortcut_path)
+                    shortcut_folders.add(target_folder)
 
             url = getattr(node, "download_url", None) or node.url
             result = self._download_file(url, full_file_path, bool(force_to_shortcut.match(node.url)))
@@ -684,10 +684,10 @@ class DownloaderMixin:
                 return create_windows_shortcut_from_url(url, filename)
 
             # Download successfully
-            try:
-                display_name = _truncate_title(os.path.basename(filename), 45)
-                print(f"  {Fore.GREEN}\u2193{Style.RESET_ALL} {display_name}")
+            display_name = _truncate_title(os.path.basename(filename), 45)
+            print(f"  {Fore.GREEN}\u2193{Style.RESET_ALL} {display_name}")
 
+            try:
                 with open(filename, 'wb') as file:
                     for chunk in response.iter_content(chunk_size=8192):
                         if chunk:

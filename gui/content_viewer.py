@@ -6,7 +6,7 @@ import webbrowser
 import customtkinter as ctk
 
 from gui.table_widget import ContentTable
-from gui.widgets import _add_focus_ring, Tooltip
+from gui.widgets import _add_focus_ring, _underline_char, Tooltip
 
 
 # Review status options (add new values here to expand)
@@ -134,13 +134,15 @@ class ContentViewer:
                                     command=self.refresh_course_list)
         refresh_btn.pack(side="right")
         _add_focus_ring(refresh_btn)
-        Tooltip(refresh_btn, "Re-scan the output folder for new or updated course data")
+        _underline_char(refresh_btn, 2)  # F → Alt+F
+        Tooltip(refresh_btn, "Re-scan the output folder for new or updated course data (Alt+F)")
 
         self._open_folder_btn = ctk.CTkButton(top_bar, text="Open Folder", width=100,
                                               command=self._open_course_folder, state="disabled")
         self._open_folder_btn.pack(side="right", padx=(0, 5))
         _add_focus_ring(self._open_folder_btn)
-        Tooltip(self._open_folder_btn, "Open the selected course's folder in File Explorer")
+        _underline_char(self._open_folder_btn, 0)  # O → Alt+O
+        Tooltip(self._open_folder_btn, "Open the selected course's folder in File Explorer (Alt+O)")
 
         # ── Summary banner ──
         self._summary_frame = ctk.CTkFrame(self._container, fg_color="transparent")
@@ -279,7 +281,8 @@ class ContentViewer:
         )
         self._open_file_btn.pack(side="left", padx=(0, 5))
         _add_focus_ring(self._open_file_btn)
-        Tooltip(self._open_file_btn, "Open the folder containing the downloaded file, or open the site URL")
+        _underline_char(self._open_file_btn, 2)  # e in "Open" → Alt+E
+        Tooltip(self._open_file_btn, "Open the folder containing the downloaded file, or open the site URL (Alt+E)")
 
         self._open_source_btn = ctk.CTkButton(
             btn_row, text="Open Source Page", width=140,
@@ -287,9 +290,13 @@ class ContentViewer:
         )
         self._open_source_btn.pack(side="left")
         _add_focus_ring(self._open_source_btn)
-        Tooltip(self._open_source_btn, "Open the Canvas page where this content was found")
+        _underline_char(self._open_source_btn, 5)  # S in "Source" → Alt+S
+        Tooltip(self._open_source_btn, "Open the Canvas page where this content was found (Alt+S)")
 
         # Status buttons (right-aligned)
+        # Underline indices: Needs revieW (11) → Alt+W, PasseD (5) → Alt+D, Ignore (0) → Alt+I
+        _status_underline = {"Needs Review": 11, "Passed": 5, "Ignore": 0}
+        _status_keys = {"Needs Review": "W", "Passed": "D", "Ignore": "I"}
         self._status_buttons = {}
         for status in reversed(_REVIEW_STATUSES):
             btn = ctk.CTkButton(
@@ -299,7 +306,8 @@ class ContentViewer:
             )
             btn.pack(side="right", padx=(3, 0))
             _add_focus_ring(btn)
-            Tooltip(btn, f"Mark selected item as '{status}'")
+            _underline_char(btn, _status_underline.get(status, 0))
+            Tooltip(btn, f"Mark selected item as '{status}' (Alt+{_status_keys.get(status, '?')})")
             self._status_buttons[status] = btn
 
         # Show placeholder initially

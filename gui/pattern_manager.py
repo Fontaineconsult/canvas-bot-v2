@@ -5,7 +5,7 @@ import customtkinter as ctk
 from config.yaml_io import read_re, write_re, reset_re
 from network.cred import load_config_data_from_appdata
 from gui.table_widget import ContentTable
-from gui.widgets import _add_focus_ring, Tooltip
+from gui.widgets import _add_focus_ring, _underline_char, Tooltip
 
 # Maps re.yaml category keys to GUI display labels.
 # Set to None to hide from the GUI. Hidden categories still function in the pipeline.
@@ -48,6 +48,7 @@ class PatternManager:
         self._display_data = {}        # substituted copy (used for GUI display)
         self._selected_category = None
         self._category_buttons = {}    # category_name -> CTkButton
+        self._category_order = []      # ordered list of category keys for arrow nav
 
         # ── Main grid container ──
         self._container = ctk.CTkFrame(parent_frame, fg_color="transparent")
@@ -76,7 +77,8 @@ class PatternManager:
         )
         self._reset_btn.pack(pady=(0, 8))
         _add_focus_ring(self._reset_btn)
-        Tooltip(self._reset_btn, "Reset all patterns to the bundled defaults (custom patterns will be lost)")
+        _underline_char(self._reset_btn, 1)  # e in "Reset" → Alt+E
+        Tooltip(self._reset_btn, "Reset all patterns to the bundled defaults (Alt+E)")
 
         # ── Right column: pattern display + action buttons ──
         right_frame = ctk.CTkFrame(self._container)
@@ -108,7 +110,8 @@ class PatternManager:
         )
         self._add_btn.pack(side="left", padx=(0, 5))
         _add_focus_ring(self._add_btn)
-        Tooltip(self._add_btn, "Add a new regex pattern to the selected category")
+        _underline_char(self._add_btn, 1)  # d in "Add" → Alt+D
+        Tooltip(self._add_btn, "Add a new regex pattern to the selected category (Alt+D)")
 
         self._remove_btn = ctk.CTkButton(
             btn_row, text="Remove Pattern", width=130,
@@ -116,7 +119,8 @@ class PatternManager:
         )
         self._remove_btn.pack(side="left", padx=(0, 5))
         _add_focus_ring(self._remove_btn)
-        Tooltip(self._remove_btn, "Remove the selected pattern from this category")
+        _underline_char(self._remove_btn, 2)  # m in "Remove" → Alt+M
+        Tooltip(self._remove_btn, "Remove the selected pattern from this category (Alt+M)")
 
         self._validate_btn = ctk.CTkButton(
             btn_row, text="Validate", width=100,
@@ -124,7 +128,8 @@ class PatternManager:
         )
         self._validate_btn.pack(side="left", padx=(0, 10))
         _add_focus_ring(self._validate_btn)
-        Tooltip(self._validate_btn, "Check if the selected pattern is valid regex syntax")
+        _underline_char(self._validate_btn, 2)  # l in "Validate" → Alt+L
+        Tooltip(self._validate_btn, "Check if the selected pattern is valid regex syntax (Alt+L)")
 
         self._status_label = ctk.CTkLabel(
             btn_row, text="", font=ctk.CTkFont(size=12), anchor="w",
@@ -148,6 +153,7 @@ class PatternManager:
         )
         self._test_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
         self._test_entry.bind("<Return>", lambda e: self._on_test())
+        _add_focus_ring(self._test_entry)
         Tooltip(self._test_entry, "Enter a URL or filename to see which pattern categories match it")
 
         self._test_btn = ctk.CTkButton(
@@ -155,7 +161,8 @@ class PatternManager:
         )
         self._test_btn.pack(side="right")
         _add_focus_ring(self._test_btn)
-        Tooltip(self._test_btn, "Test the entered URL or filename against all compiled pattern matchers")
+        _underline_char(self._test_btn, 0)  # T → Alt+T
+        Tooltip(self._test_btn, "Test the entered URL or filename against all compiled pattern matchers (Alt+T)")
 
         self._test_result = ctk.CTkLabel(
             test_frame, text="", font=ctk.CTkFont(family="Consolas", size=12), anchor="w",
@@ -181,6 +188,7 @@ class PatternManager:
         for widget in self._category_scroll.winfo_children():
             widget.destroy()
         self._category_buttons.clear()
+        self._category_order.clear()
 
         for category, value in self._patterns_data.items():
             if _CATEGORY_LABELS.get(category) is None:
@@ -200,7 +208,25 @@ class PatternManager:
                 command=lambda c=category: self._on_category_click(c),
             )
             btn.pack(fill="x", pady=1)
+            _add_focus_ring(btn)
+            btn.bind("<Up>", lambda e, c=category: self._nav_category(c, -1))
+            btn.bind("<Down>", lambda e, c=category: self._nav_category(c, 1))
             self._category_buttons[category] = btn
+            self._category_order.append(category)
+
+    def _nav_category(self, current, direction):
+        """Navigate to the previous/next category button and select it."""
+        try:
+            idx = self._category_order.index(current)
+        except ValueError:
+            return
+        new_idx = idx + direction
+        if new_idx < 0 or new_idx >= len(self._category_order):
+            return
+        target = self._category_order[new_idx]
+        btn = self._category_buttons[target]
+        btn.focus_set()
+        self._on_category_click(target)
 
     # ── Category Selection ──
 
@@ -277,6 +303,7 @@ class PatternManager:
             pattern = entry.get().strip()
             if not pattern:
                 error_label.configure(text="Pattern cannot be empty.")
+                entry.focus_set()
                 return
 
             # Validate regex
@@ -284,11 +311,13 @@ class PatternManager:
                 re.compile(pattern)
             except re.error as e:
                 error_label.configure(text=f"Invalid regex: {e}")
+                entry.focus_set()
                 return
 
             # Duplicate check
             if pattern in self._patterns_data[self._selected_category]:
                 error_label.configure(text="Pattern already exists in this category.")
+                entry.focus_set()
                 return
 
             # Add and save
@@ -300,11 +329,17 @@ class PatternManager:
         btn_row = ctk.CTkFrame(dialog, fg_color="transparent")
         btn_row.pack(fill="x", padx=15, pady=(5, 15))
 
-        ctk.CTkButton(btn_row, text="Add", width=80, command=validate_and_add).pack(side="right", padx=(5, 0))
-        ctk.CTkButton(btn_row, text="Cancel", width=80, fg_color="gray40",
-                       command=dialog.destroy).pack(side="right")
+        add_btn = ctk.CTkButton(btn_row, text="Add", width=80, command=validate_and_add)
+        add_btn.pack(side="right", padx=(5, 0))
+        _add_focus_ring(add_btn)
+        _underline_char(add_btn, 0)  # A
+        cancel_btn = ctk.CTkButton(btn_row, text="Cancel", width=80, fg_color="gray40", command=dialog.destroy)
+        cancel_btn.pack(side="right")
+        _add_focus_ring(cancel_btn)
+        _underline_char(cancel_btn, 0)  # C
 
         entry.bind("<Return>", lambda e: validate_and_add())
+        dialog.bind("<Escape>", lambda e: dialog.destroy())
 
     # ── Remove Pattern ──
 
@@ -347,11 +382,16 @@ class PatternManager:
         btn_row = ctk.CTkFrame(dialog, fg_color="transparent")
         btn_row.pack(fill="x", padx=15, pady=(0, 15))
 
-        ctk.CTkButton(btn_row, text="Remove", width=80,
-                       fg_color="#b22222", hover_color="#8b0000",
-                       command=confirm_remove).pack(side="right", padx=(5, 0))
-        ctk.CTkButton(btn_row, text="Cancel", width=80, fg_color="gray40",
-                       command=dialog.destroy).pack(side="right")
+        remove_btn = ctk.CTkButton(btn_row, text="Remove", width=80,
+                       fg_color="#b22222", hover_color="#8b0000", command=confirm_remove)
+        remove_btn.pack(side="right", padx=(5, 0))
+        _add_focus_ring(remove_btn)
+        _underline_char(remove_btn, 0)  # R
+        cancel_btn = ctk.CTkButton(btn_row, text="Cancel", width=80, fg_color="gray40", command=dialog.destroy)
+        cancel_btn.pack(side="right")
+        _add_focus_ring(cancel_btn)
+        _underline_char(cancel_btn, 0)  # C
+        dialog.bind("<Escape>", lambda e: dialog.destroy())
 
     # ── Validate ──
 
@@ -460,11 +500,16 @@ class PatternManager:
         btn_row = ctk.CTkFrame(dialog, fg_color="transparent")
         btn_row.pack(fill="x", padx=15, pady=(0, 15))
 
-        ctk.CTkButton(btn_row, text="Reset", width=80,
-                       fg_color="#b22222", hover_color="#8b0000",
-                       command=confirm_reset).pack(side="right", padx=(5, 0))
-        ctk.CTkButton(btn_row, text="Cancel", width=80, fg_color="gray40",
-                       command=dialog.destroy).pack(side="right")
+        reset_btn = ctk.CTkButton(btn_row, text="Reset", width=80,
+                       fg_color="#b22222", hover_color="#8b0000", command=confirm_reset)
+        reset_btn.pack(side="right", padx=(5, 0))
+        _add_focus_ring(reset_btn)
+        _underline_char(reset_btn, 0)  # R
+        cancel_btn = ctk.CTkButton(btn_row, text="Cancel", width=80, fg_color="gray40", command=dialog.destroy)
+        cancel_btn.pack(side="right")
+        _add_focus_ring(cancel_btn)
+        _underline_char(cancel_btn, 0)  # C
+        dialog.bind("<Escape>", lambda e: dialog.destroy())
 
     # ── Helpers ──
 

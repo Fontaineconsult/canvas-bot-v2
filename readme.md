@@ -18,6 +18,7 @@ A tool for downloading, auditing, and organizing content from Canvas LMS courses
   - [Pattern Management](#pattern-management)
 - [Configuration](#configuration)
 - [Security and Privacy](#security-and-privacy)
+- [Accessibility](#accessibility)
 - [Pipeline Testing](#pipeline-testing)
 - [Program Flags Reference](#program-flags-reference)
 - [Support](#support)
@@ -499,6 +500,31 @@ All application data is stored under `%APPDATA%\canvas bot\`, a per-user protect
 | Downloaded content | User-specified folder | Varies (course content) |
 
 Downloaded course content is stored as-is in user-specified folders. For sensitive course materials, we recommend storing downloads on an encrypted drive (e.g., BitLocker).
+
+## Accessibility
+
+The GUI is built with CustomTkinter, which has inherent limitations with screen reader support. Within those constraints, Canvas Bot implements the following accessibility features:
+
+### What Works Well
+
+- **Full keyboard access** — every interactive element is reachable via Tab/Shift+Tab and activatable with Enter. Tab selector buttons support Left/Right arrow navigation. Pattern categories support Up/Down arrows.
+- **Keyboard shortcuts** — Alt+key shortcuts are provided for all buttons across all tabs, with underlined mnemonic characters. Tab switching via Alt+U/N/P and Ctrl+1/2/3. All shortcuts require a modifier key (no single-character shortcuts).
+- **Visible focus indicators** — all buttons, entries, checkboxes, and dynamically created controls display a 2px blue focus ring in both light and dark modes.
+- **Color is never the sole indicator** — review status rows use background color (green/yellow/gray) but always include a text label in the Status column. The status bar uses a "WARNING" text prefix alongside orange color. Pattern test results include "MATCH:" / "No matches" prefixes alongside color.
+- **Error identification** — validation errors in the Add Pattern dialog display descriptive text and return focus to the input field. Status bar errors include text prefixes.
+- **Logical focus and reading order** — tab order matches the visual layout. Dialogs set initial focus on the primary action. Escape closes all dialogs.
+- **Tooltips** — all controls have descriptive tooltips that appear on hover and keyboard focus, showing the associated shortcut key.
+
+### Known Limitations (CustomTkinter Framework)
+
+These cannot be resolved without migrating to a different GUI framework:
+
+- **No screen reader support** — CustomTkinter widgets do not expose name, role, or value to Windows UI Automation or MSAA. Screen readers (NVDA, JAWS, Narrator) have severely limited support.
+- **No live region announcements** — status bar changes and console output cannot be pushed to assistive technology.
+- **No semantic structure** — no heading levels, landmark regions, or programmatic language declaration.
+- **No user text spacing control** — font rendering is fixed by the Tk engine.
+
+A detailed WCAG 2.1 conformance report is available at [`claude/WCAG_VPAT.md`](claude/WCAG_VPAT.md).
 
 ## Pipeline Testing
 
