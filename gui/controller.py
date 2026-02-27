@@ -118,7 +118,7 @@ class GUIController:
 
         dialog = ctk.CTkToplevel(self.view.root)
         dialog.title("Welcome to Canvas Bot")
-        dialog.geometry("560x520")
+        dialog.geometry("560x580")
         dialog.resizable(False, False)
         dialog.transient(self.view.root)
         dialog.grab_set()
@@ -128,11 +128,14 @@ class GUIController:
         screen_w = dialog.winfo_screenwidth()
         screen_h = dialog.winfo_screenheight()
         x = (screen_w - 560) // 2
-        y = (screen_h - 520) // 2
+        y = (screen_h - 580) // 2
         dialog.geometry(f"+{x}+{y}")
 
         scroll = ctk.CTkScrollableFrame(dialog, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=15, pady=15)
+
+        # High-contrast heading color: red-orange in light mode, light coral in dark mode
+        warn_color = ("#c0392b", "#e74c3c")
 
         def heading(text, color=None):
             lbl = ctk.CTkLabel(scroll, text=text,
@@ -149,53 +152,60 @@ class GUIController:
         ctk.CTkLabel(scroll, text="Welcome to Canvas Bot",
                      font=ctk.CTkFont(size=20, weight="bold"), anchor="w").pack(fill="x")
         body(
-            "Canvas Bot is a bridge between Canvas LMS and your desktop. It scans courses "
-            "to discover content, downloads files, and lets you review items for accessibility. "
-            "Before you get started, please review the following security information."
+            "Canvas Bot is a bridge between Canvas LMS and your desktop. It scans "
+            "courses to discover content, downloads files, and lets you review items "
+            "for accessibility."
         )
 
-        # Security warning
-        heading("Security & API Credentials", color="orange")
+        # Security
+        heading("Security & API Credentials", color=warn_color)
         body(
             "Canvas Bot requires a Canvas API access token to function. "
-            "This token grants read access to course content on your behalf. "
-            "Please follow these best practices:"
+            "This token grants read access to course content on your behalf."
+        )
+        body("1.  Never share your API token with anyone.")
+        body("2.  Generate a dedicated token for Canvas Bot. Do not reuse tokens from other applications.")
+        body("3.  Set an expiration date on your token and rotate it periodically.")
+        body(
+            "4.  If your token is compromised, revoke it immediately in Canvas "
+            "(Account > Settings > Approved Integrations)."
         )
         body(
-            "1.  Never share your API token with anyone. It provides access "
-            "to all courses visible to your account."
+            "5.  Your token is stored in the Windows Credential Vault (encrypted, "
+            "per-user). It is never written to plaintext files or logs."
+        )
+
+        # Responsibility
+        heading("Deployment & Responsibility", color=warn_color)
+        body(
+            "Canvas Bot has been hardened following a SOC 2-aligned security assessment. "
+            "All API communication uses TLS certificate verification, credentials are "
+            "stored encrypted in the Windows Credential Vault and never written to "
+            "plaintext files, sensitive data is stripped from logs, and all inputs are "
+            "validated before use."
         )
         body(
-            "2.  Generate a dedicated token for Canvas Bot. Do not reuse tokens "
-            "from other applications."
+            "Canvas Bot is provided as-is under the MIT License. You are responsible "
+            "for how this tool is deployed and used within your institution. Ensure "
+            "that your use complies with your institution's data governance policies "
+            "and any applicable regulations (FERPA, GDPR, etc.)."
         )
+
+        # Accessibility
+        heading("Accessibility")
         body(
-            "3.  Set an expiration date on your token when possible. Rotate "
-            "tokens periodically."
+            "The GUI supports full keyboard navigation with visible focus indicators, "
+            "Alt+key shortcuts on all buttons, and arrow key navigation in tables and "
+            "tab selectors. Color is never the sole means of conveying information. "
+            "Due to limitations of the underlying framework (CustomTkinter), screen "
+            "reader support is limited."
         )
-        body(
-            "4.  If you suspect your token has been compromised, revoke it "
-            "immediately in Canvas (Account > Settings > Approved Integrations) "
-            "and generate a new one."
-        )
-        body(
-            "5.  Canvas Bot stores your token in the Windows Credential Vault "
-            "(encrypted, per-user). It is never written to plaintext files or "
-            "log entries."
-        )
+
         # Getting started
         heading("Getting Started")
-        body(
-            "1.  Click \"Reset Config\" in the title bar to set up your Canvas "
-            "instance URL and API token."
-        )
-        body(
-            "2.  Enter a course ID, choose an output folder, and select at least "
-            "one action (Download, Excel, or JSON)."
-        )
-        body(
-            "3.  Click Run to start scanning."
-        )
+        body("1.  Click \"Reset Config\" in the title bar to set up your Canvas instance URL and API token.")
+        body("2.  Enter a course ID, choose an output folder, and check \"Download files\".")
+        body("3.  Click Run to start scanning.")
 
         def _close():
             self._set_first_run_complete()
