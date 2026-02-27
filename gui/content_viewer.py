@@ -310,6 +310,9 @@ class ContentViewer:
             Tooltip(btn, f"Mark selected item as '{status}' (Alt+{_status_keys.get(status, '?')})")
             self._status_buttons[status] = btn
 
+        # Keyboard navigation for all tab selectors
+        self._setup_tab_keyboard_nav()
+
         # Show placeholder initially
         self._show_placeholder()
 
@@ -382,6 +385,117 @@ class ContentViewer:
     def _show_container(self):
         self._placeholder.pack_forget()
         self._container.pack(fill="both", expand=True)
+
+    def _setup_tab_keyboard_nav(self):
+        """Make all content tab selectors navigable with arrows and Enter-to-table."""
+
+        # Nested tabviews: main tab name → (nested tabview, [(sub-tab name, table key), ...])
+        nested = {
+            "Documents": (self._docs_tabview, [
+                ("Documents", "documents"), ("Document Sites", "document_sites"),
+            ]),
+            "Videos": (self._vids_tabview, [
+                ("Video Sites", "video_sites"), ("Video Files", "video_files"),
+            ]),
+            "Audio": (self._audio_tabview, [
+                ("Audio Files", "audio_files"), ("Audio Sites", "audio_sites"),
+            ]),
+        }
+        # Main tabs with no sub-tabs → table key directly
+        direct = {"Images": "image_files", "Unsorted": "unsorted"}
+
+        def _focus_table(table_key):
+            """Move focus into a table, selecting the first row."""
+            table = self._tables.get(table_key)
+            if not table:
+                return
+            tree = table._tree
+            children = tree.get_children()
+            if children:
+                tree.selection_set(children[0])
+                tree.focus(children[0])
+            tree.focus_set()
+
+        def _add_nav(tabview, tab_names, on_enter=None, on_escape=None):
+            """Wire up focus rings, Left/Right arrows, Enter, and Escape on a tabview."""
+            try:
+                buttons = tabview._segmented_button._buttons_dict
+            except AttributeError:
+                return
+            for name in tab_names:
+                btn = buttons.get(name)
+                if not btn:
+                    continue
+                _add_focus_ring(btn)
+
+                def _nav(event, current=name, direction=0):
+                    idx = tab_names.index(current) + direction
+                    if 0 <= idx < len(tab_names):
+                        target = tab_names[idx]
+                        tabview.set(target)
+                        buttons[target].focus_set()
+                    return "break"
+
+                btn.bind("<Left>", lambda e, n=name: _nav(e, n, -1))
+                btn.bind("<Right>", lambda e, n=name: _nav(e, n, 1))
+                if on_enter:
+                    btn.bind("<Return>", lambda e, n=name: on_enter(n))
+                if on_escape:
+                    btn.bind("<Escape>", lambda e: on_escape())
+
+        def _focus_btn(tabview, tab_name):
+            """Focus a specific tab selector button."""
+            try:
+                btn = tabview._segmented_button._buttons_dict.get(tab_name)
+                if btn:
+                    btn.focus_set()
+            except AttributeError:
+                pass
+
+        # ── Main tabview ──
+        main_tabs = ["Documents", "Videos", "Audio", "Images", "Unsorted"]
+
+        def _main_enter(tab_name):
+            if tab_name in nested:
+                ntv, _ = nested[tab_name]
+                _focus_btn(ntv, ntv.get())
+            elif tab_name in direct:
+                _focus_table(direct[tab_name])
+            return "break"
+
+        _add_nav(self._tabview, main_tabs, on_enter=_main_enter)
+
+        # ── Nested tabviews ──
+        for main_tab, (ntv, sub_tabs) in nested.items():
+            sub_names = [s[0] for s in sub_tabs]
+            sub_map = dict(sub_tabs)
+
+            def _sub_enter(tab_name, m=sub_map):
+                table_key = m.get(tab_name)
+                if table_key:
+                    _focus_table(table_key)
+                return "break"
+
+            def _sub_escape(mt=main_tab):
+                _focus_btn(self._tabview, mt)
+
+            _add_nav(ntv, sub_names, on_enter=_sub_enter, on_escape=_sub_escape)
+
+            # Escape from table → back to its sub-tab selector
+            for sub_name, table_key in sub_tabs:
+                table = self._tables.get(table_key)
+                if table:
+                    def _esc(e, tv=ntv, sn=sub_name):
+                        _focus_btn(tv, sn)
+                    table._tree.bind("<Escape>", _esc)
+
+        # ── Direct tables (no sub-tabs): Escape → main tab selector ──
+        for main_tab, table_key in direct.items():
+            table = self._tables.get(table_key)
+            if table:
+                def _esc(e, mt=main_tab):
+                    _focus_btn(self._tabview, mt)
+                table._tree.bind("<Escape>", _esc)
 
     def _open_course_folder(self):
         """Open the selected course's folder in the file explorer."""

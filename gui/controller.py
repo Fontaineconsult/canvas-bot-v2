@@ -550,6 +550,29 @@ class GUIController:
         tabview.add("Content")
         tabview.add("Patterns")
 
+        # Make tab selector buttons keyboard-navigable
+        tab_names = ["About", "Run", "Content", "Patterns"]
+        try:
+            buttons = tabview._segmented_button._buttons_dict
+            for name in tab_names:
+                btn = buttons.get(name)
+                if not btn:
+                    continue
+                _add_focus_ring(btn)
+
+                def _nav(event, current=name, direction=0):
+                    idx = tab_names.index(current) + direction
+                    if 0 <= idx < len(tab_names):
+                        target = tab_names[idx]
+                        tabview.set(target)
+                        buttons[target].focus_set()
+                    return "break"
+
+                btn.bind("<Left>", lambda e, n=name: _nav(e, n, -1))
+                btn.bind("<Right>", lambda e, n=name: _nav(e, n, 1))
+        except AttributeError:
+            pass
+
         # ── About tab ──
         about_scroll = ctk.CTkScrollableFrame(tabview.tab("About"), fg_color="transparent")
         about_scroll.pack(fill="both", expand=True)
@@ -579,9 +602,16 @@ class GUIController:
             "New Access Token. Use \"View Config\" to verify your current configuration."
         )
 
-        _heading(about_scroll, "Contact")
+        _heading(about_scroll, "Contact - Ideas & Issues")
         _body(about_scroll, "Daniel Fontaine")
-        _body(about_scroll, "fontaine@sfsu.edu")
+        email = ctk.CTkLabel(about_scroll, text="fontaine@sfsu.edu",
+                             font=ctk.CTkFont(size=13), anchor="w", text_color="#3B8ED0", cursor="hand2")
+        email.pack(fill="x", pady=(0, 2))
+        email.bind("<Button-1>", lambda e: __import__("webbrowser").open("mailto:fontaine@sfsu.edu"))
+        link = ctk.CTkLabel(about_scroll, text="github.com/Fontaineconsult/canvas-bot-v2",
+                            font=ctk.CTkFont(size=13), anchor="w", text_color="#3B8ED0", cursor="hand2")
+        link.pack(fill="x", pady=(0, 2))
+        link.bind("<Button-1>", lambda e: __import__("webbrowser").open("https://github.com/Fontaineconsult/canvas-bot-v2"))
 
         # ── Run tab ──
         run_scroll = ctk.CTkScrollableFrame(tabview.tab("Run"), fg_color="transparent")

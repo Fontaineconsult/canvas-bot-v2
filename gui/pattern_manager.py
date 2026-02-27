@@ -99,6 +99,7 @@ class PatternManager:
             on_select=self._on_pattern_select,
         )
         self._pattern_table.pack(fill="both", expand=True, padx=5, pady=(0, 5))
+        self._pattern_table._tree.bind("<Escape>", lambda e: self._focus_selected_category())
 
         # Action buttons row
         btn_row = ctk.CTkFrame(right_frame, fg_color="transparent")
@@ -211,8 +212,26 @@ class PatternManager:
             _add_focus_ring(btn)
             btn.bind("<Up>", lambda e, c=category: self._nav_category(c, -1))
             btn.bind("<Down>", lambda e, c=category: self._nav_category(c, 1))
+            btn.bind("<Return>", lambda e, c=category: self._focus_pattern_table(c))
             self._category_buttons[category] = btn
             self._category_order.append(category)
+
+    def _focus_selected_category(self):
+        """Return focus from the pattern table to the selected category button."""
+        if self._selected_category and self._selected_category in self._category_buttons:
+            self._category_buttons[self._selected_category].focus_set()
+
+    def _focus_pattern_table(self, category):
+        """Select the category (if not already) and move focus to the pattern table."""
+        if self._selected_category != category:
+            self._on_category_click(category)
+        tree = self._pattern_table._tree
+        children = tree.get_children()
+        if children:
+            tree.selection_set(children[0])
+            tree.focus(children[0])
+        tree.focus_set()
+        return "break"
 
     def _nav_category(self, current, direction):
         """Navigate to the previous/next category button and select it."""
