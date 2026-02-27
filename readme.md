@@ -21,6 +21,8 @@ A tool for downloading, auditing, and organizing content from Canvas LMS courses
 - [Accessibility](#accessibility)
 - [Pipeline Testing](#pipeline-testing)
 - [Program Flags Reference](#program-flags-reference)
+- [Obtaining a Canvas API Access Token](#obtaining-a-canvas-api-access-token)
+- [Uninstall](#uninstall)
 - [Support](#support)
 - [License](#license)
 
@@ -32,6 +34,8 @@ CanvasBot is a Windows application designed for accessible media coordinators an
 - **Categorize** embedded content by type using configurable regex patterns
 - **Export** content inventories to Excel or JSON for accessibility auditing
 - **Track** download progress to avoid re-downloading files
+
+CanvasBot operates in **read-only mode** — it reads course content via the Canvas API but never creates, modifies, or deletes any content, grades, enrollments, or settings in Canvas.
 
 CanvasBot can be used through a graphical user interface (GUI) or the command line (CLI). Double-click the executable or run without arguments to launch the GUI; pass command-line flags for scripted/automated workflows.
 
@@ -202,6 +206,16 @@ cd canvas-bot-v2
 pip install -r requirements.txt
 python canvas_bot.py --help
 ```
+
+### First Launch on Windows
+
+The executable is not code-signed, so Windows SmartScreen may display a "Windows protected your PC" warning on first launch. This is normal for open-source software distributed outside the Microsoft Store.
+
+To proceed:
+1. Click **"More info"** on the SmartScreen dialog
+2. Click **"Run anyway"**
+
+The warning will not appear again after the first run. For institutional deployment, IT administrators can add the executable to their endpoint management allow-list to suppress this warning for all users.
 
 ## Quick Start
 
@@ -475,6 +489,7 @@ CanvasBot handles sensitive credentials and institutional course content. The fo
 - **User and session identification** — Every log entry includes the Windows username and a unique session ID for attribution on shared machines.
 - **Unhandled exception logging** — All unexpected errors are captured with full tracebacks for debugging, including a global exception hook as a safety net.
 - **Log file permissions** — Log files are stored under `%APPDATA%\canvas bot\`, which is per-user protected on Windows. Best-effort file permission restrictions are applied on creation.
+- **No sensitive content in logs** — Logs contain course IDs, file counts, timestamps, and error messages. No file contents, student data, or credentials are recorded.
 
 ### Input Validation
 
@@ -499,7 +514,11 @@ All application data is stored under `%APPDATA%\canvas bot\`, a per-user protect
 | GUI settings | `gui_settings.json` | Low (paths, preferences) |
 | Downloaded content | User-specified folder | Varies (course content) |
 
-Downloaded course content is stored as-is in user-specified folders. For sensitive course materials, we recommend storing downloads on an encrypted drive (e.g., BitLocker).
+Downloaded course content is stored as-is in user-specified folders. Canvas Bot does not transmit downloaded content to any third party — all data remains on the local machine.
+
+**FERPA note:** Downloaded course content may contain FERPA-protected information (student names in page titles, discussion references, etc.). Handle downloaded materials per your institution's data governance policy, store them on an encrypted drive (e.g., BitLocker), and delete downloads when they are no longer needed.
+
+For IT administrators evaluating Canvas Bot, a detailed security summary is available at [`claude/IT_SECURITY.md`](claude/IT_SECURITY.md).
 
 ## Accessibility
 
@@ -626,7 +645,27 @@ The token is stored encrypted in Windows Credential Vault.
 
 ### Permission Requirements
 
-CanvasBot only requires **read access** to courses. For institutional deployment, we recommend creating a service account with read-only access to all courses.
+CanvasBot only requires **read access** to courses.
+
+### Institutional / Service Account Deployment
+
+For department-wide use, we recommend creating a dedicated Canvas service account rather than using individual staff tokens:
+
+1. Create a Canvas account with **read-only enrollment** across the courses you need to audit
+2. Generate a single API token from that account
+3. Distribute the Canvas Bot executable to staff — each user configures the same service account token on first run
+
+This provides centralized access control: revoking the service account token immediately disables Canvas Bot for all users. Individual staff do not need to manage their own tokens or have personal API access.
+
+## Uninstall
+
+Canvas Bot is a portable application with no installer. To fully remove it:
+
+1. **Delete the executable** from wherever you saved it
+2. **Delete application data:** `%APPDATA%\canvas bot\` (contains config, logs, GUI settings, and user patterns)
+3. **Remove stored credentials:** open Windows Credential Manager, search for entries containing "canvas", and delete them
+4. **Revoke your API token:** in Canvas, go to Account > Settings > Approved Integrations and delete the token
+5. **Delete downloaded content** from your output folders if no longer needed
 
 ## Support
 
