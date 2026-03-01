@@ -297,10 +297,17 @@ class ContentViewer:
         # Underline indices: Needs revieW (11) → Alt+W, PasseD (5) → Alt+D, Ignore (0) → Alt+I
         _status_underline = {"Needs Review": 11, "Passed": 5, "Ignore": 0}
         _status_keys = {"Needs Review": "W", "Passed": "D", "Ignore": "I"}
+        _status_btn_colors = {
+            "Passed":       {"fg": "#2d6a2d", "hover": "#236b23"},
+            "Needs Review": {"fg": "#8a6d00", "hover": "#6b5500"},
+            "Ignore":       {"fg": "#555555", "hover": "#444444"},
+        }
         self._status_buttons = {}
         for status in reversed(_REVIEW_STATUSES):
+            sc = _status_btn_colors.get(status, {})
             btn = ctk.CTkButton(
                 btn_row, text=status, width=110,
+                fg_color=sc.get("fg"), hover_color=sc.get("hover"),
                 command=lambda s=status: self._on_status_changed(s),
                 state="disabled",
             )

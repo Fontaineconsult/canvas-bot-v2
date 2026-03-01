@@ -102,15 +102,13 @@ class ContentTable(ctk.CTkFrame):
                 minwidth=col.get("minwidth", 50),
             )
 
-        # Scrollbars
+        # Scrollbar
         self._vsb = ttk.Scrollbar(self, orient="vertical", command=self._tree.yview)
-        self._hsb = ttk.Scrollbar(self, orient="horizontal", command=self._tree.xview)
-        self._tree.configure(yscrollcommand=self._vsb.set, xscrollcommand=self._hsb.set)
+        self._tree.configure(yscrollcommand=self._vsb.set)
 
         # Grid layout
         self._tree.grid(row=0, column=0, sticky="nsew")
         self._vsb.grid(row=0, column=1, sticky="ns")
-        self._hsb.grid(row=1, column=0, sticky="ew")
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
@@ -133,13 +131,11 @@ class ContentTable(ctk.CTkFrame):
         if not self._rows and self._placeholder.cget("text"):
             self._tree.grid_remove()
             self._vsb.grid_remove()
-            self._hsb.grid_remove()
             self._placeholder.grid(row=0, column=0, sticky="nsew")
         else:
             self._placeholder.grid_remove()
             self._tree.grid()
             self._vsb.grid()
-            self._hsb.grid()
             for i, row in enumerate(self._rows):
                 values = self._values_for_row(row)
                 tag = self._row_tag(i, row)
@@ -276,6 +272,9 @@ class ContentTable(ctk.CTkFrame):
             "Content.Treeview.Heading",
             background=[("active", t["heading_bg"])],
         )
+
+        # Wider scrollbars for easier grabbing
+        self._style.configure("Vertical.TScrollbar", width=24, arrowsize=24)
 
         # Tag colors for alternating rows
         self._tag_colors = t
