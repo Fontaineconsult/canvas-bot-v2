@@ -118,7 +118,7 @@ class ContentViewer:
 
         # ── Top bar: dropdown + refresh + open folder ──
         top_bar = ctk.CTkFrame(self._container, fg_color="transparent")
-        top_bar.pack(fill="x", pady=(0, 5))
+        top_bar.pack(fill="x", pady=(0, 2))
 
         ctk.CTkLabel(top_bar, text="Course:", width=60, anchor="w").pack(side="left")
         self._course_var = ctk.StringVar()
@@ -128,6 +128,12 @@ class ContentViewer:
             width=400,
         )
         self._dropdown.pack(side="left", fill="x", expand=True, padx=(0, 5))
+        # CTkOptionMenu doesn't support border_width/border_color, so use highlight ring
+        self._dropdown.configure(button_color=("gray70", "gray30"))
+        self._dropdown.bind("<FocusIn>", lambda e: self._dropdown.configure(button_color="#3B8ED0"))
+        self._dropdown.bind("<FocusOut>", lambda e: self._dropdown.configure(button_color=("gray70", "gray30")))
+        self._dropdown.bind("<Return>", lambda e: self._dropdown._clicked())
+        self._dropdown.bind("<space>", lambda e: self._dropdown._clicked())
         Tooltip(self._dropdown, "Select a previously scanned course to browse its content")
 
         refresh_btn = ctk.CTkButton(top_bar, text="Refresh", width=80,
@@ -144,9 +150,26 @@ class ContentViewer:
         _underline_char(self._open_folder_btn, 0)  # O → Alt+O
         Tooltip(self._open_folder_btn, "Open the selected course's folder in File Explorer (Alt+O)")
 
-        # ── Summary banner ──
-        self._summary_frame = ctk.CTkFrame(self._container, fg_color="transparent")
-        self._summary_frame.pack(fill="x", pady=(0, 5))
+        # ── Row 2: summary (30%) | selector buttons (40%) | status buttons (30%) ──
+        _sep_color = ("gray75", "gray35")  # 1px divider color (light, dark)
+
+        row2 = ctk.CTkFrame(self._container, height=0, fg_color="transparent")
+        row2.pack(fill="x", pady=(3, 0))
+        row2.grid_propagate(True)
+        # 5 grid columns: content | sep | content | sep | content
+        row2.grid_columnconfigure(0, weight=3)  # 30%
+        row2.grid_columnconfigure(2, weight=4)  # 40%
+        row2.grid_columnconfigure(4, weight=3)  # 30%
+
+        # Left column: course summary
+        _heading_font = ctk.CTkFont(size=11, weight="bold")
+        _heading_color = ("gray40", "gray60")
+
+        self._summary_frame = ctk.CTkFrame(row2, height=0, fg_color="transparent")
+        self._summary_frame.grid(row=0, column=0, sticky="nsw", padx=(0, 8))
+
+        ctk.CTkLabel(self._summary_frame, text="Course Info",
+                     font=_heading_font, text_color=_heading_color, anchor="w").pack(fill="x")
 
         self._course_label = ctk.CTkLabel(
             self._summary_frame, text="",
@@ -156,15 +179,122 @@ class ContentViewer:
 
         self._stats_label = ctk.CTkLabel(
             self._summary_frame, text="",
-            font=ctk.CTkFont(size=12), text_color="gray", anchor="w",
+            font=ctk.CTkFont(size=12), text_color="gray", anchor="w", justify="left",
         )
         self._stats_label.pack(fill="x")
 
-        self._summary_frame.pack_forget()
+        # Separator 1
+        ctk.CTkFrame(row2, width=1, height=1, fg_color=_sep_color).grid(
+            row=0, column=1, sticky="ns", padx=4)
 
-        # ── Filter bar ──
+        # Center column: two-row selector — main categories on top, sub-categories below
+        # Category definitions: name → list of (sub-label, table_key)
+        self._categories = {
+            "Documents": [("Documents", "documents"), ("Document Sites", "document_sites")],
+            "Videos":    [("Video Sites", "video_sites"), ("Video Files", "video_files")],
+            "Audio":     [("Audio Files", "audio_files"), ("Audio Sites", "audio_sites")],
+            "Images":    [("Images", "image_files")],
+            "Unsorted":  [("Unsorted", "unsorted")],
+        }
+        self._category_order = ["Documents", "Videos", "Audio", "Images", "Unsorted"]
+        self._active_category = "Documents"
+        self._active_table_key = "documents"  # default active table
+
+        selectors_frame = ctk.CTkFrame(row2, height=0, fg_color="transparent")
+        selectors_frame.grid(row=0, column=2, sticky="ns")
+
+        ctk.CTkLabel(selectors_frame, text="Select Content",
+                     font=_heading_font, text_color=_heading_color).pack()
+
+        # Top row: main category buttons
+        cat_row = ctk.CTkFrame(selectors_frame, fg_color="transparent")
+        cat_row.pack()
+
+        # Lighter blue for active/inactive selector buttons (light mode, dark mode)
+        _sel_active = ("#7BB8E0", "#2A5F8A")
+        _sel_inactive = ("#D0E4F5", "#1A3A55")
+        _sel_hover = ("#6AADE0", "#1F5070")
+
+        self._category_buttons = {}  # category_name -> CTkButton
+        for cat in self._category_order:
+            btn = ctk.CTkButton(
+                cat_row, text=cat, width=90, height=28,
+                font=ctk.CTkFont(size=12),
+                fg_color=_sel_active if cat == self._active_category else _sel_inactive,
+                text_color=("gray10", "gray90"),
+                hover_color=_sel_hover,
+                command=lambda c=cat: self._switch_category(c),
+            )
+            btn.pack(side="left", padx=(0, 3))
+            _add_focus_ring(btn)
+            self._category_buttons[cat] = btn
+
+        # Bottom row: sub-category buttons (swapped when main category changes)
+        self._sub_row = ctk.CTkFrame(selectors_frame, fg_color="transparent")
+        self._sub_row.pack(pady=(3, 0))
+
+        self._selector_buttons = {}  # table_key -> CTkButton (all sub-buttons across all categories)
+        self._selector_keys_order = []  # flat list of all table keys in order
+        self._sub_frames = {}  # category_name -> frame holding its sub-buttons
+        self._sel_active = _sel_active  # store for _switch methods
+        self._sel_inactive = _sel_inactive
+
+        for cat in self._category_order:
+            frame = ctk.CTkFrame(self._sub_row, fg_color="transparent")
+            self._sub_frames[cat] = frame
+            for label, key in self._categories[cat]:
+                btn = ctk.CTkButton(
+                    frame, text=label, width=100, height=26,
+                    font=ctk.CTkFont(size=11),
+                    fg_color=_sel_active if key == self._active_table_key else _sel_inactive,
+                    text_color=("gray10", "gray90"),
+                    hover_color=_sel_hover,
+                    command=lambda k=key: self._switch_table(k),
+                )
+                btn.pack(side="left", padx=(0, 3))
+                _add_focus_ring(btn)
+                self._selector_buttons[key] = btn
+                self._selector_keys_order.append(key)
+
+        # Show the default category's sub-buttons
+        self._sub_frames[self._active_category].pack()
+
+        # Separator 2
+        ctk.CTkFrame(row2, width=1, height=1, fg_color=_sep_color).grid(
+            row=0, column=3, sticky="ns", padx=4)
+
+        # Right column: status buttons stacked vertically
+        status_frame = ctk.CTkFrame(row2, height=0, fg_color="transparent")
+        status_frame.grid(row=0, column=4, sticky="nse", padx=(8, 0))
+
+        ctk.CTkLabel(status_frame, text="Status",
+                     font=_heading_font, text_color=_heading_color, anchor="e").pack(fill="x")
+
+        _status_underline = {"Needs Review": 11, "Passed": 5, "Ignore": 0}
+        _status_keys = {"Needs Review": "W", "Passed": "D", "Ignore": "I"}
+        _status_btn_colors = {
+            "Passed":       {"fg": "#2d6a2d", "hover": "#236b23"},
+            "Needs Review": {"fg": "#8a6d00", "hover": "#6b5500"},
+            "Ignore":       {"fg": "#555555", "hover": "#444444"},
+        }
+        self._status_buttons = {}
+        for status in _REVIEW_STATUSES:
+            sc = _status_btn_colors.get(status, {})
+            btn = ctk.CTkButton(
+                status_frame, text=status, width=130, height=26,
+                fg_color=sc.get("fg"), hover_color=sc.get("hover"),
+                command=lambda s=status: self._on_status_changed(s),
+                state="disabled",
+            )
+            btn.pack(anchor="e", pady=(0, 2))
+            _add_focus_ring(btn)
+            _underline_char(btn, _status_underline.get(status, 0))
+            Tooltip(btn, f"Mark selected item as '{status}' (Alt+{_status_keys.get(status, '?')})")
+            self._status_buttons[status] = btn
+
+        # ── Row 3: filter bar ──
         filter_bar = ctk.CTkFrame(self._container, fg_color="transparent")
-        filter_bar.pack(fill="x", pady=(0, 3))
+        filter_bar.pack(fill="x", pady=(0, 2))
 
         ctk.CTkLabel(filter_bar, text="Filters:", font=ctk.CTkFont(size=12, weight="bold"),
                      anchor="w", width=55).pack(side="left")
@@ -179,85 +309,28 @@ class ContentViewer:
         _add_focus_ring(cb_inactive)
         Tooltip(cb_inactive, "Show content not linked from any active Canvas page")
 
-        # ── Content tabs ──
-        self._tabview = ctk.CTkTabview(self._container)
-        self._tabview.pack(fill="both", expand=True, pady=(0, 5))
+        # ── Row 4: table frame (holds all 8 tables, one visible at a time) ──
+        self._table_frame = ctk.CTkFrame(self._container, fg_color="transparent")
+        self._table_frame.pack(fill="both", expand=True, pady=(0, 2))
 
-        self._tabview.add("Documents")
-        self._tabview.add("Videos")
-        self._tabview.add("Audio")
-        self._tabview.add("Images")
-        self._tabview.add("Unsorted")
-
-        # Documents: nested tabs for documents + document_sites
-        self._docs_tabview = ctk.CTkTabview(self._tabview.tab("Documents"))
-        self._docs_tabview.pack(fill="both", expand=True)
-        self._docs_tabview.add("Documents")
-        self._docs_tabview.add("Document Sites")
-        self._tables["documents"] = ContentTable(
-            self._docs_tabview.tab("Documents"),
-            _COLUMNS["documents"], on_select=self._on_row_select,
-            placeholder="No Documents Found", status_key="status",
-        )
-        self._tables["documents"].pack(fill="both", expand=True)
-        self._tables["document_sites"] = ContentTable(
-            self._docs_tabview.tab("Document Sites"),
-            _COLUMNS["document_sites"], on_select=self._on_row_select,
-            placeholder="No Document Sites Found", status_key="status",
-        )
-        self._tables["document_sites"].pack(fill="both", expand=True)
-
-        # Videos: nested tabs
-        self._vids_tabview = ctk.CTkTabview(self._tabview.tab("Videos"))
-        self._vids_tabview.pack(fill="both", expand=True)
-        self._vids_tabview.add("Video Sites")
-        self._vids_tabview.add("Video Files")
-        self._tables["video_sites"] = ContentTable(
-            self._vids_tabview.tab("Video Sites"),
-            _COLUMNS["video_sites"], on_select=self._on_row_select,
-            placeholder="No Video Sites Found", status_key="status",
-        )
-        self._tables["video_sites"].pack(fill="both", expand=True)
-        self._tables["video_files"] = ContentTable(
-            self._vids_tabview.tab("Video Files"),
-            _COLUMNS["video_files"], on_select=self._on_row_select,
-            placeholder="No Video Files Found", status_key="status",
-        )
-        self._tables["video_files"].pack(fill="both", expand=True)
-
-        # Audio: nested tabs
-        self._audio_tabview = ctk.CTkTabview(self._tabview.tab("Audio"))
-        self._audio_tabview.pack(fill="both", expand=True)
-        self._audio_tabview.add("Audio Files")
-        self._audio_tabview.add("Audio Sites")
-        self._tables["audio_files"] = ContentTable(
-            self._audio_tabview.tab("Audio Files"),
-            _COLUMNS["audio_files"], on_select=self._on_row_select,
-            placeholder="No Audio Files Found", status_key="status",
-        )
-        self._tables["audio_files"].pack(fill="both", expand=True)
-        self._tables["audio_sites"] = ContentTable(
-            self._audio_tabview.tab("Audio Sites"),
-            _COLUMNS["audio_sites"], on_select=self._on_row_select,
-            placeholder="No Audio Sites Found", status_key="status",
-        )
-        self._tables["audio_sites"].pack(fill="both", expand=True)
-
-        # Images: single table
-        self._tables["image_files"] = ContentTable(
-            self._tabview.tab("Images"),
-            _COLUMNS["image_files"], on_select=self._on_row_select,
-            placeholder="No Image Files Found", status_key="status",
-        )
-        self._tables["image_files"].pack(fill="both", expand=True)
-
-        # Unsorted: single table
-        self._tables["unsorted"] = ContentTable(
-            self._tabview.tab("Unsorted"),
-            _COLUMNS["unsorted"], on_select=self._on_row_select,
-            placeholder="No Unsorted Content Found", status_key="status",
-        )
-        self._tables["unsorted"].pack(fill="both", expand=True)
+        _PLACEHOLDERS = {
+            "documents": "No Documents Found",
+            "document_sites": "No Document Sites Found",
+            "video_sites": "No Video Sites Found",
+            "video_files": "No Video Files Found",
+            "audio_files": "No Audio Files Found",
+            "audio_sites": "No Audio Sites Found",
+            "image_files": "No Image Files Found",
+            "unsorted": "No Unsorted Content Found",
+        }
+        for key in self._selector_keys_order:
+            self._tables[key] = ContentTable(
+                self._table_frame,
+                _COLUMNS[key], on_select=self._on_row_select,
+                placeholder=_PLACEHOLDERS[key], status_key="status",
+            )
+        # Show only the default active table
+        self._tables[self._active_table_key].pack(fill="both", expand=True)
 
         # ── Detail panel (diagnostic — toggle via _SHOW_DETAIL_PANEL) ──
         if _SHOW_DETAIL_PANEL:
@@ -271,7 +344,7 @@ class ContentViewer:
         else:
             self._detail = None
 
-        # ── Action buttons row ──
+        # ── Row 5: action buttons ──
         btn_row = ctk.CTkFrame(self._container, fg_color="transparent")
         btn_row.pack(fill="x", pady=(5, 0))
 
@@ -284,6 +357,15 @@ class ContentViewer:
         _underline_char(self._open_file_btn, 2)  # e in "Open" → Alt+E
         Tooltip(self._open_file_btn, "Open the folder containing the downloaded file, or open the site URL (Alt+E)")
 
+        self._open_direct_btn = ctk.CTkButton(
+            btn_row, text="Open File", width=100,
+            command=self._open_file_direct, state="disabled",
+        )
+        self._open_direct_btn.pack(side="left", padx=(0, 5))
+        _add_focus_ring(self._open_direct_btn)
+        _underline_char(self._open_direct_btn, 1)  # P in "oPen" → Alt+P
+        Tooltip(self._open_direct_btn, "Open the file in its default application (Alt+P)")
+
         self._open_source_btn = ctk.CTkButton(
             btn_row, text="Open Source Page", width=140,
             command=self._open_source_page, state="disabled",
@@ -293,32 +375,17 @@ class ContentViewer:
         _underline_char(self._open_source_btn, 5)  # S in "Source" → Alt+S
         Tooltip(self._open_source_btn, "Open the Canvas page where this content was found (Alt+S)")
 
-        # Status buttons (right-aligned)
-        # Underline indices: Needs revieW (11) → Alt+W, PasseD (5) → Alt+D, Ignore (0) → Alt+I
-        _status_underline = {"Needs Review": 11, "Passed": 5, "Ignore": 0}
-        _status_keys = {"Needs Review": "W", "Passed": "D", "Ignore": "I"}
-        _status_btn_colors = {
-            "Passed":       {"fg": "#2d6a2d", "hover": "#236b23"},
-            "Needs Review": {"fg": "#8a6d00", "hover": "#6b5500"},
-            "Ignore":       {"fg": "#555555", "hover": "#444444"},
-        }
-        self._status_buttons = {}
-        for status in reversed(_REVIEW_STATUSES):
-            sc = _status_btn_colors.get(status, {})
-            btn = ctk.CTkButton(
-                btn_row, text=status, width=110,
-                fg_color=sc.get("fg"), hover_color=sc.get("hover"),
-                command=lambda s=status: self._on_status_changed(s),
-                state="disabled",
-            )
-            btn.pack(side="right", padx=(3, 0))
-            _add_focus_ring(btn)
-            _underline_char(btn, _status_underline.get(status, 0))
-            Tooltip(btn, f"Mark selected item as '{status}' (Alt+{_status_keys.get(status, '?')})")
-            self._status_buttons[status] = btn
+        self._open_canvas_btn = ctk.CTkButton(
+            btn_row, text="Open Canvas Files", width=150,
+            command=self._open_in_canvas, state="disabled",
+        )
+        self._open_canvas_btn.pack(side="right")
+        _add_focus_ring(self._open_canvas_btn)
+        _underline_char(self._open_canvas_btn, 12)  # F in "Files" → Alt+C
+        Tooltip(self._open_canvas_btn, "Open the course Files page in Canvas to manage files (Alt+C)")
 
-        # Keyboard navigation for all tab selectors
-        self._setup_tab_keyboard_nav()
+        # Keyboard navigation for selector buttons
+        self._setup_selector_keyboard_nav()
 
         # Show placeholder initially
         self._show_placeholder()
@@ -375,10 +442,13 @@ class ContentViewer:
         self._set_detail("")
         self._selected_row = None
         self._selected_table_key = None
-        self._summary_frame.pack_forget()
+        self._course_label.configure(text="")
+        self._stats_label.configure(text="")
         self._open_folder_btn.configure(state="disabled")
         self._open_file_btn.configure(state="disabled")
+        self._open_direct_btn.configure(state="disabled")
         self._open_source_btn.configure(state="disabled")
+        self._open_canvas_btn.configure(state="disabled")
         for btn in self._status_buttons.values():
             btn.configure(state="disabled")
 
@@ -393,26 +463,40 @@ class ContentViewer:
         self._placeholder.pack_forget()
         self._container.pack(fill="both", expand=True)
 
-    def _setup_tab_keyboard_nav(self):
-        """Make all content tab selectors navigable with arrows and Enter-to-table."""
+    def _switch_category(self, cat):
+        """Switch main category — update sub-buttons and show the first sub-table."""
+        if cat == self._active_category:
+            return
+        # Hide old sub-frame, show new
+        self._sub_frames[self._active_category].pack_forget()
+        self._active_category = cat
+        self._sub_frames[cat].pack()
+        # Highlight active category button
+        for c, btn in self._category_buttons.items():
+            btn.configure(fg_color=self._sel_active if c == cat else self._sel_inactive)
+        # Switch to the first sub-table of this category
+        first_key = self._categories[cat][0][1]
+        self._switch_table(first_key)
 
-        # Nested tabviews: main tab name → (nested tabview, [(sub-tab name, table key), ...])
-        nested = {
-            "Documents": (self._docs_tabview, [
-                ("Documents", "documents"), ("Document Sites", "document_sites"),
-            ]),
-            "Videos": (self._vids_tabview, [
-                ("Video Sites", "video_sites"), ("Video Files", "video_files"),
-            ]),
-            "Audio": (self._audio_tabview, [
-                ("Audio Files", "audio_files"), ("Audio Sites", "audio_sites"),
-            ]),
-        }
-        # Main tabs with no sub-tabs → table key directly
-        direct = {"Images": "image_files", "Unsorted": "unsorted"}
+    def _switch_table(self, key):
+        """Show the table for *key* and hide the previously active one."""
+        if key == self._active_table_key:
+            return
+        # Hide current
+        if self._active_table_key in self._tables:
+            self._tables[self._active_table_key].pack_forget()
+        # Show new
+        self._active_table_key = key
+        self._tables[key].pack(fill="both", expand=True)
+        # Highlight active sub-button
+        for btn_key, btn in self._selector_buttons.items():
+            btn.configure(fg_color=self._sel_active if btn_key == key else self._sel_inactive)
+
+    def _setup_selector_keyboard_nav(self):
+        """Wire arrow keys on category and sub-category buttons, Enter/Escape for table focus."""
+        cat_order = self._category_order
 
         def _focus_table(table_key):
-            """Move focus into a table, selecting the first row."""
             table = self._tables.get(table_key)
             if not table:
                 return
@@ -423,85 +507,60 @@ class ContentViewer:
                 tree.focus(children[0])
             tree.focus_set()
 
-        def _add_nav(tabview, tab_names, on_enter=None, on_escape=None):
-            """Wire up focus rings, Left/Right arrows, Enter, and Escape on a tabview."""
-            try:
-                buttons = tabview._segmented_button._buttons_dict
-            except AttributeError:
-                return
-            for name in tab_names:
-                btn = buttons.get(name)
-                if not btn:
-                    continue
-                _add_focus_ring(btn)
+        # Main category buttons: Left/Right to navigate, Enter/Down to sub-row
+        for ci, cat in enumerate(cat_order):
+            btn = self._category_buttons[cat]
 
-                def _nav(event, current=name, direction=0):
-                    idx = tab_names.index(current) + direction
-                    if 0 <= idx < len(tab_names):
-                        target = tab_names[idx]
-                        tabview.set(target)
-                        buttons[target].focus_set()
-                    return "break"
-
-                btn.bind("<Left>", lambda e, n=name: _nav(e, n, -1))
-                btn.bind("<Right>", lambda e, n=name: _nav(e, n, 1))
-                if on_enter:
-                    btn.bind("<Return>", lambda e, n=name: on_enter(n))
-                if on_escape:
-                    btn.bind("<Escape>", lambda e: on_escape())
-
-        def _focus_btn(tabview, tab_name):
-            """Focus a specific tab selector button."""
-            try:
-                btn = tabview._segmented_button._buttons_dict.get(tab_name)
-                if btn:
-                    btn.focus_set()
-            except AttributeError:
-                pass
-
-        # ── Main tabview ──
-        main_tabs = ["Documents", "Videos", "Audio", "Images", "Unsorted"]
-
-        def _main_enter(tab_name):
-            if tab_name in nested:
-                ntv, _ = nested[tab_name]
-                _focus_btn(ntv, ntv.get())
-            elif tab_name in direct:
-                _focus_table(direct[tab_name])
-            return "break"
-
-        _add_nav(self._tabview, main_tabs, on_enter=_main_enter)
-
-        # ── Nested tabviews ──
-        for main_tab, (ntv, sub_tabs) in nested.items():
-            sub_names = [s[0] for s in sub_tabs]
-            sub_map = dict(sub_tabs)
-
-            def _sub_enter(tab_name, m=sub_map):
-                table_key = m.get(tab_name)
-                if table_key:
-                    _focus_table(table_key)
+            def _cat_nav(event, idx=ci, direction=0):
+                target = idx + direction
+                if 0 <= target < len(cat_order):
+                    target_cat = cat_order[target]
+                    self._switch_category(target_cat)
+                    self._category_buttons[target_cat].focus_set()
                 return "break"
 
-            def _sub_escape(mt=main_tab):
-                _focus_btn(self._tabview, mt)
+            def _cat_enter(event, c=cat):
+                # Focus the first sub-button of this category
+                first_key = self._categories[c][0][1]
+                self._selector_buttons[first_key].focus_set()
+                return "break"
 
-            _add_nav(ntv, sub_names, on_enter=_sub_enter, on_escape=_sub_escape)
+            btn.bind("<Left>", lambda e, idx=ci: _cat_nav(e, idx, -1))
+            btn.bind("<Right>", lambda e, idx=ci: _cat_nav(e, idx, 1))
+            btn.bind("<Return>", _cat_enter)
+            btn.bind("<Down>", _cat_enter)
 
-            # Escape from table → back to its sub-tab selector
-            for sub_name, table_key in sub_tabs:
-                table = self._tables.get(table_key)
-                if table:
-                    def _esc(e, tv=ntv, sn=sub_name):
-                        _focus_btn(tv, sn)
-                    table._tree.bind("<Escape>", _esc)
+        # Sub-category buttons: Left/Right within the category, Enter to table, Escape/Up to category
+        for cat in cat_order:
+            subs = self._categories[cat]
+            sub_keys = [s[1] for s in subs]
+            for si, (_, key) in enumerate(subs):
+                btn = self._selector_buttons[key]
 
-        # ── Direct tables (no sub-tabs): Escape → main tab selector ──
-        for main_tab, table_key in direct.items():
-            table = self._tables.get(table_key)
+                def _sub_nav(event, idx=si, keys=sub_keys, direction=0):
+                    target = idx + direction
+                    if 0 <= target < len(keys):
+                        target_key = keys[target]
+                        self._switch_table(target_key)
+                        self._selector_buttons[target_key].focus_set()
+                    return "break"
+
+                def _sub_escape(event, c=cat):
+                    self._category_buttons[c].focus_set()
+                    return "break"
+
+                btn.bind("<Left>", lambda e, idx=si, keys=sub_keys: _sub_nav(e, idx, keys, -1))
+                btn.bind("<Right>", lambda e, idx=si, keys=sub_keys: _sub_nav(e, idx, keys, 1))
+                btn.bind("<Return>", lambda e, k=key: (_focus_table(k), "break")[-1])
+                btn.bind("<Escape>", _sub_escape)
+                btn.bind("<Up>", _sub_escape)
+
+        # Escape from any table → focus its sub-category button
+        for key in self._selector_keys_order:
+            table = self._tables.get(key)
             if table:
-                def _esc(e, mt=main_tab):
-                    _focus_btn(self._tabview, mt)
+                def _esc(e, k=key):
+                    self._selector_buttons[k].focus_set()
                 table._tree.bind("<Escape>", _esc)
 
     def _open_course_folder(self):
@@ -524,6 +583,14 @@ class ContentViewer:
             if url:
                 webbrowser.open(url)
 
+    def _open_file_direct(self):
+        """Open the downloaded file in its default application."""
+        if not self._selected_row:
+            return
+        save_path = self._selected_row.get("save_path", "")
+        if save_path and os.path.isfile(save_path):
+            os.startfile(save_path)
+
     def _open_source_page(self):
         """Open the source_page_url in the default browser."""
         if not self._selected_row:
@@ -531,6 +598,14 @@ class ContentViewer:
         url = self._selected_row.get("source_page_url", "")
         if url:
             webbrowser.open(url)
+
+    def _open_in_canvas(self):
+        """Open the course Files page in Canvas."""
+        if not self._current_data:
+            return
+        course_url = self._current_data.get("course_url", "")
+        if course_url:
+            webbrowser.open(f"{course_url}/files")
 
     def _load_review_statuses(self, manifest_dir):
         """Load review_status.json from the manifest directory."""
@@ -667,34 +742,55 @@ class ContentViewer:
 
         # Update summary
         course_name = data.get("course_name", "")
-        course_id = data.get("course_id", "")
-        self._course_label.configure(
-            text=f"{course_name}  (ID: {course_id})" if course_name else f"Course {course_id}"
-        )
+        self._course_label.configure(text=course_name or "Untitled Course")
+
+        # Count hidden and inactive across all unfiltered content
+        hidden_count = 0
+        inactive_count = 0
+        for table_key, (category, sub_key) in mapping.items():
+            for row in content.get(category, {}).get(sub_key, []):
+                if row.get("is_hidden"):
+                    hidden_count += 1
+                if not row.get("source_page_url"):
+                    inactive_count += 1
 
         total = sum(counts.values())
-        parts = []
+        # Line 1: total, hidden, inactive
+        line1_parts = [f"{total} items"]
+        if hidden_count:
+            line1_parts.append(f"Hidden: {hidden_count}")
+        if inactive_count:
+            line1_parts.append(f"Inactive: {inactive_count}")
+
+        # Line 2+: content type counts (max 3 per line)
+        type_parts = []
         doc_count = counts["documents"] + counts["document_sites"]
         if doc_count:
-            parts.append(f"{doc_count} docs")
+            type_parts.append(f"Docs: {doc_count}")
         vid_count = counts["video_sites"] + counts["video_files"]
         if vid_count:
-            parts.append(f"{vid_count} videos")
+            type_parts.append(f"Video: {vid_count}")
         aud_count = counts["audio_files"] + counts["audio_sites"]
         if aud_count:
-            parts.append(f"{aud_count} audio")
+            type_parts.append(f"Audio: {aud_count}")
         if counts["image_files"]:
-            parts.append(f"{counts['image_files']} images")
+            type_parts.append(f"Images: {counts['image_files']}")
         if counts["unsorted"]:
-            parts.append(f"{counts['unsorted']} unsorted")
+            type_parts.append(f"Unsorted: {counts['unsorted']}")
 
-        self._stats_label.configure(text=f"{total} items: {', '.join(parts)}" if parts else "0 items")
-        self._summary_frame.pack(fill="x", pady=(0, 5), before=self._tabview)
+        lines = ["  |  ".join(line1_parts)]
+        for i in range(0, len(type_parts), 3):
+            lines.append("  |  ".join(type_parts[i:i + 3]))
+        self._stats_label.configure(text="\n".join(lines))
 
         self._open_folder_btn.configure(state="normal")
+        self._open_canvas_btn.configure(
+            state="normal" if data.get("course_url") else "disabled"
+        )
         self._selected_row = None
         self._selected_table_key = None
         self._open_file_btn.configure(state="disabled")
+        self._open_direct_btn.configure(state="disabled")
         self._open_source_btn.configure(state="disabled")
         for btn in self._status_buttons.values():
             btn.configure(state="disabled")
@@ -728,6 +824,11 @@ class ContentViewer:
             self._open_file_btn.configure(text="Open Site", state="normal")
         else:
             self._open_file_btn.configure(text="Open File Location", state="disabled")
+
+        # Enable "Open File" if the downloaded file exists
+        self._open_direct_btn.configure(
+            state="normal" if save_path and os.path.isfile(save_path) else "disabled"
+        )
 
         # Enable Open Source Page if source_page_url exists
         if row.get("source_page_url"):

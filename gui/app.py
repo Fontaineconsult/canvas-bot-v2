@@ -106,7 +106,9 @@ class CanvasBotGUI:
             return lambda e: cb() if self.tabview.get() == TAB_CONTENT else None
         self.root.bind("<Alt-f>", _on_content(self.content_viewer.refresh_course_list))
         self.root.bind("<Alt-o>", _on_content(self.content_viewer._open_course_folder))
+        self.root.bind("<Alt-p>", _on_content(self.content_viewer._open_file_direct))
         self.root.bind("<Alt-s>", _on_content(self.content_viewer._open_source_page))
+        self.root.bind("<Alt-c>", _on_content(self.content_viewer._open_in_canvas))
         self.root.bind("<Alt-w>", _on_content(lambda: self.content_viewer._on_status_changed("Needs Review")))
         self.root.bind("<Alt-i>", _on_content(lambda: self.content_viewer._on_status_changed("Ignore")))
 

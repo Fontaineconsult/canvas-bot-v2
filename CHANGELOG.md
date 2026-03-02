@@ -2,6 +2,23 @@
 
 ## v1.2.2
 
+### Content Viewer Layout Rearrangement
+- **Replaced nested CTkTabview navigation with flat button-based layout** — the Content Viewer now uses a compact 5-row structure: (1) course dropdown bar, (2) summary / category selectors / status buttons, (3) filter bar, (4) table, (5) action buttons. Removes two levels of tab nesting (main tabs + sub-tabs) in favor of a single row of category buttons with swappable sub-category buttons beneath.
+- **Two-level selector buttons** — top row shows 5 main categories (Documents, Videos, Audio, Images, Unsorted); bottom row shows sub-categories that change when the main category is selected (e.g. Documents → "Documents" | "Document Sites"). Only one table is visible at a time.
+- **Status buttons moved to Row 2** — Passed, Needs Review, and Ignore buttons are now stacked vertically in a right-aligned column alongside the selectors, separated by 1px vertical dividers.
+- **Three-column Row 2 with visual separators** — Row 2 uses a 30/40/30% grid layout with 1px vertical lines between the course summary, selector buttons, and status buttons. Adapts to light/dark mode.
+- **Action buttons moved below table** — Open File Location, Open File, and Open Source Page buttons are now in Row 5 beneath the table instead of sharing a row with the status buttons.
+- **Keyboard navigation updated** — Left/Right arrows navigate category and sub-category buttons. Down/Enter from a category button focuses its first sub-button. Enter from a sub-button focuses the table. Escape from table returns to the sub-button; Escape/Up from sub-button returns to the category row.
+- **Open in Canvas button** — opens the course Files page (`{course_url}/files`) in the default browser for bulk file management. Located in the top bar alongside Open Folder. Alt+C shortcut.
+- **Open File button** — opens the selected downloaded file directly in its default application via `os.startfile()`. Enabled only when the file exists on disk. Alt+P shortcut.
+- Files changed: `gui/content_viewer.py`, `gui/app.py`
+
+### Table Widget Improvements
+- **Wider vertical scrollbars** — scrollbar width and arrow size increased to 24px for easier grabbing.
+- **Removed horizontal scrollbars** — bottom scrollbars removed from all content tables.
+- **Status button colors match table row colors** — Passed (green #2d6a2d), Needs Review (amber #8a6d00), and Ignore (gray #555555) button colors now correspond to their row highlight colors.
+- Files changed: `gui/table_widget.py`, `gui/content_viewer.py`
+
 ### GUI Tabbed Layout
 - **Reorganized GUI into three tabs** — the main window now uses a `CTkTabview` with **Run**, **Content**, and **Patterns** tabs. All existing controls (course selection, output, options, run button, log area) are under the Run tab. Window enlarged to 900x800 with 700x650 minimum.
 - **Consolidated output folders** — replaced three separate folder pickers (Download, Excel, JSON) with a single Output Folder and a Download files checkbox. Old settings are migrated automatically.
