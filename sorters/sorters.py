@@ -36,6 +36,8 @@ file_storage_regex = re_combiner(expressions["file_storage_regex"])
 
 digital_textbook_regex = re_combiner(expressions["digital_text_book_regex"])
 
+institution_video_regex = re_combiner(expressions["institution_video_services_regex"])
+
 ignore_list_regex = re_combiner(expressions['ignore_list_regex'])
 
 force_to_shortcut = re_combiner(expressions['force_to_shortcut'])
@@ -52,7 +54,7 @@ def reload_patterns():
     global web_video_content_regex, video_file_content_regex, web_audio_content_regex
     global audio_file_content_regex, web_document_applications_regex, canvas_studio_embed
     global canvas_file_embed, canvas_media_embed, file_storage_regex, digital_textbook_regex
-    global ignore_list_regex, force_to_shortcut, file_name_extractor
+    global institution_video_regex, ignore_list_regex, force_to_shortcut, file_name_extractor
 
     expressions = read_re()
 
@@ -69,6 +71,7 @@ def reload_patterns():
     canvas_media_embed = re_combiner(expressions["canvas_media_embed"])
     file_storage_regex = re_combiner(expressions["file_storage_regex"])
     digital_textbook_regex = re_combiner(expressions["digital_text_book_regex"])
+    institution_video_regex = re_combiner(expressions["institution_video_services_regex"])
     ignore_list_regex = re_combiner(expressions['ignore_list_regex'])
     force_to_shortcut = re_combiner(expressions['force_to_shortcut'])
     file_name_extractor = re_combiner([document_content_regex.pattern + "|" +

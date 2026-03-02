@@ -122,6 +122,7 @@ def get_content_node(content_url, api_dict=None, **kwargs) -> Union[Type[Documen
             "audioSite": AudioSite,
             "imageFile": ImageFile,
             "digitalTextbook": DigitalTextbook,
+            "institutionVideo": InstitutionVideo,
             "filestorage": BoxPage,
             "canvasStudioEmbed": CanvasStudioEmbed,
             "canvasFileEmbed": CanvasMediaEmbed,
@@ -150,13 +151,17 @@ def identify_content_url(content_url, **kwargs) -> str:
     from sorters.sorters import (document_content_regex, image_content_regex,
         web_video_content_regex, video_file_content_regex, web_audio_content_regex,
         audio_file_content_regex, web_document_applications_regex, file_storage_regex,
-        digital_textbook_regex, canvas_studio_embed, canvas_file_embed, canvas_media_embed)
+        digital_textbook_regex, institution_video_regex,
+        canvas_studio_embed, canvas_file_embed, canvas_media_embed)
 
     if document_content_regex.match(content_url):
         return "document"
 
     if image_content_regex.match(content_url):
         return "imageFile"
+
+    if institution_video_regex.match(content_url):
+        return "institutionVideo"
 
     if web_video_content_regex.match(content_url):
         return "videoSite"

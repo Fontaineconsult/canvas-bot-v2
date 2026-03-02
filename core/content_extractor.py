@@ -369,6 +369,21 @@ class ContentExtractor(DownloaderMixin):
         """
         return [item for item in self.manifest.content_list() if isinstance(item, DigitalTextbook)]
 
+    def get_institution_video_objects(self) -> list:
+        """
+        Get all institution video platform content nodes.
+
+        Returns a list of InstitutionVideo nodes representing links to
+        institution-scoped video platforms like Panopto, Kaltura, YuJa,
+        Echo360, Kanopy, etc.
+
+        Returns
+        -------
+        list[InstitutionVideo]
+            List of InstitutionVideo content nodes. May be empty if none found.
+        """
+        return [item for item in self.manifest.content_list() if isinstance(item, InstitutionVideo)]
+
     def get_file_storage_site_objects(self) -> list:
         """
         Get all cloud file storage content nodes.
@@ -483,6 +498,7 @@ class ContentExtractor(DownloaderMixin):
                             for video_site in self.get_video_site_objects()],
             "video_files": [video_file_dict(video_file, file_download_directory, flatten) for video_file in
                             self.get_video_file_objects()],
+            "institution_video": [institution_video_dict(node) for node in self.get_institution_video_objects()],
         }
 
     def build_audio_dict(self, file_download_directory: str, flatten: bool) -> dict:
@@ -572,6 +588,20 @@ class ContentExtractor(DownloaderMixin):
         """
         return {
             "digital_textbooks": [digital_textbook_dict(node) for node in self.get_digital_textbook_objects()],
+        }
+
+    def build_institution_video_dict(self) -> dict:
+        """
+        Build a dictionary containing all institution video platform content.
+
+        Returns
+        -------
+        dict
+            Dictionary with one key:
+            - "institution_video": List of institution video dicts
+        """
+        return {
+            "institution_video": [institution_video_dict(node) for node in self.get_institution_video_objects()],
         }
 
     def build_file_storage_dict(self) -> dict:

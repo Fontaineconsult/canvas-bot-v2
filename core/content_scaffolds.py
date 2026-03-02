@@ -380,6 +380,23 @@ def digital_textbook_dict(node):
     return digital_textbook_dict
 
 
+def institution_video_dict(node):
+
+    institution_video_dict = {
+
+        "title": getattr(node, "title", None),
+        "url": getattr(node, "url", None),
+        "source_page_type": node.parent.__class__.__name__,
+        "source_page_url": get_source_page_url(node),
+        "scan_date": datetime.now(),
+        "is_hidden": is_hidden(node),
+        "order": get_order(node),
+        "path": [n.title for n in build_path(node, ignore_root=True) if n.title is not None],
+
+    }
+    return institution_video_dict
+
+
 def file_storage_dict(node):
 
     file_storage_dict = {

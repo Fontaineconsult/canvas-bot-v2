@@ -80,6 +80,14 @@ _COLUMNS = {
         {"id": "downloaded", "heading": "Downloaded", "width": 110},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
+    "institution_video": [
+        _ORDER_COL,
+        {"id": "title", "heading": "Title", "width": 165, "stretch": True},
+        {"id": "url", "heading": "URL", "width": 235, "stretch": True},
+        {"id": "source_page_type", "heading": "Source", "width": 140},
+        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
+    ],
     "digital_textbooks": [
         _ORDER_COL,
         {"id": "title", "heading": "Title", "width": 165, "stretch": True},
@@ -218,7 +226,7 @@ class ContentViewer:
         # Category definitions: name → list of (sub-label, table_key)
         self._categories = {
             "Documents": [("Documents", "documents"), ("Document Sites", "document_sites")],
-            "Videos":    [("Video Sites", "video_sites"), ("Video Files", "video_files")],
+            "Videos":    [("Video Sites", "video_sites"), ("Video Files", "video_files"), ("Inst. Video", "institution_video")],
             "Audio":     [("Audio Files", "audio_files"), ("Audio Sites", "audio_sites")],
             "Images":    [("Images", "image_files")],
             "Other":     [("Textbooks", "digital_textbooks"), ("File Storage", "file_storage")],
@@ -349,6 +357,7 @@ class ContentViewer:
             "audio_files": "No Audio Files Found",
             "audio_sites": "No Audio Sites Found",
             "image_files": "No Image Files Found",
+            "institution_video": "No Institution Video Found",
             "digital_textbooks": "No Digital Textbooks Found",
             "file_storage": "No File Storage Sites Found",
             "unsorted": "No Unsorted Content Found",
@@ -766,6 +775,7 @@ class ContentViewer:
             "audio_files": ("audio", "audio_files"),
             "audio_sites": ("audio", "audio_sites"),
             "image_files": ("images", "image_files"),
+            "institution_video": ("videos", "institution_video"),
             "digital_textbooks": ("other", "digital_textbooks"),
             "file_storage": ("other", "file_storage"),
             "unsorted": ("unsorted", "unsorted"),
@@ -822,6 +832,8 @@ class ContentViewer:
         vid_count = counts["video_sites"] + counts["video_files"]
         if vid_count:
             type_parts.append(f"Video: {vid_count}")
+        if counts.get("institution_video", 0):
+            type_parts.append(f"Inst. Video: {counts['institution_video']}")
         aud_count = counts["audio_files"] + counts["audio_sites"]
         if aud_count:
             type_parts.append(f"Audio: {aud_count}")

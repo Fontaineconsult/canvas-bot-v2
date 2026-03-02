@@ -125,6 +125,11 @@ class DigitalTextbook(BaseContentNode):
         super().__init__(parent, root, api_dict, url, title, **kwargs)
 
 
+class InstitutionVideo(BaseContentNode):
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+        super().__init__(parent, root, api_dict, url, title, **kwargs)
+
+
 class Unsorted(BaseContentNode):
 
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
