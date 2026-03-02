@@ -363,6 +363,40 @@ def image_file_dict(image_file_node, file_download_directory, flatten):
 
 
 
+def digital_textbook_dict(node):
+
+    digital_textbook_dict = {
+
+        "title": getattr(node, "title", None),
+        "url": getattr(node, "url", None),
+        "source_page_type": node.parent.__class__.__name__,
+        "source_page_url": get_source_page_url(node),
+        "scan_date": datetime.now(),
+        "is_hidden": is_hidden(node),
+        "order": get_order(node),
+        "path": [n.title for n in build_path(node, ignore_root=True) if n.title is not None],
+
+    }
+    return digital_textbook_dict
+
+
+def file_storage_dict(node):
+
+    file_storage_dict = {
+
+        "title": getattr(node, "title", None),
+        "url": getattr(node, "url", None),
+        "source_page_type": node.parent.__class__.__name__,
+        "source_page_url": get_source_page_url(node),
+        "scan_date": datetime.now(),
+        "is_hidden": is_hidden(node),
+        "order": get_order(node),
+        "path": [n.title for n in build_path(node, ignore_root=True) if n.title is not None],
+
+    }
+    return file_storage_dict
+
+
 def unsorted_dict(unsorted_node):
 
     unsorted_dict = {

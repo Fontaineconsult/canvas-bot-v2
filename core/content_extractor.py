@@ -560,6 +560,34 @@ class ContentExtractor(DownloaderMixin):
             "unsorted": [unsorted_dict(unsorted) for unsorted in self.get_unsorted_objects()],
         }
 
+    def build_digital_textbooks_dict(self) -> dict:
+        """
+        Build a dictionary containing all digital textbook content.
+
+        Returns
+        -------
+        dict
+            Dictionary with one key:
+            - "digital_textbooks": List of digital textbook dicts
+        """
+        return {
+            "digital_textbooks": [digital_textbook_dict(node) for node in self.get_digital_textbook_objects()],
+        }
+
+    def build_file_storage_dict(self) -> dict:
+        """
+        Build a dictionary containing all file storage site content.
+
+        Returns
+        -------
+        dict
+            Dictionary with one key:
+            - "file_storage": List of file storage site dicts
+        """
+        return {
+            "file_storage": [file_storage_dict(node) for node in self.get_file_storage_site_objects()],
+        }
+
     # =========================================================================
     # Content Aggregation Methods
     # =========================================================================
@@ -621,6 +649,10 @@ class ContentExtractor(DownloaderMixin):
                 "videos": self.build_videos_dict(file_download_directory, flatten, check_video_site_caption_status),
                 "audio": self.build_audio_dict(file_download_directory, flatten),
                 "images": self.build_images_dict(file_download_directory, flatten),
+                "other": {
+                    **self.build_digital_textbooks_dict(),
+                    **self.build_file_storage_dict(),
+                },
                 "unsorted": self.build_unsorted_dict()
             }
         }

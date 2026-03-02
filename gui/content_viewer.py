@@ -2,7 +2,9 @@ import glob
 import json
 import os
 import re
+import shutil
 import webbrowser
+from tkinter import messagebox
 import customtkinter as ctk
 
 from gui.table_widget import ContentTable
@@ -78,6 +80,22 @@ _COLUMNS = {
         {"id": "downloaded", "heading": "Downloaded", "width": 110},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
+    "digital_textbooks": [
+        _ORDER_COL,
+        {"id": "title", "heading": "Title", "width": 165, "stretch": True},
+        {"id": "url", "heading": "URL", "width": 235, "stretch": True},
+        {"id": "source_page_type", "heading": "Source", "width": 140},
+        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
+    ],
+    "file_storage": [
+        _ORDER_COL,
+        {"id": "title", "heading": "Title", "width": 165, "stretch": True},
+        {"id": "url", "heading": "URL", "width": 235, "stretch": True},
+        {"id": "source_page_type", "heading": "Source", "width": 140},
+        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
+    ],
     "unsorted": [
         _ORDER_COL,
         {"id": "title", "heading": "Title", "width": 175, "stretch": True},
@@ -143,6 +161,15 @@ class ContentViewer:
         _underline_char(refresh_btn, 2)  # F → Alt+F
         Tooltip(refresh_btn, "Re-scan the output folder for new or updated course data (Alt+F)")
 
+        self._delete_btn = ctk.CTkButton(
+            top_bar, text="Delete", width=80,
+            fg_color="#8B0000", hover_color="#A52A2A",
+            command=self._delete_selected_course, state="disabled",
+        )
+        self._delete_btn.pack(side="right", padx=(0, 5))
+        _add_focus_ring(self._delete_btn)
+        Tooltip(self._delete_btn, "Delete the selected course folder and its data")
+
         self._open_folder_btn = ctk.CTkButton(top_bar, text="Open Folder", width=100,
                                               command=self._open_course_folder, state="disabled")
         self._open_folder_btn.pack(side="right", padx=(0, 5))
@@ -194,9 +221,10 @@ class ContentViewer:
             "Videos":    [("Video Sites", "video_sites"), ("Video Files", "video_files")],
             "Audio":     [("Audio Files", "audio_files"), ("Audio Sites", "audio_sites")],
             "Images":    [("Images", "image_files")],
+            "Other":     [("Textbooks", "digital_textbooks"), ("File Storage", "file_storage")],
             "Unsorted":  [("Unsorted", "unsorted")],
         }
-        self._category_order = ["Documents", "Videos", "Audio", "Images", "Unsorted"]
+        self._category_order = ["Documents", "Videos", "Audio", "Images", "Other", "Unsorted"]
         self._active_category = "Documents"
         self._active_table_key = "documents"  # default active table
 
@@ -218,7 +246,7 @@ class ContentViewer:
         self._category_buttons = {}  # category_name -> CTkButton
         for cat in self._category_order:
             btn = ctk.CTkButton(
-                cat_row, text=cat, width=90, height=28,
+                cat_row, text=cat, width=70, height=28,
                 font=ctk.CTkFont(size=12),
                 fg_color=_sel_active if cat == self._active_category else _sel_inactive,
                 text_color=("gray10", "gray90"),
@@ -244,7 +272,7 @@ class ContentViewer:
             self._sub_frames[cat] = frame
             for label, key in self._categories[cat]:
                 btn = ctk.CTkButton(
-                    frame, text=label, width=100, height=26,
+                    frame, text=label, width=80, height=26,
                     font=ctk.CTkFont(size=11),
                     fg_color=_sel_active if key == self._active_table_key else _sel_inactive,
                     text_color=("gray10", "gray90"),
@@ -321,6 +349,8 @@ class ContentViewer:
             "audio_files": "No Audio Files Found",
             "audio_sites": "No Audio Sites Found",
             "image_files": "No Image Files Found",
+            "digital_textbooks": "No Digital Textbooks Found",
+            "file_storage": "No File Storage Sites Found",
             "unsorted": "No Unsorted Content Found",
         }
         for key in self._selector_keys_order:
@@ -445,6 +475,7 @@ class ContentViewer:
         self._course_label.configure(text="")
         self._stats_label.configure(text="")
         self._open_folder_btn.configure(state="disabled")
+        self._delete_btn.configure(state="disabled")
         self._open_file_btn.configure(state="disabled")
         self._open_direct_btn.configure(state="disabled")
         self._open_source_btn.configure(state="disabled")
@@ -562,6 +593,25 @@ class ContentViewer:
                 def _esc(e, k=key):
                     self._selector_buttons[k].focus_set()
                 table._tree.bind("<Escape>", _esc)
+
+    def _delete_selected_course(self):
+        """Delete the selected course folder after confirmation."""
+        name = self._course_var.get()
+        folder_path = self._course_folders.get(name)
+        if not folder_path or not os.path.isdir(folder_path):
+            return
+        if not messagebox.askyesno(
+            "Delete Course",
+            f"Permanently delete this course folder?\n\n{name}\n\n{folder_path}",
+        ):
+            return
+        try:
+            shutil.rmtree(folder_path)
+        except OSError:
+            messagebox.showerror("Error", f"Could not delete folder:\n{folder_path}")
+            return
+        self.clear()
+        self.refresh_course_list()
 
     def _open_course_folder(self):
         """Open the selected course's folder in the file explorer."""
@@ -716,6 +766,8 @@ class ContentViewer:
             "audio_files": ("audio", "audio_files"),
             "audio_sites": ("audio", "audio_sites"),
             "image_files": ("images", "image_files"),
+            "digital_textbooks": ("other", "digital_textbooks"),
+            "file_storage": ("other", "file_storage"),
             "unsorted": ("unsorted", "unsorted"),
         }
 
@@ -775,6 +827,9 @@ class ContentViewer:
             type_parts.append(f"Audio: {aud_count}")
         if counts["image_files"]:
             type_parts.append(f"Images: {counts['image_files']}")
+        other_count = counts.get("digital_textbooks", 0) + counts.get("file_storage", 0)
+        if other_count:
+            type_parts.append(f"Other: {other_count}")
         if counts["unsorted"]:
             type_parts.append(f"Unsorted: {counts['unsorted']}")
 
@@ -784,6 +839,7 @@ class ContentViewer:
         self._stats_label.configure(text="\n".join(lines))
 
         self._open_folder_btn.configure(state="normal")
+        self._delete_btn.configure(state="normal")
         self._open_canvas_btn.configure(
             state="normal" if data.get("course_url") else "disabled"
         )
