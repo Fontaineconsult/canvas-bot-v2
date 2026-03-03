@@ -693,6 +693,7 @@ For bug reports and feature requests: [GitHub Issues](https://github.com/Fontain
 
 - Long directory paths may cause issues on Windows (260 character limit)
 - Some shortcut creation may fail depending on path characters
+- 
 
 ## License
 
