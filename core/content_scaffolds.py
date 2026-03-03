@@ -264,7 +264,6 @@ def video_file_dict(video_file_node, file_download_directory, flatten):
         "path": [node.title for node in build_path(video_file_node, ignore_root=True) if node.title is not None],
         "class": video_file_node.__class__.__name__,
 
-
     }
 
     if getattr(video_file_node, "media_entry_id", None):

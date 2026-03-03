@@ -58,7 +58,7 @@ class CanvasBotGUI:
 
         # Tabview
         self.tabview = ctk.CTkTabview(self.root, command=self._on_tab_changed)
-        self.tabview.pack(fill="both", expand=True, padx=15, pady=(5, 15))
+        self.tabview.pack(fill="both", expand=True, padx=10, pady=(2, 5))
 
         self.tabview.add(TAB_RUN)
         self.tabview.add(TAB_CONTENT)
@@ -66,6 +66,11 @@ class CanvasBotGUI:
 
         # Make tab selector buttons keyboard-navigable
         self._setup_tab_keyboard_nav()
+
+        # Reduce internal top padding of tab content area
+        for tab_name in (TAB_RUN, TAB_CONTENT, TAB_PATTERNS):
+            tab_frame = self.tabview.tab(tab_name)
+            tab_frame.configure(height=0)
 
         run_tab = self.tabview.tab(TAB_RUN)
 
@@ -162,7 +167,7 @@ class CanvasBotGUI:
 
     def _build_title_bar(self):
         title_frame = ctk.CTkFrame(self.root, fg_color="transparent")
-        title_frame.pack(fill="x", padx=15, pady=(10, 0))
+        title_frame.pack(fill="x", padx=15, pady=(5, 0))
 
         title_left = ctk.CTkFrame(title_frame, fg_color="transparent")
         title_left.pack(side="left")
@@ -268,7 +273,7 @@ class CanvasBotGUI:
 
         # Folder row
         folder_row = ctk.CTkFrame(section, fg_color="transparent")
-        folder_row.pack(fill="x", pady=(0, 6))
+        folder_row.pack(fill="x", pady=(0, 1))
 
         ctk.CTkLabel(folder_row, text="Output Folder:", width=110, anchor="w").pack(side="left")
         entry = ctk.CTkEntry(folder_row, textvariable=self.var_output_folder,
@@ -299,86 +304,83 @@ class CanvasBotGUI:
     # ── Options ──
 
     def _build_options(self, parent):
-        frame = ctk.CTkFrame(parent)
-        frame.pack(fill="x", pady=(10, 0))
-
         # Outer two-column layout
-        columns = ctk.CTkFrame(frame, fg_color="transparent")
-        columns.pack(fill="x", padx=10, pady=8)
+        columns = ctk.CTkFrame(parent, fg_color="transparent", height=0)
+        columns.pack(fill="x", pady=(2, 0))
+        columns.pack_propagate(True)
         columns.columnconfigure(0, weight=1)
         columns.columnconfigure(1, weight=1)
 
         # ── Left: Download Options (3 rows x 2 inner columns) ──
-        left = ctk.CTkFrame(columns, fg_color=("gray86", "gray20"), corner_radius=6)
-        left.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        left = ctk.CTkFrame(columns, fg_color=("gray86", "gray20"), corner_radius=6, height=0)
+        left.grid(row=0, column=0, sticky="nsew", padx=(0, 3))
+        left.grid_propagate(True)
 
-        ctk.CTkLabel(left, text="Download Options", font=ctk.CTkFont(size=13, weight="bold"), anchor="w").grid(row=0, column=0, columnspan=2, sticky="w", padx=8, pady=(6, 4))
+        ctk.CTkLabel(left, text="Download Options", font=ctk.CTkFont(size=12, weight="bold"), text_color="gray", anchor="w").grid(row=0, column=0, columnspan=2, sticky="w", padx=6, pady=(3, 1))
         left.columnconfigure(0, weight=1)
         left.columnconfigure(1, weight=1)
 
         cb_video = ctk.CTkCheckBox(left, text="Include video files", variable=self.var_video)
-        cb_video.grid(row=1, column=0, sticky="w", padx=8, pady=2)
+        cb_video.grid(row=1, column=0, sticky="w", padx=6, pady=1)
         _add_focus_ring(cb_video)
         Tooltip(cb_video, "Also download video files (MP4, MOV, MKV, AVI, WebM)")
 
         cb_audio = ctk.CTkCheckBox(left, text="Include audio files", variable=self.var_audio)
-        cb_audio.grid(row=1, column=1, sticky="w", padx=8, pady=2)
+        cb_audio.grid(row=1, column=1, sticky="w", padx=6, pady=1)
         _add_focus_ring(cb_audio)
         Tooltip(cb_audio, "Also download audio files (MP3, M4A, WAV, OGG)")
 
         cb_image = ctk.CTkCheckBox(left, text="Include image files", variable=self.var_image)
-        cb_image.grid(row=2, column=0, sticky="w", padx=8, pady=2)
+        cb_image.grid(row=2, column=0, sticky="w", padx=6, pady=1)
         _add_focus_ring(cb_image)
         Tooltip(cb_image, "Also download image files (JPG, PNG, GIF, SVG, WebP)")
 
         cb_hidden = ctk.CTkCheckBox(left, text="Include hidden content", variable=self.var_hidden)
-        cb_hidden.grid(row=2, column=1, sticky="w", padx=8, pady=2)
+        cb_hidden.grid(row=2, column=1, sticky="w", padx=6, pady=1)
         _add_focus_ring(cb_hidden)
         Tooltip(cb_hidden, "Include content that is hidden or unpublished in Canvas")
 
         cb_inactive = ctk.CTkCheckBox(left, text="Include inactive content", variable=self.var_inactive)
-        cb_inactive.grid(row=3, column=0, sticky="w", padx=8, pady=(2, 6))
+        cb_inactive.grid(row=3, column=0, sticky="w", padx=6, pady=(1, 4))
         _add_focus_ring(cb_inactive)
         Tooltip(cb_inactive, "Also download files not linked from any active Canvas page")
 
         cb_flatten = ctk.CTkCheckBox(left, text="Flatten folder structure", variable=self.var_flatten)
-        cb_flatten.grid(row=3, column=1, sticky="w", padx=8, pady=(2, 6))
+        cb_flatten.grid(row=3, column=1, sticky="w", padx=6, pady=(1, 4))
         _add_focus_ring(cb_flatten)
         Tooltip(cb_flatten, "Download all files to a single flat directory instead of preserving module structure")
 
         # ── Right: Display Options (1 row x 2 inner columns) ──
-        right = ctk.CTkFrame(columns, fg_color=("gray86", "gray20"), corner_radius=6)
-        right.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
+        right = ctk.CTkFrame(columns, fg_color=("gray86", "gray20"), corner_radius=6, height=0)
+        right.grid(row=0, column=1, sticky="nsew", padx=(3, 0))
+        right.grid_propagate(True)
 
-        ctk.CTkLabel(right, text="Display Options", font=ctk.CTkFont(size=13, weight="bold"), anchor="w").grid(row=0, column=0, columnspan=2, sticky="w", padx=8, pady=(6, 4))
+        ctk.CTkLabel(right, text="Display Options", font=ctk.CTkFont(size=12, weight="bold"), text_color="gray", anchor="w").grid(row=0, column=0, columnspan=2, sticky="w", padx=6, pady=(3, 1))
         right.columnconfigure(0, weight=1)
         right.columnconfigure(1, weight=1)
 
         self.cb_content_tree = ctk.CTkCheckBox(right, text="Print content tree", variable=self.var_content_tree, command=self.controller.on_content_tree_toggled)
-        self.cb_content_tree.grid(row=1, column=0, sticky="w", padx=8, pady=(2, 6))
+        self.cb_content_tree.grid(row=1, column=0, sticky="w", padx=6, pady=(1, 4))
         _add_focus_ring(self.cb_content_tree)
         Tooltip(self.cb_content_tree, "Print course tree showing only resources that contain content (single course only)")
 
         self.cb_full_tree = ctk.CTkCheckBox(right, text="Print full course tree", variable=self.var_full_tree, command=self.controller.on_full_tree_toggled)
-        self.cb_full_tree.grid(row=1, column=1, sticky="w", padx=8, pady=(2, 6))
+        self.cb_full_tree.grid(row=1, column=1, sticky="w", padx=6, pady=(1, 4))
         _add_focus_ring(self.cb_full_tree)
         Tooltip(self.cb_full_tree, "Print complete course tree including all resources (single course only)")
 
     # ── Run Button ──
 
     def _build_run_button(self, parent):
-        run_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        run_frame.pack(fill="x", pady=(10, 0))
-
         self.run_btn = ctk.CTkButton(
-            run_frame,
+            parent,
             text="Run",
-            height=36,
+            height=32,
             font=ctk.CTkFont(size=14, weight="bold"),
             state="disabled",
             command=self.controller.on_run,
         )
-        self.run_btn.pack(fill="x")
+        self.run_btn.pack(fill="x", pady=(2, 0))
         _add_focus_ring(self.run_btn)
         _underline_char(self.run_btn, 0)  # R in Run → Alt+R
         Tooltip(self.run_btn, "Start processing the selected course(s) with the chosen options (Alt+R)")
@@ -386,19 +388,16 @@ class CanvasBotGUI:
     # ── Output Area ──
 
     def _build_output_area(self, parent):
-        output_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        output_frame.pack(fill="both", expand=True, pady=(10, 0))
-
         self.status_label = ctk.CTkLabel(
-            output_frame,
+            parent,
             text="Status: Ready",
             anchor="w",
             font=ctk.CTkFont(size=12),
         )
-        self.status_label.pack(fill="x", pady=(0, 5))
+        self.status_label.pack(fill="x", pady=(2, 0))
 
         self.log_text = ctk.CTkTextbox(
-            output_frame,
+            parent,
             font=ctk.CTkFont(family="Consolas", size=12),
             state="disabled",
         )
@@ -409,18 +408,18 @@ class CanvasBotGUI:
     def _make_section(self, title, parent=None):
         if parent is None:
             parent = self.root
-        frame = ctk.CTkFrame(parent)
-        frame.pack(fill="x", pady=(10, 0))
 
         ctk.CTkLabel(
-            frame,
+            parent,
             text=title,
-            font=ctk.CTkFont(size=13, weight="bold"),
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color="gray",
             anchor="w",
-        ).pack(fill="x", padx=10, pady=(8, 4))
+        ).pack(fill="x", pady=(2, 0))
 
-        content = ctk.CTkFrame(frame, fg_color="transparent")
-        content.pack(fill="x", padx=10, pady=(0, 8))
+        content = ctk.CTkFrame(parent, fg_color="transparent", height=0)
+        content.pack(fill="x", pady=(0, 0))
+        content.pack_propagate(True)
         return content
 
     def _on_tab_changed(self):

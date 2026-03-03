@@ -122,6 +122,10 @@ class ContentTable(ctk.CTkFrame):
         # Selection binding
         self._tree.bind("<<TreeviewSelect>>", self._on_tree_select)
 
+        # Right-click context menu
+        self._ctx_menu = tk.Menu(self._tree, tearoff=0, font=("Segoe UI", 14))
+        self._tree.bind("<Button-3>", self._on_right_click)
+
     # ── Public API ──
 
     def populate(self, rows):
@@ -237,6 +241,43 @@ class ContentTable(ctk.CTkFrame):
             row = self.get_selected()
             if row is not None:
                 self._on_select(row)
+
+    def _on_right_click(self, event):
+        """Show context menu with Copy option for the clicked cell."""
+        iid = self._tree.identify_row(event.y)
+        if not iid:
+            return
+        self._tree.selection_set(iid)
+        self._tree.focus(iid)
+
+        # Identify which column was clicked
+        col_id = self._tree.identify_column(event.x)  # e.g. "#1", "#2"
+        if not col_id:
+            return
+        col_idx = int(col_id.replace("#", "")) - 1
+        if col_idx < 0 or col_idx >= len(self._columns):
+            return
+
+        col = self._columns[col_idx]
+        idx = int(iid)
+        if idx < 0 or idx >= len(self._rows):
+            return
+
+        value = str(self._rows[idx].get(col["id"], ""))
+        if not value:
+            return
+
+        menu = self._ctx_menu
+        menu.delete(0, "end")
+        menu.add_command(
+            label=f'Copy {col["heading"]}',
+            command=lambda: self._copy_to_clipboard(value),
+        )
+        menu.tk_popup(event.x_root, event.y_root)
+
+    def _copy_to_clipboard(self, text):
+        self.clipboard_clear()
+        self.clipboard_append(text)
 
     # ── Theming ──
 

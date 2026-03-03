@@ -219,12 +219,11 @@ def get_module_items(module_items_url):
     return module_items_url
 
 
-
-
 @response_decorator
 def get_external_tools(course_id):
     external_tools_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                 f"/external_tools?access_token={get_access_token()}"
+    print(external_tools_url)
     return external_tools_url
 
 
@@ -239,7 +238,4 @@ def get_external_tool(course_id, id):
 def get_url(url):
     authenticated_url = f"{url}?access_token={get_access_token()}"
     return authenticated_url
-
-
-
 
