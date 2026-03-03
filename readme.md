@@ -213,22 +213,31 @@ On first run, you'll be prompted for:
 
 ### GUI Mode
 
-Double-click the executable or run `python canvas_bot.py` with no arguments to launch the graphical interface.
-
-The GUI provides:
-- **Course Selection** — enter a single course ID or browse for a `.txt` file with one course ID per line for batch processing
-- **Output Folders** — separate folder pickers for Download, Excel, and JSON output
-- **Download Options** — checkboxes for video, audio, image files, hidden content, and flat folder structure
-- **Display Options** — print content tree or full course tree (single course only)
-- **Real-time log** — scrollable output area showing progress as courses are processed
-- **Settings persistence** — all inputs are saved across sessions
-- **About dialog** — click "About" for a guide to every GUI element and first-time setup instructions
+Double-click the executable or run `python canvas_bot.py` with no arguments to launch the graphical interface. The GUI has three tabs: **Run**, **Content**, and **Patterns**.
 
 Configuration buttons in the title bar:
 - **View Config** — opens a terminal showing current configuration status
 - **Reset Config** — opens a dialog to reset Canvas API or Canvas Studio credentials
 
 Keyboard shortcuts: `Alt+R` Run, `Alt+V` View Config, `Alt+C` Reset Config, `Alt+A` About. All dialogs close with `Escape`.
+
+#### Run
+
+Enter a course ID (or browse for a batch `.txt` file), pick an output folder, select download and display options, and click **Run**. A real-time log shows scan progress and a content summary when complete. All inputs are saved across sessions.
+
+![Run View](docs/images/screenshot-of-the-run-view.png)
+
+#### Content
+
+Browse scanned course content in a searchable, sortable table. Use the category and sub-category selectors to filter by content type. Each row shows the file title, type, source, hidden status, download date, and review status. Action buttons at the bottom open the file, its folder, or the source Canvas page.
+
+![Content View](docs/images/screenshot-of-the-content-view.png)
+
+#### Patterns
+
+View and manage the regex patterns that classify content. Select a category on the left to see its patterns. Add, remove, validate, or test patterns against a URL or filename. Reset all patterns to defaults with one click.
+
+![Patterns View](docs/images/screenshot-of-the-patterns-view.png)
 
 ### CLI Mode
 
