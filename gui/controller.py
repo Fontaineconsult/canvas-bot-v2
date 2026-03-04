@@ -246,6 +246,13 @@ class GUIController:
     def view_config(self):
         self.launch_cli('--config_status')
 
+    def open_log_file(self):
+        log_path = os.path.join(os.environ.get("APPDATA", ""), "canvas bot", "canvas_bot.log")
+        if os.path.isfile(log_path):
+            os.startfile(log_path)
+        else:
+            self.view.status_label.configure(text="Status: No log file found", text_color="orange")
+
     def reset_config(self):
         dialog = ctk.CTkToplevel(self.view.root)
         dialog.title("Reset Configuration")
@@ -742,9 +749,18 @@ class GUIController:
             "Any custom patterns you have added will be lost."
         )
 
-        # ── Close button ──
-        close_btn = ctk.CTkButton(dialog, text="Close", width=120, command=dialog.destroy)
-        close_btn.pack(pady=(5, 15))
+        # ── Bottom buttons ──
+        btn_row = ctk.CTkFrame(dialog, fg_color="transparent")
+        btn_row.pack(fill="x", padx=10, pady=(5, 15))
+
+        logs_btn = ctk.CTkButton(btn_row, text="Logs", width=80, command=self.open_log_file)
+        logs_btn.pack(side="left")
+        _add_focus_ring(logs_btn)
+        _underline_char(logs_btn, 0)  # L
+        Tooltip(logs_btn, "Open the application log file")
+
+        close_btn = ctk.CTkButton(btn_row, text="Close", width=120, command=dialog.destroy)
+        close_btn.pack(side="right")
         _add_focus_ring(close_btn)
         _underline_char(close_btn, 0)  # C
         close_btn.focus_set()

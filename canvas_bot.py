@@ -12,7 +12,7 @@ from network.set_config import save_config_data
 from network.studio_api import authorize_studio_token, refresh_studio_token
 from tools.canvas_studio_caption_upload import add_caption_to_canvas_studio_video
 
-__version__ = "1.2.1"
+__version__ = "1.2.2"
 version = __version__
 log = logging.getLogger(__name__)
 
