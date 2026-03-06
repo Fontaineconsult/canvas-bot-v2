@@ -116,6 +116,10 @@ _COLUMNS = {
 
 _DATE_FOLDER_RE = re.compile(r'(?<=[\\/])\d{2}-\d{2}-\d{4}(?=[\\/])')
 
+# Table keys that represent site/link views (no downloadable files)
+_SITE_KEYS = {"document_sites", "video_sites", "audio_sites", "institution_video",
+              "digital_textbooks", "file_storage", "unsorted"}
+
 
 class ContentViewer:
     """Persistent browser for scanned course content stored in .manifest/ folders."""
@@ -531,6 +535,11 @@ class ContentViewer:
         # Highlight active sub-button
         for btn_key, btn in self._selector_buttons.items():
             btn.configure(fg_color=self._sel_active if btn_key == key else self._sel_inactive)
+        # Hide "Open File" for site views (no downloadable files)
+        if key in _SITE_KEYS:
+            self._open_direct_btn.pack_forget()
+        else:
+            self._open_direct_btn.pack(side="left", padx=(0, 5), after=self._open_file_btn)
 
     def _setup_selector_keyboard_nav(self):
         """Wire arrow keys on category and sub-category buttons, Enter/Escape for table focus."""
