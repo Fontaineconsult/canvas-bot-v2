@@ -185,7 +185,7 @@ class GUIController:
             "validated before use."
         )
         body(
-            "Canvas Bot is provided as-is under the MIT License. You are responsible "
+            "Canvas Bot is provided as-is under the CC-BY-NC-4.0 License. You are responsible "
             "for how this tool is deployed and used within your institution. Ensure "
             "that your use complies with your institution's data governance policies "
             "and any applicable regulations (FERPA, GDPR, etc.)."
@@ -230,9 +230,9 @@ class GUIController:
             if ok:
                 self.view.status_label.configure(text=f"Status: {message}", text_color=("gray10", "gray90"))
             else:
-                self.view.status_label.configure(text=f"Status: WARNING — {message}", text_color="orange")
+                self.view.status_label.configure(text=f"Status: WARNING — {message}", text_color=("#B45309", "#F59E0B"))
         except Exception:
-            self.view.status_label.configure(text="Status: WARNING — Configuration check failed", text_color="orange")
+            self.view.status_label.configure(text="Status: WARNING — Configuration check failed", text_color=("#B45309", "#F59E0B"))
 
     def launch_cli(self, flag):
         import subprocess
@@ -251,7 +251,7 @@ class GUIController:
         if os.path.isfile(log_path):
             os.startfile(log_path)
         else:
-            self.view.status_label.configure(text="Status: No log file found", text_color="orange")
+            self.view.status_label.configure(text="Status: No log file found", text_color=("#B45309", "#F59E0B"))
 
     def reset_config(self):
         dialog = ctk.CTkToplevel(self.view.root)

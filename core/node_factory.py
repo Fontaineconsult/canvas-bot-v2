@@ -1,4 +1,4 @@
-
+import os
 from typing import Union, Type
 
 from external_content_nodes.box import BoxPage
@@ -112,6 +112,9 @@ def get_content_node(content_url, api_dict=None, **kwargs) -> Union[Type[Documen
     identified_content = identify_content_url(content_url, **kwargs)
     if identified_content:
 
+        if identified_content == "canvasStudioEmbed" and os.environ.get('studio_enabled', 'False') != 'True':
+            return None
+
         node_dict = {
 
             "document": Document,
@@ -123,7 +126,7 @@ def get_content_node(content_url, api_dict=None, **kwargs) -> Union[Type[Documen
             "imageFile": ImageFile,
             "digitalTextbook": DigitalTextbook,
             "institutionVideo": InstitutionVideo,
-            "filestorage": BoxPage,
+            "filestorage": FileStorageSite,
             "canvasStudioEmbed": CanvasStudioEmbed,
             "canvasFileEmbed": CanvasMediaEmbed,
             "canvasMediaEmbed": CanvasMediaEmbed,

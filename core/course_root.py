@@ -66,10 +66,12 @@ class CanvasCourseRoot(ContentExtractor):
 
         self.canvas_tree.init_node(self)
 
-        if set_canvas_studio_api_key_to_environment_variable():
-            self.canvas_studio = CanvasStudio(self.course_id, self)
+        if os.environ.get('studio_enabled') != 'True':
+            print("Canvas Studio is not enabled. Skipping Canvas Studio Import")
+        elif not set_canvas_studio_api_key_to_environment_variable():
+            print("Canvas Studio is enabled but credentials could not be loaded. Skipping Canvas Studio Import")
         else:
-            print("Canvas Studio API Key Not Found. Skipping Canvas Studio Import")
+            self.canvas_studio = CanvasStudio(self.course_id, self)
 
         self.modules = Modules(self.course_id, self)
 

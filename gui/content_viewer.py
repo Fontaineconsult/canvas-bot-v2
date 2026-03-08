@@ -651,13 +651,44 @@ class ContentViewer:
             if url:
                 webbrowser.open(url)
 
+    # Executable/dangerous extensions that must never be opened via os.startfile
+    _BLOCKED_EXTENSIONS = frozenset({
+        # Windows executables & installers
+        ".exe", ".msi", ".msp", ".mst", ".com", ".scr", ".pif", ".gadget", ".appref-ms",
+        # Scripts
+        ".bat", ".cmd", ".ps1", ".psm1", ".psd1", ".ps1xml", ".vbs", ".vbe",
+        ".js", ".jse", ".ws", ".wsf", ".wsc", ".wsh",
+        # Shell & registry
+        ".sh", ".bash", ".reg", ".inf",
+        # Compiled/managed code
+        ".dll", ".sys", ".drv", ".cpl", ".ocx",
+        # Shortcuts & links (can redirect to executables)
+        ".lnk", ".url",
+        # Java / .NET
+        ".jar", ".class",
+        # Office macros (macro-enabled formats)
+        ".docm", ".xlsm", ".pptm", ".dotm", ".xltm", ".potm",
+        # Other dangerous formats
+        ".hta", ".crt", ".application", ".appx", ".msix",
+    })
+
     def _open_file_direct(self):
         """Open the downloaded file in its default application."""
         if not self._selected_row:
             return
         save_path = self._selected_row.get("save_path", "")
-        if save_path and os.path.isfile(save_path):
-            os.startfile(save_path)
+        if not save_path or not os.path.isfile(save_path):
+            return
+        ext = os.path.splitext(save_path)[1].lower()
+        if ext in self._BLOCKED_EXTENSIONS:
+            from tkinter import messagebox
+            messagebox.showwarning(
+                "Blocked File Type",
+                f"Cannot open '{os.path.basename(save_path)}'.\n\n"
+                f"Files with the '{ext}' extension are blocked for security.",
+            )
+            return
+        os.startfile(save_path)
 
     def _open_source_page(self):
         """Open the source_page_url in the default browser."""

@@ -497,6 +497,10 @@ CanvasBot handles sensitive credentials and institutional course content. The fo
 - **Filename sanitization** — Downloaded filenames are stripped of invalid Windows characters and truncated to respect path length limits.
 - **Regex validation** — User-supplied patterns are validated with `re.compile()` before being saved.
 
+### File Open Protection
+
+- **Executable blocklist** — The "Open File" button in the Content Viewer enforces a hardcoded blocklist of dangerous file extensions (`.exe`, `.bat`, `.cmd`, `.ps1`, `.vbs`, `.js`, `.msi`, `.dll`, `.lnk`, `.hta`, macro-enabled Office formats, and others). Blocked files cannot be opened via `os.startfile()` and display a warning dialog instead.
+
 ### Process Isolation
 
 - **No shell injection** — GUI subprocess calls use argument lists instead of shell string interpolation, preventing command injection.
@@ -795,24 +799,19 @@ For bug reports and feature requests: [GitHub Issues](https://github.com/Fontain
 
 ## License
 
-MIT License
+Creative Commons Attribution-NonCommercial 4.0 International (CC-BY-NC-4.0)
 
 Copyright (c) 2023-2026 Daniel Fontaine
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+You are free to:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+- **Share** — copy and redistribute the material in any medium or format
+- **Adapt** — remix, transform, and build upon the material
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Under the following terms:
+
+- **Attribution** — You must give appropriate credit, provide a link to the license, and indicate if changes were made.
+- **NonCommercial** — You may not use the material for commercial purposes.
+- **No additional restrictions** — You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
+
+Full license text: https://creativecommons.org/licenses/by-nc/4.0/legalcode
