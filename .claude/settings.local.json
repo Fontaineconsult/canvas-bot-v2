@@ -6,7 +6,14 @@
       "Bash(findstr:*)",
       "Bash(python -m test.pipeline_testing:*)",
       "Bash(python:*)",
-      "Bash(.venv/Scripts/python:*)"
+      "Bash(.venv/Scripts/python:*)",
+      "Bash(cd C:\\\\Users\\\\Fonta\\\\PycharmProjects\\\\canvas-bot-v2:*)",
+      "WebSearch",
+      "Bash(head:*)",
+      "WebFetch(domain:www.tcl.tk)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.tcl-lang.org)",
+      "Bash(cd:*)"
     ]
   }
 }

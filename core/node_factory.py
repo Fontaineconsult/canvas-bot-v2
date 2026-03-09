@@ -1,4 +1,4 @@
-
+import os
 from typing import Union, Type
 
 from external_content_nodes.box import BoxPage
@@ -9,9 +9,7 @@ from resource_nodes.discussions import Discussion
 from resource_nodes.modules import Module
 from resource_nodes.pages import Page
 from resource_nodes.quizzes import Quiz
-from sorters.sorters import resource_node_regex, document_content_regex, image_content_regex, web_video_content_regex, \
-    video_file_content_regex, web_audio_content_regex, audio_file_content_regex, web_document_applications_regex, \
-    file_storage_regex, ignore_list_regex, canvas_studio_embed, canvas_file_embed, canvas_media_embed
+from sorters.sorters import resource_node_regex
 from resource_nodes.content_nodes import *
 
 
@@ -100,6 +98,8 @@ def get_content_node(content_url, api_dict=None, **kwargs) -> Union[Type[Documen
     :return:
     """
 
+    from sorters.sorters import ignore_list_regex
+
     if api_dict:
         content_url = api_dict['filename'] if api_dict.get('filename') else api_dict['title']
 
@@ -112,6 +112,9 @@ def get_content_node(content_url, api_dict=None, **kwargs) -> Union[Type[Documen
     identified_content = identify_content_url(content_url, **kwargs)
     if identified_content:
 
+        if identified_content == "canvasStudioEmbed" and os.environ.get('studio_enabled', 'False') != 'True':
+            return None
+
         node_dict = {
 
             "document": Document,
@@ -121,7 +124,9 @@ def get_content_node(content_url, api_dict=None, **kwargs) -> Union[Type[Documen
             "audioFile": AudioFile,
             "audioSite": AudioSite,
             "imageFile": ImageFile,
-            "filestorage": BoxPage,
+            "digitalTextbook": DigitalTextbook,
+            "institutionVideo": InstitutionVideo,
+            "filestorage": FileStorageSite,
             "canvasStudioEmbed": CanvasStudioEmbed,
             "canvasFileEmbed": CanvasMediaEmbed,
             "canvasMediaEmbed": CanvasMediaEmbed,
@@ -146,11 +151,20 @@ def identify_content_url(content_url, **kwargs) -> str:
     """
 
 
+    from sorters.sorters import (document_content_regex, image_content_regex,
+        web_video_content_regex, video_file_content_regex, web_audio_content_regex,
+        audio_file_content_regex, web_document_applications_regex, file_storage_regex,
+        digital_textbook_regex, institution_video_regex,
+        canvas_studio_embed, canvas_file_embed, canvas_media_embed)
+
     if document_content_regex.match(content_url):
         return "document"
 
     if image_content_regex.match(content_url):
         return "imageFile"
+
+    if institution_video_regex.match(content_url):
+        return "institutionVideo"
 
     if web_video_content_regex.match(content_url):
         return "videoSite"
@@ -166,6 +180,9 @@ def identify_content_url(content_url, **kwargs) -> str:
 
     if web_document_applications_regex.match(content_url):
         return "documentSite"
+
+    if digital_textbook_regex.match(content_url):
+        return "digitalTextbook"
 
     if file_storage_regex.match(content_url):
         return "filestorage"

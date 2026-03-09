@@ -7,7 +7,6 @@ from network.api import get_file, get_media_object, get_media_objects
 from network.studio_api import get_media_by_id, get_media_sources_by_id, get_media_perspectives_by_id, \
     get_captions_by_media_id
 from resource_nodes.base_content_node import BaseContentNode
-from sorters.sorters import canvas_file_embed, canvas_media_embed
 from tools.string_checking.url_cleaning import is_url, sanitize_windows_filename
 
 from config.yaml_io import read_re
@@ -42,15 +41,18 @@ class Document(BaseContentNode):
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
-            return f"{Fore.LIGHTCYAN_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.title} ){Style.RESET_ALL}"
+            return f"{Style.BRIGHT}{Fore.LIGHTCYAN_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.title} ){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTCYAN_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
+            return f"{Style.BRIGHT}{Fore.LIGHTCYAN_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
 
 
 class DocumentSite(BaseContentNode):
 
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
         super().__init__(parent, root, api_dict, url, title, **kwargs)
+
+    def __str__(self):
+        return f"{Style.BRIGHT}{Fore.CYAN}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
 
 
 class VideoSite(BaseContentNode):
@@ -60,7 +62,7 @@ class VideoSite(BaseContentNode):
         self.captioned = False
 
     def __str__(self):
-        return f"{Fore.LIGHTRED_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {captioned() if self.captioned else not_captioned()} {self.url}  ){Style.RESET_ALL}"
+        return f"{Style.BRIGHT}{Fore.LIGHTRED_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {captioned() if self.captioned else not_captioned()} {self.url}  ){Style.RESET_ALL}"
 
 
 class VideoFile(BaseContentNode):
@@ -74,9 +76,9 @@ class VideoFile(BaseContentNode):
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
-            return f"{Fore.LIGHTMAGENTA_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.title} ){Style.RESET_ALL}"
+            return f"{Style.BRIGHT}{Fore.LIGHTMAGENTA_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.title} ){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTMAGENTA_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {captioned() if self.captioned else not_captioned()} {self.title} {self.url} ){Style.RESET_ALL}"
+            return f"{Style.BRIGHT}{Fore.LIGHTMAGENTA_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {captioned() if self.captioned else not_captioned()} {self.title} {self.url} ){Style.RESET_ALL}"
 
 
 class AudioFile(BaseContentNode):
@@ -89,15 +91,18 @@ class AudioFile(BaseContentNode):
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
-            return f"{Fore.LIGHTGREEN_EX}( {self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.title} ){Style.RESET_ALL}"
+            return f"{Style.BRIGHT}{Fore.LIGHTGREEN_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.title} ){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTGREEN_EX}( {self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
+            return f"{Style.BRIGHT}{Fore.LIGHTGREEN_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
 
 
 class AudioSite(BaseContentNode):
 
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
         super().__init__(parent, root, api_dict, url, title, **kwargs)
+
+    def __str__(self):
+        return f"{Style.BRIGHT}{Fore.GREEN}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
 
 
 class ImageFile(BaseContentNode):
@@ -110,20 +115,34 @@ class ImageFile(BaseContentNode):
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
-            return f"{Fore.LIGHTYELLOW_EX}( {self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.title} ){Style.RESET_ALL}"
+            return f"{Style.BRIGHT}{Fore.LIGHTYELLOW_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.title} ){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTYELLOW_EX}( {self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
+            return f"{Style.BRIGHT}{Fore.LIGHTYELLOW_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
 
 
 class FileStorageSite(BaseContentNode):
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
         super().__init__(parent, root, api_dict, url, title, **kwargs)
 
+    def __str__(self):
+        return f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
+
 
 
 class DigitalTextbook(BaseContentNode):
     def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
         super().__init__(parent, root, api_dict, url, title, **kwargs)
+
+    def __str__(self):
+        return f"{Style.BRIGHT}{Fore.YELLOW}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
+
+
+class InstitutionVideo(BaseContentNode):
+    def __init__(self, parent, root, api_dict=None, url=None, title=None, **kwargs):
+        super().__init__(parent, root, api_dict, url, title, **kwargs)
+
+    def __str__(self):
+        return f"{Style.BRIGHT}{Fore.MAGENTA}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
 
 
 class Unsorted(BaseContentNode):
@@ -133,9 +152,9 @@ class Unsorted(BaseContentNode):
 
     def __str__(self):
         if self.parent.__class__.__name__ == 'BoxPage':
-            return f"{Fore.LIGHTWHITE_EX}( {self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.title} ){Style.RESET_ALL}"
+            return f"{Style.BRIGHT}{Fore.LIGHTWHITE_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.title} ){Style.RESET_ALL}"
         else:
-            return f"{Fore.LIGHTWHITE_EX}( {self.__class__.__name__} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
+            return f"{Style.BRIGHT}{Fore.LIGHTWHITE_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {self.url} ){Style.RESET_ALL}"
 
 
 class CanvasMediaEmbed(BaseContentNode):
@@ -144,6 +163,8 @@ class CanvasMediaEmbed(BaseContentNode):
         id = None
         download_url = None
         file_name = None
+
+        from sorters.sorters import canvas_file_embed, canvas_media_embed
 
         if canvas_file_embed.match(url) is not None:
             pattern = canvas_file_embed.match(url).group(1)
@@ -182,7 +203,7 @@ class CanvasMediaEmbed(BaseContentNode):
 
 
     def __str__(self):
-        return f"{Fore.LIGHTRED_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {captioned() if self.captioned else not_captioned()} {self.title} {self.url}  ){Style.RESET_ALL}"
+        return f"{Style.BRIGHT}{Fore.RED}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {captioned() if self.captioned else not_captioned()} {self.title} {self.url}  ){Style.RESET_ALL}"
 
 class CanvasStudioEmbed(BaseContentNode):
 
@@ -225,4 +246,4 @@ class CanvasStudioEmbed(BaseContentNode):
         self.is_canvas_studio_file = True
 
     def __str__(self):
-        return f"{Fore.LIGHTRED_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {captioned() if self.captioned else not_captioned()} {self.title} {self.url}  ){Style.RESET_ALL}"
+        return f"{Style.BRIGHT}{Fore.BLUE}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {hidden() if is_hidden(self) else visible()} {captioned() if self.captioned else not_captioned()} {self.title} {self.url}  ){Style.RESET_ALL}"

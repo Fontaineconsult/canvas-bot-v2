@@ -12,7 +12,7 @@ from network.set_config import save_config_data
 from network.studio_api import authorize_studio_token, refresh_studio_token
 from tools.canvas_studio_caption_upload import add_caption_to_canvas_studio_video
 
-__version__ = "1.2.1"
+__version__ = "1.2.2"
 version = __version__
 log = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ def load_json_config_file_from_appdata():
         sys.exit(1)
 
     # Auto-generate all URLs from the domain
-    canvas_url = f"https://{canvas_domain}.instructure.com/courses/"
+    canvas_url = f"https://{canvas_domain}.instructure.com/courses"
     api_path = f"https://{canvas_domain}.instructure.com/api/v1"
     studio_domain = f"{canvas_domain}.instructuremedia.com"
 
@@ -625,6 +625,8 @@ if __name__=='__main__':
                   help='Also download image files (JPG, PNG, GIF, SVG, WebP).')
     @click.option('--download_hidden_files', is_flag=True,
                   help='Include content that is hidden/unpublished in Canvas (not visible to students).')
+    @click.option('--include_inactive_content', is_flag=True,
+                  help='Also download files not linked from any active Canvas page.')
 
     # === Download Behavior ===
     @click.option('--flatten', is_flag=True,
@@ -683,6 +685,7 @@ if __name__=='__main__':
              flatten,
              flush_after_download,
              download_hidden_files,
+             include_inactive_content,
              print_content_tree,
              print_full_course,
              config_status,
@@ -750,6 +753,7 @@ if __name__=='__main__':
             "flatten": flatten,
             "flush_after_download": flush_after_download,
             "download_hidden_files": download_hidden_files,
+            "only_active_files": not include_inactive_content,
             "print_content_tree": print_content_tree,
             "print_full_course": print_full_course,
             "reset_params": reset_canvas_params,

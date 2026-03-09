@@ -510,6 +510,7 @@ class DownloaderMixin:
         log.info(f"Downloading files to {root_directory} with params: {params}")
 
         # Extract params
+        only_active_files = params.get('only_active_files', True)
         include_video_files = params.get('include_video_files', False)
         include_audio_files = params.get('include_audio_files', False)
         include_image_files = params.get('include_image_files', False)
@@ -547,11 +548,17 @@ class DownloaderMixin:
             # Progress indicator
             progress = f"[{idx}/{total_count}]"
 
+            #check if active (has a source_url attribute that is not none)
+            if only_active_files:
+                if not get_source_page_url(node):
+                    print(f"{Fore.YELLOW}{progress}{Style.RESET_ALL} {Fore.MAGENTA}[Inactive]{Style.RESET_ALL} {_truncate_title(node.title)}")
+                    continue
+
             # Check if hidden
             if is_hidden(node):
                 if download_hidden_files:
                     stats['hidden'] += 1
-                    print(f"{Fore.YELLOW}{progress}{Style.RESET_ALL} {Fore.MAGENTA}[hidden]{Style.RESET_ALL} {_truncate_title(node.title)}")
+                    print(f"{Fore.YELLOW}{progress}{Style.RESET_ALL} {Fore.MAGENTA}[Hidden]{Style.RESET_ALL} {_truncate_title(node.title)}")
                 else:
                     continue
 
@@ -567,7 +574,18 @@ class DownloaderMixin:
             # Create "Content Location" shortcut to the source Canvas page
             parent_type = node.parent.__class__.__name__
             target_folder = os.path.dirname(full_file_path)
-            if parent_type not in ("Module", "ModuleItem") and target_folder not in shortcut_folders:
+            if not flatten and parent_type in ("Module", "ModuleItem"):
+                relative_parts = os.path.relpath(full_file_path, root_directory).split(os.sep)
+                module_folder = os.path.join(root_directory, *relative_parts[:3])
+                if module_folder not in shortcut_folders:
+                    source_url = get_source_page_url(node)
+                    if source_url:
+                        shortcut_path = os.path.join(module_folder, "Content Location")
+                        if not os.path.exists(module_folder):
+                            os.makedirs(module_folder)
+                        create_windows_shortcut_from_url(source_url, shortcut_path)
+                        shortcut_folders.add(module_folder)
+            elif target_folder not in shortcut_folders:
                 source_url = get_source_page_url(node)
                 if source_url:
                     shortcut_path = os.path.join(target_folder, "Content Location")
@@ -575,19 +593,9 @@ class DownloaderMixin:
                         os.makedirs(target_folder)
                     create_windows_shortcut_from_url(source_url, shortcut_path)
                     shortcut_folders.add(target_folder)
-            elif parent_type in ("Module", "ModuleItem"):
-                relative_parts = os.path.relpath(full_file_path, root_directory).split(os.sep)
-                module_folder = os.path.join(root_directory, relative_parts[0], relative_parts[1])
-                if module_folder not in shortcut_folders:
-                    source_url = node.root.course_url
-                    if source_url:
-                        shortcut_path = os.path.join(module_folder, "Content Location")
-                        if not os.path.exists(module_folder):
-                            os.makedirs(module_folder)
-                        create_windows_shortcut_from_url(source_url, shortcut_path)
-                        shortcut_folders.add(module_folder)
 
-            result = self._download_file(node.url, full_file_path, bool(force_to_shortcut.match(node.url)))
+            url = getattr(node, "download_url", None) or node.url
+            result = self._download_file(url, full_file_path, bool(force_to_shortcut.match(node.url)))
 
             # Track result
             if result:
@@ -676,10 +684,10 @@ class DownloaderMixin:
                 return create_windows_shortcut_from_url(url, filename)
 
             # Download successfully
-            try:
-                display_name = _truncate_title(os.path.basename(filename), 45)
-                print(f"  {Fore.GREEN}\u2193{Style.RESET_ALL} {display_name}")
+            display_name = _truncate_title(os.path.basename(filename), 45)
+            print(f"  {Fore.GREEN}\u2193{Style.RESET_ALL} {display_name}")
 
+            try:
                 with open(filename, 'wb') as file:
                     for chunk in response.iter_content(chunk_size=8192):
                         if chunk:
@@ -689,10 +697,12 @@ class DownloaderMixin:
 
                 return filename
 
-            except PermissionError as exc:
-                log.exception(f"Permission Error: {exc}, {filename}")
-                print(f"  {Fore.RED}\u2717{Style.RESET_ALL} Permission denied: {_truncate_title(os.path.basename(filename))} {Fore.LIGHTBLACK_EX}(creating shortcut){Style.RESET_ALL}")
-                return create_windows_shortcut_from_url(url, filename)
+            except OSError as exc:
+                log.exception(f"OS Error during file write: {exc}, {filename}")
+                print(f"\n  {Fore.RED}\u2717 Unable to save file: {_truncate_title(os.path.basename(filename))}{Style.RESET_ALL}")
+                print(f"  {Fore.RED}  The download destination is no longer accessible. "
+                      f"Check that the drive is connected and try again.{Style.RESET_ALL}")
+                raise SystemExit(1)
 
         except requests.exceptions.ConnectionError as exc:
             log.exception(f"Connection Error: {exc}, {url}")

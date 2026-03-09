@@ -1,0 +1,789 @@
+import json
+import logging
+import os
+import sys
+import threading
+import traceback
+import customtkinter as ctk
+from tkinter import filedialog
+
+from gui.widgets import _add_focus_ring, _underline_char, Tooltip, TextRedirector
+
+log = logging.getLogger(__name__)
+
+
+class GUIController:
+    """Controller for the Canvas Bot GUI (MVC pattern).
+
+    Handles user actions, input validation, settings persistence,
+    and orchestrates calls to the canvas_bot engine (model).
+    """
+
+    def __init__(self, view):
+        self.view = view
+        self._running = False
+        self._course_id_active = True
+        self._old_stdout = None
+        self._old_stderr = None
+
+    # ── Settings Persistence ──
+
+    def settings_path(self):
+        appdata = os.environ.get("APPDATA", "")
+        return os.path.join(appdata, "canvas bot", "gui_settings.json")
+
+    def load_settings(self):
+        try:
+            with open(self.settings_path(), "r") as f:
+                data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            return
+
+        self.view.var_course_id.set(data.get("course_id", ""))
+        self.view.var_course_list.set(data.get("course_list", ""))
+
+        # Migrate from old 3-folder settings to single output_folder
+        output_folder = data.get("output_folder", "")
+        if not output_folder:
+            output_folder = (data.get("download_folder", "")
+                             or data.get("excel_folder", "")
+                             or data.get("json_folder", ""))
+        self.view.var_output_folder.set(output_folder)
+
+        self.view.var_download.set(data.get("download", True))
+        self.view.var_video.set(data.get("include_video", False))
+        self.view.var_audio.set(data.get("include_audio", False))
+        self.view.var_image.set(data.get("include_image", False))
+        self.view.var_hidden.set(data.get("include_hidden", False))
+        self.view.var_inactive.set(data.get("include_inactive", False))
+        self.view.var_flatten.set(data.get("flatten", False))
+        self.view.var_content_tree.set(data.get("content_tree", False))
+        self.view.var_full_tree.set(data.get("full_tree", False))
+        self.validate_run()
+
+    def save_settings(self):
+        try:
+            data = {
+                "course_id": self.view.var_course_id.get(),
+                "course_list": self.view.var_course_list.get(),
+                "output_folder": self.view.var_output_folder.get(),
+                "download": self.view.var_download.get(),
+                "include_video": self.view.var_video.get(),
+                "include_audio": self.view.var_audio.get(),
+                "include_image": self.view.var_image.get(),
+                "include_hidden": self.view.var_hidden.get(),
+                "include_inactive": self.view.var_inactive.get(),
+                "flatten": self.view.var_flatten.get(),
+                "content_tree": self.view.var_content_tree.get(),
+                "full_tree": self.view.var_full_tree.get(),
+            }
+            folder = os.path.dirname(self.settings_path())
+            os.makedirs(folder, exist_ok=True)
+            with open(self.settings_path(), "w") as f:
+                json.dump(data, f, indent=4)
+        except OSError:
+            pass
+
+    # ── First Run ──
+
+    def is_first_run(self):
+        """Check if this is the first time the GUI has been launched."""
+        try:
+            with open(self.settings_path(), "r") as f:
+                data = json.load(f)
+            return data.get("first_run", True)
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            return True
+
+    def _set_first_run_complete(self):
+        """Mark first run as complete in settings."""
+        try:
+            try:
+                with open(self.settings_path(), "r") as f:
+                    data = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError, OSError):
+                data = {}
+            data["first_run"] = False
+            folder = os.path.dirname(self.settings_path())
+            os.makedirs(folder, exist_ok=True)
+            with open(self.settings_path(), "w") as f:
+                json.dump(data, f, indent=4)
+        except OSError:
+            pass
+
+    def show_welcome(self):
+        """Show the first-run welcome and security dialog."""
+        if not self.is_first_run():
+            return
+
+        dialog = ctk.CTkToplevel(self.view.root)
+        dialog.title("Welcome to Canvas Bot")
+        dialog.geometry("560x580")
+        dialog.resizable(False, False)
+        dialog.transient(self.view.root)
+        dialog.grab_set()
+
+        # Center on screen (parent may not be positioned yet at startup)
+        dialog.update_idletasks()
+        screen_w = dialog.winfo_screenwidth()
+        screen_h = dialog.winfo_screenheight()
+        x = (screen_w - 560) // 2
+        y = (screen_h - 580) // 2
+        dialog.geometry(f"+{x}+{y}")
+
+        scroll = ctk.CTkScrollableFrame(dialog, fg_color="transparent")
+        scroll.pack(fill="both", expand=True, padx=15, pady=15)
+
+        # High-contrast heading color: red-orange in light mode, light coral in dark mode
+        warn_color = ("#c0392b", "#e74c3c")
+
+        def heading(text, color=None):
+            lbl = ctk.CTkLabel(scroll, text=text,
+                               font=ctk.CTkFont(size=15, weight="bold"), anchor="w")
+            if color:
+                lbl.configure(text_color=color)
+            lbl.pack(fill="x", pady=(12, 4))
+
+        def body(text):
+            ctk.CTkLabel(scroll, text=text, font=ctk.CTkFont(size=13),
+                         anchor="w", justify="left", wraplength=500).pack(fill="x", pady=(0, 2))
+
+        # Welcome
+        ctk.CTkLabel(scroll, text="Welcome to Canvas Bot",
+                     font=ctk.CTkFont(size=20, weight="bold"), anchor="w").pack(fill="x")
+        body(
+            "Canvas Bot is a bridge between Canvas LMS and your desktop. It scans "
+            "courses to discover content, downloads files, and lets you review items "
+            "for accessibility."
+        )
+
+        # Security
+        heading("Security & API Credentials", color=warn_color)
+        body(
+            "Canvas Bot requires a Canvas API access token to function. "
+            "This token grants read access to course content on your behalf."
+        )
+        body("1.  Never share your API token with anyone.")
+        body("2.  Generate a dedicated token for Canvas Bot. Do not reuse tokens from other applications.")
+        body("3.  Set an expiration date on your token and rotate it periodically.")
+        body(
+            "4.  If your token is compromised, revoke it immediately in Canvas "
+            "(Account > Settings > Approved Integrations)."
+        )
+        body(
+            "5.  Your token is stored in the Windows Credential Vault (encrypted, "
+            "per-user). It is never written to plaintext files or logs."
+        )
+
+        # Responsibility
+        heading("Deployment & Responsibility", color=warn_color)
+        body(
+            "Canvas Bot has been hardened following a SOC 2-aligned security assessment. "
+            "All API communication uses TLS certificate verification, credentials are "
+            "stored encrypted in the Windows Credential Vault and never written to "
+            "plaintext files, sensitive data is stripped from logs, and all inputs are "
+            "validated before use."
+        )
+        body(
+            "Canvas Bot is provided as-is under the CC-BY-NC-4.0 License. You are responsible "
+            "for how this tool is deployed and used within your institution. Ensure "
+            "that your use complies with your institution's data governance policies "
+            "and any applicable regulations (FERPA, GDPR, etc.)."
+        )
+
+        # Accessibility
+        heading("Accessibility")
+        body(
+            "The GUI supports full keyboard navigation with visible focus indicators, "
+            "Alt+key shortcuts on all buttons, and arrow key navigation in tables and "
+            "tab selectors. Color is never the sole means of conveying information. "
+            "Due to limitations of the underlying framework (CustomTkinter), screen "
+            "reader support is limited."
+        )
+
+        # Getting started
+        heading("Getting Started")
+        body("1.  Click \"Reset Config\" in the title bar to set up your Canvas instance URL and API token.")
+        body("2.  Enter a course ID, choose an output folder, and check \"Download files\".")
+        body("3.  Click Run to start scanning.")
+
+        def _close():
+            self._set_first_run_complete()
+            dialog.destroy()
+
+        close_btn = ctk.CTkButton(dialog, text="Get Started", width=140, command=_close)
+        close_btn.pack(pady=(5, 15))
+        _add_focus_ring(close_btn)
+        _underline_char(close_btn, 0)  # G
+        close_btn.focus_set()
+
+        dialog.bind("<Escape>", lambda e: _close())
+        dialog.protocol("WM_DELETE_WINDOW", _close)
+
+    # ── Configuration ──
+
+    def check_config(self):
+        """Check if Canvas API configuration is functional and update status bar."""
+        try:
+            from network.cred import check_config_status
+            ok, message = check_config_status()
+            if ok:
+                self.view.status_label.configure(text=f"Status: {message}", text_color=("gray10", "gray90"))
+            else:
+                self.view.status_label.configure(text=f"Status: WARNING — {message}", text_color=("#B45309", "#F59E0B"))
+        except Exception:
+            self.view.status_label.configure(text="Status: WARNING — Configuration check failed", text_color=("#B45309", "#F59E0B"))
+
+    def launch_cli(self, flag):
+        import subprocess
+        if getattr(sys, 'frozen', False):
+            exe = sys.executable
+            subprocess.Popen(['cmd', '/k', exe, flag], creationflags=subprocess.CREATE_NEW_CONSOLE)
+        else:
+            script = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'canvas_bot.py')
+            subprocess.Popen(['cmd', '/k', 'python', script, flag], creationflags=subprocess.CREATE_NEW_CONSOLE)
+
+    def view_config(self):
+        self.launch_cli('--config_status')
+
+    def open_log_file(self):
+        log_path = os.path.join(os.environ.get("APPDATA", ""), "canvas bot", "canvas_bot.log")
+        if os.path.isfile(log_path):
+            os.startfile(log_path)
+        else:
+            self.view.status_label.configure(text="Status: No log file found", text_color=("#B45309", "#F59E0B"))
+
+    def reset_config(self):
+        dialog = ctk.CTkToplevel(self.view.root)
+        dialog.title("Reset Configuration")
+        dialog.geometry("350x200")
+        dialog.resizable(False, False)
+        dialog.transient(self.view.root)
+        dialog.grab_set()
+
+        # Center on parent
+        dialog.update_idletasks()
+        x = self.view.root.winfo_x() + (self.view.root.winfo_width() - 350) // 2
+        y = self.view.root.winfo_y() + (self.view.root.winfo_height() - 200) // 2
+        dialog.geometry(f"+{x}+{y}")
+
+        ctk.CTkLabel(
+            dialog,
+            text="Choose what to reset:",
+            font=ctk.CTkFont(size=14, weight="bold"),
+        ).pack(pady=(20, 15))
+
+        api_btn = ctk.CTkButton(
+            dialog,
+            text="Reset Canvas API Credentials",
+            width=260,
+            command=lambda: [dialog.destroy(), self.launch_cli('--reset_canvas_params')],
+        )
+        api_btn.pack(pady=5)
+        _add_focus_ring(api_btn)
+        _underline_char(api_btn, 13)  # A in "API"
+        api_btn.focus_set()
+        Tooltip(api_btn, "Clear and reconfigure Canvas API token and instance URL")
+
+        studio_btn = ctk.CTkButton(
+            dialog,
+            text="Reset Canvas Studio Credentials",
+            width=260,
+            command=lambda: [dialog.destroy(), self.launch_cli('--reset_canvas_studio_params')],
+        )
+        studio_btn.pack(pady=5)
+        _add_focus_ring(studio_btn)
+        _underline_char(studio_btn, 13)  # S in "Studio"
+        Tooltip(studio_btn, "Clear and reconfigure Canvas Studio OAuth credentials")
+
+        cancel_btn = ctk.CTkButton(
+            dialog,
+            text="Cancel",
+            width=260,
+            fg_color="gray",
+            command=dialog.destroy,
+        )
+        cancel_btn.pack(pady=(10, 0))
+        _add_focus_ring(cancel_btn)
+        _underline_char(cancel_btn, 0)  # C
+
+        dialog.bind("<Escape>", lambda e: dialog.destroy())
+
+    # ── Browse Handlers ──
+
+    def browse_course_list(self):
+        path = filedialog.askopenfilename(
+            title="Select Course List",
+            filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+        )
+        if path:
+            self.view.var_course_list.set(path)
+
+    def browse_folder(self, variable):
+        path = filedialog.askdirectory(title="Select Folder")
+        if path:
+            variable.set(path)
+
+    # ── Input Validation ──
+
+    def on_course_id_changed(self, *_):
+        if self.view.var_course_id.get().strip():
+            self._course_id_active = True
+            self.view.var_course_list.set("")
+            self.view.cb_content_tree.configure(state="normal")
+            self.view.cb_full_tree.configure(state="normal")
+        self.validate_run()
+
+    def on_course_list_changed(self, *_):
+        if self.view.var_course_list.get().strip():
+            self._course_id_active = False
+            self.view.var_course_id.set("")
+            # Disable tree options for batch mode
+            self.view.var_content_tree.set(False)
+            self.view.var_full_tree.set(False)
+            self.view.cb_content_tree.configure(state="disabled")
+            self.view.cb_full_tree.configure(state="disabled")
+        self.validate_run()
+
+    def on_content_tree_toggled(self):
+        if self.view.var_content_tree.get():
+            self.view.var_full_tree.set(False)
+        self.validate_run()
+
+    def on_full_tree_toggled(self):
+        if self.view.var_full_tree.get():
+            self.view.var_content_tree.set(False)
+        self.validate_run()
+
+    def validate_run(self, *_):
+        if self._running:
+            return
+        has_course = (self.view.var_course_id.get().strip()
+                      or self.view.var_course_list.get().strip())
+
+        output_folder = self.view.var_output_folder.get().strip()
+        has_action = output_folder and self.view.var_download.get()
+        has_tree = (self.view.var_content_tree.get()
+                    or self.view.var_full_tree.get())
+
+        if has_course and (has_action or has_tree):
+            self.view.run_btn.configure(state="normal")
+        else:
+            self.view.run_btn.configure(state="disabled")
+
+    # ── Run Logic ──
+
+    def set_status(self, text):
+        color = "orange" if text.startswith("Error") else ("gray10", "gray90")
+        self.view.root.after(0, self.view.status_label.configure, {"text": f"Status: {text}", "text_color": color})
+
+    def on_run(self):
+        if self._running:
+            return
+
+        self.save_settings()
+
+        # Clear log
+        self.view.log_text.configure(state="normal")
+        self.view.log_text.delete("1.0", "end")
+        self.view.log_text.configure(state="disabled")
+
+        # Disable controls
+        self._running = True
+        self.view.run_btn.configure(state="disabled", text="Running...")
+        self.set_status("Initializing...")
+
+        # Redirect stdout/stderr to log textbox
+        self._old_stdout = sys.stdout
+        self._old_stderr = sys.stderr
+        sys.stdout = TextRedirector(self.view.log_text, self.view.root, self._old_stdout)
+        sys.stderr = TextRedirector(self.view.log_text, self.view.root, self._old_stderr)
+
+        # Spawn worker thread
+        thread = threading.Thread(target=self._run_worker, daemon=True)
+        thread.start()
+
+    def _run_worker(self):
+        try:
+            import pythoncom
+            pythoncom.CoInitialize()
+            from canvas_bot import CanvasBot, read_course_list
+            from network.cred import set_canvas_api_key_to_environment_variable, load_config_data_from_appdata
+
+            # Check credentials
+            if not load_config_data_from_appdata():
+                self.set_status("Error - Not Configured")
+                print("ERROR: Canvas Bot is not configured.")
+                print("Click 'Reset Config' to configure your Canvas instance.")
+                self._finish_run()
+                return
+
+            from sorters.sorters import reload_patterns
+            reload_patterns()
+
+            if not set_canvas_api_key_to_environment_variable():
+                self.set_status("Error - No API Token")
+                print("ERROR: No Canvas API access token found.")
+                print("Click 'Reset Config' to set up your API token.")
+                self._finish_run()
+                return
+
+            # Build and validate course list
+            from gui.validation import validate_course_id, validate_course_list
+
+            course_ids = []
+            if self.view.var_course_id.get().strip():
+                cid = self.view.var_course_id.get().strip()
+                error = validate_course_id(cid)
+                if error:
+                    self.set_status("Error")
+                    print(f"ERROR: {error}")
+                    self._finish_run()
+                    return
+                course_ids = [cid]
+            elif self.view.var_course_list.get().strip():
+                raw_ids = read_course_list(self.view.var_course_list.get().strip())
+                course_ids, warnings = validate_course_list(raw_ids)
+                for w in warnings:
+                    print(f"WARNING: {w}")
+
+            if not course_ids:
+                self.set_status("Error")
+                print("ERROR: No valid course IDs to process.")
+                self._finish_run()
+                return
+
+            # Build params
+            params = {
+                "include_video_files": self.view.var_video.get(),
+                "include_audio_files": self.view.var_audio.get(),
+                "include_image_files": self.view.var_image.get(),
+                "download_hidden_files": self.view.var_hidden.get(),
+                "only_active_files": not self.view.var_inactive.get(),
+                "flatten": self.view.var_flatten.get(),
+            }
+
+            output_folder = self.view.var_output_folder.get().strip() or None
+            do_download = self.view.var_download.get()
+
+            total = len(course_ids)
+            for i, course_id in enumerate(course_ids, 1):
+                self.set_status(f"Processing course {i}/{total} (ID: {course_id})...")
+                print(f"\n{'='*50}")
+                print(f"Course {i}/{total} — ID: {course_id}")
+                print(f"{'='*50}\n")
+
+                bot = CanvasBot(course_id)
+                bot.start()
+
+                # Compute course subfolder once for all operations
+                course_folder = None
+                if output_folder and bot.exists:
+                    from tools.string_checking.url_cleaning import sanitize_windows_filename
+                    from config.yaml_io import create_download_manifest
+                    course_folder = os.path.join(
+                        os.path.normpath(output_folder),
+                        f"{sanitize_windows_filename(bot.course_name)} - {bot.course_id}",
+                    )
+
+                # Save content.json to .manifest/ for Content Viewer
+                if course_folder:
+                    manifest_dir = create_download_manifest(course_folder)
+                    bot.save_content_as_json(manifest_dir, course_folder, **params)
+
+                if self.view.var_content_tree.get():
+                    bot.print_content_tree()
+
+                if self.view.var_full_tree.get():
+                    bot.print_full_course()
+
+                if output_folder and do_download:
+                    bot.download_files(output_folder, **params)
+
+
+            self.set_status("Complete")
+            print(f"\nAll done — {total} course(s) processed.")
+            self.view.root.after(0, self._on_scan_complete)
+
+        except Exception as exc:
+            log.exception(f"Unhandled error: {type(exc).__name__}: {exc}")
+            self.set_status("Error")
+            traceback.print_exc()
+
+        finally:
+            pythoncom.CoUninitialize()
+            self._finish_run()
+
+    def _on_scan_complete(self):
+        """Called on the main thread after all courses have been processed."""
+        # Refresh Content Viewer if it exists
+        if hasattr(self.view, "content_viewer"):
+            self.view.content_viewer.refresh_course_list()
+
+    def _finish_run(self):
+        # Restore stdout/stderr
+        sys.stdout = self._old_stdout
+        sys.stderr = self._old_stderr
+
+        # Re-enable controls on the main thread
+        def _restore():
+            self._running = False
+            self.view.run_btn.configure(text="Run")
+            _underline_char(self.view.run_btn, 0)
+            self.validate_run()
+
+        self.view.root.after(0, _restore)
+
+    # ── About ──
+
+    def show_about(self):
+        dialog = ctk.CTkToplevel(self.view.root)
+        dialog.title("About Canvas Bot")
+        dialog.geometry("640x620")
+        dialog.resizable(False, False)
+        dialog.transient(self.view.root)
+        dialog.grab_set()
+
+        # Center on parent
+        dialog.update_idletasks()
+        x = self.view.root.winfo_x() + (self.view.root.winfo_width() - 640) // 2
+        y = self.view.root.winfo_y() + (self.view.root.winfo_height() - 620) // 2
+        dialog.geometry(f"+{x}+{y}")
+
+        wrap = 580
+        _indent = 18  # left padding for bullet/detail lines
+
+        def _heading(parent, text):
+            ctk.CTkLabel(parent, text=text, font=ctk.CTkFont(size=15, weight="bold"), anchor="w").pack(fill="x", pady=(12, 4))
+
+        def _body(parent, text):
+            ctk.CTkLabel(parent, text=text, font=ctk.CTkFont(size=13), anchor="w", justify="left", wraplength=wrap).pack(fill="x", pady=(0, 2))
+
+        def _bullet(parent, bold, rest=""):
+            """Render a bullet with a bold lead-in and description below it."""
+            _bw = wrap - _indent - 14
+            frame = ctk.CTkFrame(parent, fg_color="transparent")
+            frame.pack(fill="x", padx=(_indent, 0), pady=(0, 2))
+            ctk.CTkLabel(frame, text="\u2022", font=ctk.CTkFont(size=13),
+                         anchor="nw", width=14).pack(side="left", anchor="n")
+            if rest:
+                col = ctk.CTkFrame(frame, fg_color="transparent")
+                col.pack(side="left", fill="x", expand=True)
+                ctk.CTkLabel(col, text=bold, font=ctk.CTkFont(size=13, weight="bold"),
+                             anchor="w").pack(fill="x")
+                desc = rest.lstrip("\u2014 ").strip()
+                ctk.CTkLabel(col, text=desc, font=ctk.CTkFont(size=12),
+                             anchor="w", justify="left", wraplength=_bw,
+                             text_color=("gray30", "gray70")).pack(fill="x")
+            else:
+                ctk.CTkLabel(frame, text=bold, font=ctk.CTkFont(size=13), anchor="w",
+                             justify="left", wraplength=_bw).pack(side="left", fill="x", expand=True)
+
+        def _note(parent, text):
+            """Small, muted text for tips or secondary information."""
+            ctk.CTkLabel(parent, text=text, font=ctk.CTkFont(size=11, slant="italic"),
+                         text_color=("gray45", "gray60"), anchor="w", justify="left",
+                         wraplength=wrap).pack(fill="x", padx=(_indent, 0), pady=(2, 2))
+
+        # ── Tabview ──
+        tabview = ctk.CTkTabview(dialog)
+        tabview.pack(fill="both", expand=True, padx=10, pady=(10, 0))
+
+        tabview.add("About")
+        tabview.add("Run")
+        tabview.add("Content")
+        tabview.add("Patterns")
+
+        # Make tab selector buttons keyboard-navigable
+        tab_names = ["About", "Run", "Content", "Patterns"]
+        try:
+            buttons = tabview._segmented_button._buttons_dict
+            for name in tab_names:
+                btn = buttons.get(name)
+                if not btn:
+                    continue
+                _add_focus_ring(btn)
+
+                def _nav(event, current=name, direction=0):
+                    idx = tab_names.index(current) + direction
+                    if 0 <= idx < len(tab_names):
+                        target = tab_names[idx]
+                        tabview.set(target)
+                        buttons[target].focus_set()
+                    return "break"
+
+                btn.bind("<Left>", lambda e, n=name: _nav(e, n, -1))
+                btn.bind("<Right>", lambda e, n=name: _nav(e, n, 1))
+        except AttributeError:
+            pass
+
+        # ── About tab ──
+        about_scroll = ctk.CTkScrollableFrame(tabview.tab("About"), fg_color="transparent")
+        about_scroll.pack(fill="both", expand=True)
+
+        ctk.CTkLabel(about_scroll, text="Canvas Bot", font=ctk.CTkFont(size=20, weight="bold"), anchor="w").pack(fill="x")
+        ctk.CTkLabel(about_scroll, text="v1.2.2  |  CC-BY-NC-4.0", font=ctk.CTkFont(size=13), text_color="gray", anchor="w").pack(fill="x")
+
+        _heading(about_scroll, "What is Canvas Bot?")
+        _body(about_scroll,
+            "Canvas Bot is a bridge between Canvas LMS and your desktop. It connects to your "
+            "institution's Canvas and scans courses to discover all embedded files, links, and media. "
+            "You can download course documents directly to your computer, browse content by type, "
+            "and review items for accessibility. It is designed for instructional designers and "
+            "accessibility specialists who need to audit courses at scale."
+        )
+
+        _heading(about_scroll, "Getting Started")
+        _body(about_scroll, "1.  Click \"Reset Config\" and choose \"Reset Canvas API Credentials\".")
+        _body(about_scroll, "2.  Enter your institution identifier (e.g. \"sfsu\" for sfsu.instructure.com).")
+        _body(about_scroll, "3.  Paste your Canvas API access token when prompted.")
+        _body(about_scroll, "4.  Enter a course ID, choose an output folder, and click Run.")
+
+        _heading(about_scroll, "Configuration")
+        _body(about_scroll,
+            "Before first use, click \"Reset Config\" to set up your Canvas instance URL and API "
+            "access token. You can generate an API token in Canvas under Account > Settings > "
+            "New Access Token. Use \"View Config\" to verify your current configuration."
+        )
+
+        _heading(about_scroll, "Contact - Ideas & Issues")
+        _body(about_scroll, "Daniel Fontaine")
+        email = ctk.CTkLabel(about_scroll, text="fontaine@sfsu.edu",
+                             font=ctk.CTkFont(size=13), anchor="w", text_color="#3B8ED0", cursor="hand2")
+        email.pack(fill="x", pady=(0, 2))
+        email.bind("<Button-1>", lambda e: __import__("webbrowser").open("mailto:fontaine@sfsu.edu"))
+        link = ctk.CTkLabel(about_scroll, text="github.com/Fontaineconsult/canvas-bot-v2",
+                            font=ctk.CTkFont(size=13), anchor="w", text_color="#3B8ED0", cursor="hand2")
+        link.pack(fill="x", pady=(0, 2))
+        link.bind("<Button-1>", lambda e: __import__("webbrowser").open("https://github.com/Fontaineconsult/canvas-bot-v2"))
+
+        # ── Run tab ──
+        run_scroll = ctk.CTkScrollableFrame(tabview.tab("Run"), fg_color="transparent")
+        run_scroll.pack(fill="both", expand=True)
+
+        _heading(run_scroll, "Course Selection")
+        _body(run_scroll, "Choose what to scan:")
+        _bullet(run_scroll, "Course ID", "\u2014 the number from your course URL (e.g. canvas.edu/courses/12345).")
+        _bullet(run_scroll, "Course List", "\u2014 a .txt file with one course ID per line for batch processing.")
+        _note(run_scroll, "Only one input is active at a time. Entering a Course ID clears the Course List and vice versa.")
+
+        _heading(run_scroll, "Output")
+        _body(run_scroll, "Select an output folder, then check \"Download files\" to enable downloading.")
+        _bullet(run_scroll, "Downloads are organized into subfolders by module and content type.")
+        _bullet(run_scroll, "Content data is saved automatically so you can review it in the Content tab.")
+        _note(run_scroll, "You must set an output folder and check \"Download files\" before the Run button activates.")
+
+        _heading(run_scroll, "Download Options")
+        _body(run_scroll, "By default only documents (PDF, DOCX, PPTX, etc.) are downloaded.")
+        _bullet(run_scroll, "Include video / audio / image files", "\u2014 adds those media types to the download.")
+        _bullet(run_scroll, "Include hidden content", "\u2014 downloads unpublished items not visible to students.")
+        _bullet(run_scroll, "Include inactive content", "\u2014 downloads files that exist in the course but aren't linked from any active page.")
+        _bullet(run_scroll, "Flatten folder structure", "\u2014 saves all files into a single directory instead of preserving the module hierarchy.")
+
+        _heading(run_scroll, "Display Options")
+        _body(run_scroll, "Available in single-course mode only.")
+        _bullet(run_scroll, "Print content tree", "\u2014 shows a tree of resources that contain downloadable content.")
+        _bullet(run_scroll, "Print full course tree", "\u2014 shows every resource in the course, including empty modules and pages.")
+        _note(run_scroll, "These options are mutually exclusive and disabled during batch processing.")
+
+        # ── Content tab ──
+        content_scroll = ctk.CTkScrollableFrame(tabview.tab("Content"), fg_color="transparent")
+        content_scroll.pack(fill="both", expand=True)
+
+        _heading(content_scroll, "Content Viewer")
+        _body(content_scroll,
+            "Browse and review content from previously scanned courses. After running a scan "
+            "with an output folder set, course data is saved automatically and appears here."
+        )
+
+        _heading(content_scroll, "Course Selector")
+        _body(content_scroll, "The top bar controls which course you're viewing:")
+        _bullet(content_scroll, "Dropdown", "\u2014 lists all scanned courses found in your output folder.")
+        _bullet(content_scroll, "Refresh", "\u2014 re-scans the output folder for new or updated data.")
+        _bullet(content_scroll, "Open Folder", "\u2014 opens the selected course's directory in File Explorer.")
+        _bullet(content_scroll, "Delete", "\u2014 permanently removes the selected course folder and its data.")
+
+        _heading(content_scroll, "Categories & Tables")
+        _body(content_scroll,
+            "Content is organized into six categories, each with sub-selectors:"
+        )
+        _bullet(content_scroll, "Documents", "\u2014 downloadable files (PDF, DOCX, etc.) and document sites (Google Docs, OneDrive).")
+        _bullet(content_scroll, "Videos", "\u2014 video sites (YouTube, Vimeo), downloadable video files, and institution video.")
+        _bullet(content_scroll, "Audio", "\u2014 audio files (MP3, WAV) and audio sites (podcast links).")
+        _bullet(content_scroll, "Images", "\u2014 downloadable image files (JPG, PNG, GIF).")
+        _bullet(content_scroll, "Other", "\u2014 digital textbooks and file storage (Box, Google Drive).")
+        _bullet(content_scroll, "Unsorted", "\u2014 links that didn't match any known pattern.")
+        _note(content_scroll, "Click column headings to sort. Use arrow keys to navigate between categories and sub-selectors.")
+
+        _heading(content_scroll, "Review Status")
+        _body(content_scroll,
+            "Select a row, then use the status buttons on the right side of the toolbar:"
+        )
+        _bullet(content_scroll, "Passed (green)", "\u2014 item has been reviewed and is acceptable.")
+        _bullet(content_scroll, "Needs Review (yellow)", "\u2014 item requires further attention.")
+        _bullet(content_scroll, "Ignore (gray)", "\u2014 item is excluded from review.")
+        _note(content_scroll, "Status is saved per-course and persists across sessions.")
+
+        _heading(content_scroll, "Action Buttons")
+        _body(content_scroll, "The bottom bar provides quick access to files and pages:")
+        _bullet(content_scroll, "Open File Location", "\u2014 opens the folder containing a downloaded file. For site-type items, this becomes \"Open Site\" and opens the URL in your browser.")
+        _bullet(content_scroll, "Open File", "\u2014 opens the downloaded file in its default application. Hidden for site-type categories.")
+        _bullet(content_scroll, "Open Source Page", "\u2014 opens the Canvas page where the content was found.")
+        _bullet(content_scroll, "Open Canvas Files", "\u2014 opens the course's Files page in Canvas.")
+
+        _heading(content_scroll, "Filters")
+        _bullet(content_scroll, "Show Inactive Content", "\u2014 includes items not linked from any active Canvas page or marked as hidden. Off by default.")
+
+        # ── Patterns tab ──
+        patterns_scroll = ctk.CTkScrollableFrame(tabview.tab("Patterns"), fg_color="transparent")
+        patterns_scroll.pack(fill="both", expand=True)
+
+        _heading(patterns_scroll, "Pattern Manager")
+        _body(patterns_scroll,
+            "Canvas Bot uses regex patterns to classify every URL it discovers. Patterns "
+            "determine whether a link is categorized as a document, video, audio, image, or "
+            "other content type. This tab lets you view, edit, and test those patterns."
+        )
+
+        _heading(patterns_scroll, "Categories")
+        _body(patterns_scroll, "The left panel lists all pattern categories:")
+        _bullet(patterns_scroll, "Click a category", "\u2014 to view its patterns in the table on the right.")
+        _bullet(patterns_scroll, "Count badge", "\u2014 shows how many patterns each category contains.")
+        _note(patterns_scroll, "Some internal categories are hidden from this view but still function in the pipeline.")
+
+        _heading(patterns_scroll, "Editing Patterns")
+        _body(patterns_scroll, "Select a category first, then use the toolbar buttons:")
+        _bullet(patterns_scroll, "Add Pattern", "\u2014 enter a new regex pattern for the selected category.")
+        _bullet(patterns_scroll, "Remove Pattern", "\u2014 delete the currently selected pattern from the list.")
+        _bullet(patterns_scroll, "Validate", "\u2014 check that a pattern's regex syntax is valid before saving.")
+        _note(patterns_scroll, "Patterns use Python regex syntax. Changes take effect on the next scan.")
+
+        _heading(patterns_scroll, "Test URL")
+        _body(patterns_scroll,
+            "Enter a URL or filename in the test box at the bottom and click Test. The result "
+            "shows every category that matches, so you can verify a URL is being classified correctly."
+        )
+
+        _heading(patterns_scroll, "Reset to Defaults")
+        _body(patterns_scroll,
+            "The \"Reset All to Defaults\" button restores the original bundled patterns."
+        )
+        _note(patterns_scroll, "This permanently removes any custom patterns you have added.")
+
+        # ── Bottom buttons ──
+        btn_row = ctk.CTkFrame(dialog, fg_color="transparent")
+        btn_row.pack(fill="x", padx=10, pady=(5, 15))
+
+        logs_btn = ctk.CTkButton(btn_row, text="Logs", width=80, command=self.open_log_file)
+        logs_btn.pack(side="left")
+        _add_focus_ring(logs_btn)
+        _underline_char(logs_btn, 0)  # L
+        Tooltip(logs_btn, "Open the application log file")
+
+        close_btn = ctk.CTkButton(btn_row, text="Close", width=120, command=dialog.destroy)
+        close_btn.pack(side="right")
+        _add_focus_ring(close_btn)
+        _underline_char(close_btn, 0)  # C
+        close_btn.focus_set()
+
+        dialog.bind("<Escape>", lambda e: dialog.destroy())

@@ -18,8 +18,11 @@ A tool for downloading, auditing, and organizing content from Canvas LMS courses
   - [Pattern Management](#pattern-management)
 - [Configuration](#configuration)
 - [Security and Privacy](#security-and-privacy)
+- [Accessibility](#accessibility)
 - [Pipeline Testing](#pipeline-testing)
 - [Program Flags Reference](#program-flags-reference)
+- [Obtaining a Canvas API Access Token](#obtaining-a-canvas-api-access-token)
+- [Uninstall](#uninstall)
 - [Support](#support)
 - [License](#license)
 
@@ -31,6 +34,8 @@ CanvasBot is a Windows application designed for accessible media coordinators an
 - **Categorize** embedded content by type using configurable regex patterns
 - **Export** content inventories to Excel or JSON for accessibility auditing
 - **Track** download progress to avoid re-downloading files
+
+CanvasBot operates in **read-only mode** — it reads course content via the Canvas API but never creates, modifies, or deletes any content, grades, enrollments, or settings in Canvas.
 
 CanvasBot can be used through a graphical user interface (GUI) or the command line (CLI). Double-click the executable or run without arguments to launch the GUI; pass command-line flags for scripted/automated workflows.
 
@@ -167,10 +172,10 @@ CanvasBot classifies content into these categories:
 
 | Type | Description | Examples |
 |------|-------------|----------|
-| Documents | Downloadable document files | PDF, DOCX, PPTX, XLSX |
+| Documents | Downloadable document files | PDF, DOCX, PPTX, XLSX, ODT, EPUB, Pages |
 | Document Sites | Cloud document platforms | Google Docs, OneDrive |
 | Video Files | Downloadable video files | MP4, MOV, MKV |
-| Video Sites | Video hosting platforms | YouTube, Vimeo, Zoom |
+| Video Sites | Video hosting platforms | YouTube, Vimeo, Panopto, Kaltura, YuJa, Echo360, Zoom, Wistia, Brightcove, Kanopy |
 | Audio Files | Downloadable audio files | MP3, M4A, WAV |
 | Audio Sites | Audio/podcast platforms | Podcast links |
 | Image Files | Image files | JPG, PNG, GIF |
@@ -202,6 +207,16 @@ pip install -r requirements.txt
 python canvas_bot.py --help
 ```
 
+### First Launch on Windows
+
+The executable is not code-signed, so Windows SmartScreen may display a "Windows protected your PC" warning on first launch. This is normal for open-source software distributed outside the Microsoft Store.
+
+To proceed:
+1. Click **"More info"** on the SmartScreen dialog
+2. Click **"Run anyway"**
+
+The warning will not appear again after the first run. For institutional deployment, IT administrators can add the executable to their endpoint management allow-list to suppress this warning for all users.
+
 ## Quick Start
 
 ### First Run Setup
@@ -213,31 +228,23 @@ On first run, you'll be prompted for:
 
 ### GUI Mode
 
-Double-click the executable or run `python canvas_bot.py` with no arguments to launch the graphical interface. The GUI has three tabs: **Run**, **Content**, and **Patterns**.
+Double-click the executable or run `python canvas_bot.py` with no arguments to launch the graphical interface.
+
+The GUI is organized into three tabs:
+
+- **Run tab** — course selection (single ID or batch `.txt` file), a single output folder with action checkboxes (Download files, Export to Excel, Export to JSON), download options (video, audio, image, hidden, inactive, flatten), display options (content tree, full course tree), real-time log output
+- **Content tab** — a persistent browser for all previously scanned courses. Select a course from the dropdown to view its content organized into nested sub-tabs (Documents, Videos, Audio, Images, Unsorted) with sortable tables, a summary banner, detail panel with clickable URLs, and buttons to open file locations or source pages. A filter bar lets you toggle visibility of inactive content (items not linked from any active Canvas page).
+- **Patterns tab** — view, add, remove, validate, and test regex patterns from `re.yaml` without the CLI. Left column lists all pattern categories with counts; right column shows patterns in the selected category with Add, Remove, and Validate buttons; bottom panel tests a URL or filename against all compiled matchers
+
+Additional features:
+- **Settings persistence** — all inputs are saved across sessions
+- **About dialog** — click "About" for a guide to every GUI element and first-time setup instructions
 
 Configuration buttons in the title bar:
 - **View Config** — opens a terminal showing current configuration status
 - **Reset Config** — opens a dialog to reset Canvas API or Canvas Studio credentials
 
-Keyboard shortcuts: `Alt+R` Run, `Alt+V` View Config, `Alt+C` Reset Config, `Alt+A` About. All dialogs close with `Escape`.
-
-#### Run
-
-Enter a course ID (or browse for a batch `.txt` file), pick an output folder, select download and display options, and click **Run**. A real-time log shows scan progress and a content summary when complete. All inputs are saved across sessions.
-
-![Run View](docs/images/screenshot-of-the-run-view.png)
-
-#### Content
-
-Browse scanned course content in a searchable, sortable table. Use the category and sub-category selectors to filter by content type. Each row shows the file title, type, source, hidden status, download date, and review status. Action buttons at the bottom open the file, its folder, or the source Canvas page.
-
-![Content View](docs/images/screenshot-of-the-content-view.png)
-
-#### Patterns
-
-View and manage the regex patterns that classify content. Select a category on the left to see its patterns. Add, remove, validate, or test patterns against a URL or filename. Reset all patterns to defaults with one click.
-
-![Patterns View](docs/images/screenshot-of-the-patterns-view.png)
+Keyboard shortcuts: `Alt+R` Run, `Alt+V` View Config, `Alt+C` Reset Config, `Alt+A` About, `Ctrl+1/2/3` switch tabs. All dialogs close with `Escape`.
 
 ### CLI Mode
 
@@ -373,7 +380,13 @@ Canvasbot.exe --course_id 12345 --print_full_course
 
 ### Pattern Management
 
-CanvasBot uses regex patterns to classify content. You can manage these patterns via CLI:
+CanvasBot decides how to classify every URL and filename it discovers by testing it against a series of [regular expression](https://en.wikipedia.org/wiki/Regular_expression) (regex) patterns. These patterns are organized into categories like `document_content_regex`, `web_video_resources_regex`, `ignore_list_regex`, and so on. When a URL matches a pattern in a category, CanvasBot assigns it to that content type — for example, a URL ending in `.pdf` matches `document_content_regex` and becomes a Document node, while a YouTube link matches `web_video_resources_regex` and becomes a VideoSite node. URLs that don't match any pattern are classified as Unsorted.
+
+The default patterns cover common file types and popular platforms (YouTube, Vimeo, Google Docs, Box, etc.), but every institution has its own tools and services. You can add patterns to recognize institution-specific video platforms, custom document hosting, or any other content source that CanvasBot doesn't detect out of the box. You can also remove patterns that produce false positives or add entries to the ignore list to skip URLs you don't care about.
+
+Patterns use Python's `re` module syntax with case-insensitive matching. If you're new to regular expressions, [Pythex](https://pythex.org/) is a helpful tool for building and testing patterns interactively before adding them to CanvasBot.
+
+Patterns can be managed from the **Patterns tab** in the GUI or via CLI flags:
 
 #### List Patterns
 
@@ -476,12 +489,17 @@ CanvasBot handles sensitive credentials and institutional course content. The fo
 - **User and session identification** — Every log entry includes the Windows username and a unique session ID for attribution on shared machines.
 - **Unhandled exception logging** — All unexpected errors are captured with full tracebacks for debugging, including a global exception hook as a safety net.
 - **Log file permissions** — Log files are stored under `%APPDATA%\canvas bot\`, which is per-user protected on Windows. Best-effort file permission restrictions are applied on creation.
+- **No sensitive content in logs** — Logs contain course IDs, file counts, timestamps, and error messages. No file contents, student data, or credentials are recorded.
 
 ### Input Validation
 
 - **Course ID validation** — Course IDs are validated as numeric before being used in API requests, in both CLI and GUI modes. Batch course list files skip invalid entries with per-line warnings.
 - **Filename sanitization** — Downloaded filenames are stripped of invalid Windows characters and truncated to respect path length limits.
 - **Regex validation** — User-supplied patterns are validated with `re.compile()` before being saved.
+
+### File Open Protection
+
+- **Executable blocklist** — The "Open File" button in the Content Viewer enforces a hardcoded blocklist of dangerous file extensions (`.exe`, `.bat`, `.cmd`, `.ps1`, `.vbs`, `.js`, `.msi`, `.dll`, `.lnk`, `.hta`, macro-enabled Office formats, and others). Blocked files cannot be opened via `os.startfile()` and display a warning dialog instead.
 
 ### Process Isolation
 
@@ -500,7 +518,36 @@ All application data is stored under `%APPDATA%\canvas bot\`, a per-user protect
 | GUI settings | `gui_settings.json` | Low (paths, preferences) |
 | Downloaded content | User-specified folder | Varies (course content) |
 
-Downloaded course content is stored as-is in user-specified folders. For sensitive course materials, we recommend storing downloads on an encrypted drive (e.g., BitLocker).
+Downloaded course content is stored as-is in user-specified folders. Canvas Bot does not transmit downloaded content to any third party — all data remains on the local machine.
+
+**FERPA note:** Downloaded course content may contain FERPA-protected information (student names in page titles, discussion references, etc.). Handle downloaded materials per your institution's data governance policy, store them on an encrypted drive (e.g., BitLocker), and delete downloads when they are no longer needed.
+
+For IT administrators evaluating Canvas Bot, a detailed security summary is available at [`claude/IT_SECURITY.md`](claude/IT_SECURITY.md).
+
+## Accessibility
+
+The GUI is built with CustomTkinter, which has inherent limitations with screen reader support. Within those constraints, Canvas Bot implements the following accessibility features:
+
+### What Works Well
+
+- **Full keyboard access** — every interactive element is reachable via Tab/Shift+Tab and activatable with Enter. Tab selector buttons support Left/Right arrow navigation. Pattern categories support Up/Down arrows.
+- **Keyboard shortcuts** — Alt+key shortcuts are provided for all buttons across all tabs, with underlined mnemonic characters. Tab switching via Alt+U/N/P and Ctrl+1/2/3. All shortcuts require a modifier key (no single-character shortcuts).
+- **Visible focus indicators** — all buttons, entries, checkboxes, and dynamically created controls display a 2px blue focus ring in both light and dark modes.
+- **Color is never the sole indicator** — review status rows use background color (green/yellow/gray) but always include a text label in the Status column. The status bar uses a "WARNING" text prefix alongside orange color. Pattern test results include "MATCH:" / "No matches" prefixes alongside color.
+- **Error identification** — validation errors in the Add Pattern dialog display descriptive text and return focus to the input field. Status bar errors include text prefixes.
+- **Logical focus and reading order** — tab order matches the visual layout. Dialogs set initial focus on the primary action. Escape closes all dialogs.
+- **Tooltips** — all controls have descriptive tooltips that appear on hover and keyboard focus, showing the associated shortcut key.
+
+### Known Limitations (CustomTkinter Framework)
+
+These cannot be resolved without migrating to a different GUI framework:
+
+- **No screen reader support** — CustomTkinter widgets do not expose name, role, or value to Windows UI Automation or MSAA. Screen readers (NVDA, JAWS, Narrator) have severely limited support.
+- **No live region announcements** — status bar changes and console output cannot be pushed to assistive technology.
+- **No semantic structure** — no heading levels, landmark regions, or programmatic language declaration.
+- **No user text spacing control** — font rendering is fixed by the Tk engine.
+
+A detailed WCAG 2.1 conformance report is available at [`claude/WCAG_VPAT.md`](claude/WCAG_VPAT.md).
 
 ## Pipeline Testing
 
@@ -564,6 +611,7 @@ python -m test.pipeline_testing compare --raw raw.json --processed processed.jso
 | `--include_video_files` | Include video files in download | False |
 | `--include_audio_files` | Include audio files in download | False |
 | `--include_image_files` | Include image files in download | False |
+| `--include_inactive_content` | Include files not linked from any active Canvas page | False |
 | `--flatten` | Download all files to single directory | False |
 | `--download_hidden_files` | Include content hidden from students | False |
 | `--flush_after_download` | Delete files after processing | False |
@@ -601,7 +649,27 @@ The token is stored encrypted in Windows Credential Vault.
 
 ### Permission Requirements
 
-CanvasBot only requires **read access** to courses. For institutional deployment, we recommend creating a service account with read-only access to all courses.
+CanvasBot only requires **read access** to courses.
+
+### Institutional / Service Account Deployment
+
+For department-wide use, we recommend creating a dedicated Canvas service account rather than using individual staff tokens:
+
+1. Create a Canvas account with **read-only enrollment** across the courses you need to audit
+2. Generate a single API token from that account
+3. Distribute the Canvas Bot executable to staff — each user configures the same service account token on first run
+
+This provides centralized access control: revoking the service account token immediately disables Canvas Bot for all users. Individual staff do not need to manage their own tokens or have personal API access.
+
+## Uninstall
+
+Canvas Bot is a portable application with no installer. To fully remove it:
+
+1. **Delete the executable** from wherever you saved it
+2. **Delete application data:** `%APPDATA%\canvas bot\` (contains config, logs, GUI settings, and user patterns)
+3. **Remove stored credentials:** open Windows Credential Manager, search for entries containing "canvas", and delete them
+4. **Revoke your API token:** in Canvas, go to Account > Settings > Approved Integrations and delete the token
+5. **Delete downloaded content** from your output folders if no longer needed
 
 ## Support
 
@@ -610,6 +678,39 @@ Contact: fontaine@sfsu.edu
 For bug reports and feature requests: [GitHub Issues](https://github.com/Fontaineconsult/canvas-bot-v2/issues)
 
 ## Version History
+
+### 1.2.2
+
+**GUI:**
+- **Tabbed interface** — reorganized the GUI into three tabs (Run, Content, Patterns) with `Ctrl+1/2/3` keyboard shortcuts to switch between them.
+- **Consolidated output** — replaced three separate folder pickers with a single Output Folder and three action checkboxes (Download files, Export to Excel, Export to JSON).
+- **Content Viewer** — a persistent browser for all previously scanned courses. Scans the output folder for `.manifest/` JSON files and populates a course dropdown. Content is displayed in nested sub-tabs (Documents, Videos, Audio, Images, Unsorted) with sortable tables, a summary banner, a detail panel with clickable URLs, and buttons to open file locations or source pages. A "Downloaded" column checks whether each file exists at its expected path.
+- **Pattern Manager** — full GUI for managing regex patterns from `re.yaml`. Left column lists all pattern categories with counts; right column shows patterns for the selected category with Add, Remove, and Validate buttons. Bottom panel tests a URL or filename against all compiled matchers with live reload. "Reset All to Defaults" restores the bundled `re.yaml`. Category visibility is configurable at the code level to hide internal categories. Patterns with `{CANVAS_DOMAIN}` placeholders display substituted values for readability.
+- **Reusable table widget** — `ContentTable` class wrapping `ttk.Treeview` with scrollbars, column-header sorting, alternating row colors, and automatic dark/light theme matching.
+- **Focus rings and tooltips** — all interactive elements across Content and Patterns tabs show focus rings and descriptive tooltips, matching the Run tab's accessibility features.
+- **Content tab auto-refresh** — switching to the Content tab automatically refreshes the course list.
+
+**Default Patterns:**
+- **Expanded document patterns** — added 9 accessibility-relevant file types: ODT, ODP, ODS, Key, Numbers, Pub, EPUB, XPS, 7z.
+- **Expanded video site patterns** — added 47 new video platform patterns covering Panopto, Kaltura, YuJa, Wistia, Brightcove, Echo360, Kanopy, Loom, ScreenPal, Flipgrid/Flip, Microsoft Stream, Twitch, Instagram Reels, LinkedIn Video, and many more.
+- **Institution-specific video patterns** — populated the `institution_video_services_regex` category with 12 `{CANVAS_DOMAIN}`-prefixed patterns for platforms that use institution subdomains (Panopto, Kaltura, YuJa, Echo360, Kanopy, ShareStream, Ensemble, ScreenPal).
+
+**Content Pipeline:**
+- **Module anchor URLs in source page links** — when content is discovered inside a Module (which has no direct `html_url`), the source page URL is now constructed as `{course_url}/modules#{module_id}`. This creates an anchor link that scrolls directly to the correct module on the Canvas modules page, rather than linking to the generic modules listing.
+- **Active content filtering** — downloads now skip files not linked from any active Canvas page by default. Use `--include_inactive_content` (CLI) or the "Include inactive content" checkbox (GUI) to override. The Content Viewer also has a "Show Inactive Content" filter toggle.
+
+**Content Viewer:**
+- **Downloaded column shows download date** — file tables now display the actual download date (from the date-stamped folder on disk) instead of "Yes", with glob-based search across date folders for files downloaded on previous days.
+- **Empty table placeholders** — tables with no content show "No {Content Type} Found" instead of an empty table.
+
+**Content Pipeline:**
+- **Robust file type detection** — centralized `get_file_type()` helper with a 7-step fallback chain replaces inconsistent inline logic, improving `file_type` accuracy in JSON and Excel exports.
+- **Canvas Studio downloads use correct URL** — Studio video downloads now use the DRM video stream URL instead of the Studio page URL.
+
+**Stability:**
+- **OSError handler for disconnected drives** — the downloader now catches `OSError` during file writes (e.g., when a network drive is disconnected mid-download) and exits cleanly with a message instead of crashing with a traceback.
+- **Pattern placeholder substitution fix** — environment variables are now loaded at Pattern Manager init time so `{CANVAS_DOMAIN}` tokens display correctly.
+- **Regex pattern reloading** — patterns with domain placeholders (`{CANVAS_STUDIO_DOMAIN}`, `{CANVAS_DOMAIN}`, etc.) are now recompiled after config loads, fixing Canvas Studio embeds and Box links being classified as Unsorted.
 
 ### 1.2.0
 
@@ -686,6 +787,8 @@ For bug reports and feature requests: [GitHub Issues](https://github.com/Fontain
 
 - [ ] LTI / SCORM / External Tool detection — identify third-party content that is outside institutional control for accessibility compliance review
 - [x] GUI interface (added in v1.2.0)
+- [x] Content Viewer for browsing scanned course data (added in v1.2.2)
+- [x] Pattern Manager GUI for regex CRUD (added in v1.2.2)
 - [ ] Better Box/Dropbox/Google Drive support
 - [ ] Batch accessibility reporting
 
@@ -693,28 +796,22 @@ For bug reports and feature requests: [GitHub Issues](https://github.com/Fontain
 
 - Long directory paths may cause issues on Windows (260 character limit)
 - Some shortcut creation may fail depending on path characters
-- 
 
 ## License
 
-MIT License
+Creative Commons Attribution-NonCommercial 4.0 International (CC-BY-NC-4.0)
 
 Copyright (c) 2023-2026 Daniel Fontaine
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+You are free to:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+- **Share** — copy and redistribute the material in any medium or format
+- **Adapt** — remix, transform, and build upon the material
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Under the following terms:
+
+- **Attribution** — You must give appropriate credit, provide a link to the license, and indicate if changes were made.
+- **NonCommercial** — You may not use the material for commercial purposes.
+- **No additional restrictions** — You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
+
+Full license text: https://creativecommons.org/licenses/by-nc/4.0/legalcode

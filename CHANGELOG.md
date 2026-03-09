@@ -1,5 +1,111 @@
 # Changelog
 
+## v1.2.2
+
+### Content Viewer Layout Rearrangement
+- **Replaced nested CTkTabview navigation with flat button-based layout** — the Content Viewer now uses a compact 5-row structure: (1) course dropdown bar, (2) summary / category selectors / status buttons, (3) filter bar, (4) table, (5) action buttons. Removes two levels of tab nesting (main tabs + sub-tabs) in favor of a single row of category buttons with swappable sub-category buttons beneath.
+- **Two-level selector buttons** — top row shows 5 main categories (Documents, Videos, Audio, Images, Unsorted); bottom row shows sub-categories that change when the main category is selected (e.g. Documents → "Documents" | "Document Sites"). Only one table is visible at a time.
+- **Status buttons moved to Row 2** — Passed, Needs Review, and Ignore buttons are now stacked vertically in a right-aligned column alongside the selectors, separated by 1px vertical dividers.
+- **Three-column Row 2 with visual separators** — Row 2 uses a 30/40/30% grid layout with 1px vertical lines between the course summary, selector buttons, and status buttons. Adapts to light/dark mode.
+- **Action buttons moved below table** — Open File Location, Open File, and Open Source Page buttons are now in Row 5 beneath the table instead of sharing a row with the status buttons.
+- **Keyboard navigation updated** — Left/Right arrows navigate category and sub-category buttons. Down/Enter from a category button focuses its first sub-button. Enter from a sub-button focuses the table. Escape from table returns to the sub-button; Escape/Up from sub-button returns to the category row.
+- **Open in Canvas button** — opens the course Files page (`{course_url}/files`) in the default browser for bulk file management. Located in the top bar alongside Open Folder. Alt+C shortcut.
+- **Open File button** — opens the selected downloaded file directly in its default application via `os.startfile()`. Enabled only when the file exists on disk. Alt+P shortcut.
+- Files changed: `gui/content_viewer.py`, `gui/app.py`
+
+### Table Widget Improvements
+- **Wider vertical scrollbars** — scrollbar width and arrow size increased to 24px for easier grabbing.
+- **Removed horizontal scrollbars** — bottom scrollbars removed from all content tables.
+- **Status button colors match table row colors** — Passed (green #2d6a2d), Needs Review (amber #8a6d00), and Ignore (gray #555555) button colors now correspond to their row highlight colors.
+- Files changed: `gui/table_widget.py`, `gui/content_viewer.py`
+
+### GUI Tabbed Layout
+- **Reorganized GUI into three tabs** — the main window now uses a `CTkTabview` with **Run**, **Content**, and **Patterns** tabs. All existing controls (course selection, output, options, run button, log area) are under the Run tab. Window enlarged to 900x800 with 700x650 minimum.
+- **Consolidated output folders** — replaced three separate folder pickers (Download, Excel, JSON) with a single Output Folder and a Download files checkbox. Old settings are migrated automatically.
+- **Removed Excel and JSON export options** — the GUI no longer exposes Export to Excel or Export to JSON checkboxes. The internal `.manifest/content.json` save for the Content Viewer is unaffected. CLI flags (`--output_as_excel`, `--output_as_json`) remain available.
+- **Reframed as a bridge** — Canvas Bot is now described as a "bridge between Canvas LMS and your desktop" throughout the GUI (title bar subtitle, About dialog, welcome dialog).
+- **Tabbed About dialog** — the About window now has four tabs: About (intro, getting started, contact), Run (course selection, output, options), Content (content viewer guide), and Patterns (pattern manager guide).
+- **Compact options layout** — Download Options and Display Options checkboxes now use a 2-column grid within each section (3x2 and 1x2), reducing the options area height and giving the console output more vertical space.
+- **Tab keyboard shortcuts** — `Ctrl+1/2/3` switch between Run, Content, and Patterns tabs.
+
+### Content Viewer (Content Tab)
+- **Added Content Viewer** — a persistent browser for all previously scanned courses. Scans the output folder for `.manifest/` JSON files and populates a course dropdown.
+- **Course dropdown with auto-refresh** — lists all scanned courses by folder name. Automatically refreshes after a scan completes or when the output folder changes. Manual Refresh button available.
+- **Organized content tables** — content displayed in nested sub-tabs: Documents (Documents | Document Sites), Videos (Video Sites | Video Files), Audio (Audio Files | Audio Sites), Images, and Unsorted. Each table supports column-header sorting.
+- **Summary banner** — shows course name, ID, and item counts (e.g., "87 items: 20 docs, 12 videos, 3 images, 47 unsorted").
+- **Detail panel** — clicking a row shows all fields in a read-only panel with clickable URLs that open in the default browser.
+- **Downloaded column** — document, video, audio, and image file tables show whether each file exists at its expected download path. Paths are normalized to handle mixed separators.
+- **Open Folder button** — opens the selected course's folder in the file explorer.
+- **Open File Location button** — opens the folder containing the selected file's download path.
+- **Open Source Page button** — opens the Canvas source page URL for the selected item in the default browser.
+- **Context-aware placeholder messages** — shows different messages when no output folder is set, when the folder is not accessible (e.g., disconnected network drive), or when no scanned courses are found.
+- **Automatic content.json persistence** — every scan saves content data to `{course_folder}/.manifest/{course_id}.json` for later browsing without re-scanning.
+
+### Pattern Manager (Patterns Tab)
+- **Added Pattern Manager** — full GUI for managing regex patterns from `re.yaml`. Two-column layout: scrollable category list on the left, pattern table with action buttons on the right, test URL panel spanning the bottom.
+- **Category list** — displays all pattern categories from `read_re(substitute=False)` with item counts. String-type categories (e.g., `resource_node_re`) are visually dimmed; list-type categories are fully interactive. Selected category is highlighted.
+- **Category visibility filter** — a `_CATEGORY_VISIBILITY` dictionary controls which categories appear in the GUI. Internal categories (`resource_node_re`, `resource_node_types_re`, `canvas_user_file_content_regex`, `canvas_file_content_regex`) are hidden by default. Hidden categories still function in the pipeline.
+- **Pattern display** — selecting a category populates a `ContentTable` with numbered patterns. String-type categories show a single read-only row with add/remove disabled. Patterns with `{PLACEHOLDER}` tokens (e.g., `{CANVAS_DOMAIN}`) are displayed with substituted values (e.g., `sfsu`) for readability; writes use the raw tokens.
+- **Add Pattern** — opens a dialog with inline regex validation (`re.compile`) and duplicate checking. On success, appends to the category and saves via `write_re()`.
+- **Remove Pattern** — confirmation dialog before removing the selected pattern from the category and saving.
+- **Validate** — compiles the selected pattern with `re.IGNORECASE` and reports valid/invalid, group count, and flags in a status label.
+- **Test URL** — enter a URL or filename and test against all compiled matchers. Uses `importlib.reload(sorters.sorters)` to pick up unsaved edits. Shows matches in green or "No matches (Unsorted)" in orange. Enter key triggers test.
+- **Reset All to Defaults** — confirmation dialog, then calls `reset_re()` to delete the user's AppData copy. Next load recreates from the bundled default.
+
+### Expanded Default Patterns
+- **Document patterns** — added 9 accessibility-relevant file types to `document_content_regex`: `.odt`, `.odp`, `.ods`, `.key`, `.numbers`, `.pub`, `.epub`, `.xps`, `.7z`.
+- **Video site patterns** — added 47 new patterns to `web_video_resources_regex` covering enterprise platforms (Panopto, Kaltura, YuJa, Wistia, Brightcove, Echo360), education streaming (Kanopy, Docuseek, Swank, PBS, Khan Academy), screen recording (ScreenPal, Screencast-O-Matic), collaboration (Flipgrid/Flip, Vidyard, Loom), social media (Twitch, Instagram Reels, LinkedIn Video, Facebook Watch, TikTok), enterprise (Microsoft Stream, Google Drive preview, Bunny Stream CDN), and more (Rumble, Odysee, BitChute, PeerTube, Streamable, C-SPAN).
+- **Institution-specific video patterns** — populated `institution_video_services_regex` (previously empty) with 12 `{CANVAS_DOMAIN}`-prefixed patterns for platforms that use institution subdomains: Panopto, Kaltura, YuJa, Echo360, Kanopy, ShareStream, Ensemble, and ScreenPal.
+
+### Active Content Filtering
+- **`--include_inactive_content` CLI flag** — by default, downloads now skip files that are not linked from any active Canvas page (i.e., `get_source_page_url()` returns falsy). Pass `--include_inactive_content` to override and download everything. Defaults to active-only to download the least number of files and those most useful.
+- **"Include inactive content" GUI checkbox** — added to the Download Options column on the Run tab. Setting is persisted across sessions.
+- **Content Viewer filter bar** — added a "Filters" row between the summary banner and content tabs with a "Show Inactive Content" checkbox (default off). When off, rows without a `source_page_url` and rows with `is_hidden: true` are hidden from all tables. Toggling re-populates tables instantly without reloading from disk.
+- Files changed: `canvas_bot.py`, `gui/app.py`, `gui/controller.py`, `gui/content_viewer.py`, `core/downloader.py`
+
+### Reusable Table Widget
+- **Created `gui/table_widget.py`** — `ContentTable` class wrapping `ttk.Treeview` with vertical and horizontal scrollbars, column-header click sorting with arrow indicators, alternating row colors, and automatic dark/light theme matching via CTk appearance mode.
+
+### Module Anchor URLs
+- **Improved source page URLs for Module content** — `get_source_page_url()` in `core/content_scaffolds.py` now constructs `{course_url}/modules#{module_id}` when content lives inside a Module (which has no direct `html_url`). This creates an anchor link that scrolls directly to the correct module on the Canvas modules page, instead of linking to the generic modules listing.
+- Files changed: `core/content_scaffolds.py`
+
+### Accessibility & Usability
+- **Focus rings and tooltips** — all interactive elements on the Content and Patterns tabs now show a blue focus ring on keyboard navigation and display descriptive tooltips on hover/focus, matching the Run tab's accessibility features.
+- **Content tab auto-refresh** — switching to the Content tab automatically refreshes the course list, ensuring the dropdown reflects any new scans without needing to click Refresh manually.
+
+### Content Viewer Improvements
+- **Downloaded column shows download date** — the "Downloaded" column in file tables now displays the actual download date (from the date-stamped folder on disk) instead of "Yes". Shows "No" when the file is not found. Uses glob-based search across date folders so files downloaded on previous days are correctly detected.
+- **Empty table placeholders** — tables with no content now display a "No {Content Type} Found" message instead of an empty table. Scrollbars are hidden when the placeholder is shown.
+- **Image title fallback** — image file rows now display `file_name` in the Title column when `title` is empty.
+- **Removed captioning column** — removed the "Captioned" column from the Video Sites table as the captioning detection system is not functional.
+- **Review status categorization** — content items can now be marked as "Passed", "Needs Review", or "Ignore" for accessibility auditing workflows. Three status buttons in the action bar (right-aligned). Status is persisted per course in `.manifest/review_status.json`, keyed by URL — all instances of the same URL share one status. Unreviewed items display "-". Easily expandable by adding values to `_REVIEW_STATUSES`.
+- **Status-based row coloring** — table rows are colored by review status: light green for Passed, light orange for Needs Review, light grey for Ignore. Unreviewed rows use the default alternating background. Colors adapt to dark and light modes.
+- **Column border separators** — subtle groove-style borders between column headings for visual clarity.
+- **Title truncation for file tables** — long titles in downloadable content tables (documents, video files, audio files, image files) are truncated with ".." when exceeding 60 characters. Full title remains visible in the detail panel.
+- **Order column restored** — all content tables now show an "Order" column (first column, compact width) displaying the item's position (0–100) within the course. Sorting is numeric-aware so 2 sorts between 1 and 12.
+- **Course selection persists across tab switches** — switching away from the Content tab and back no longer resets the course dropdown to the first entry; the previous selection is preserved if it still exists.
+- Files changed: `gui/content_viewer.py`, `gui/table_widget.py`
+
+### Robust File Type Detection
+- **Centralized `get_file_type()` helper** — replaced inconsistent inline `file_type` logic in 4 scaffold functions (`document_dict`, `video_file_dict`, `audio_file_dict`, `image_file_dict`) with a single `get_file_type(node)` function using a 7-step fallback chain: `display_name` extension, `file_name` extension, URL-decoded `filename` extension, `mime_class`, `mime_type` lookup, `title` extension, URL path extension. Previously, some functions only checked `mime_class` or `mime_type`, causing missing or inconsistent `file_type` values in exports.
+- Files changed: `core/content_scaffolds.py`
+
+### Stability
+- **OSError handler for disconnected drives** — `core/downloader.py` now catches `OSError` during file writes (e.g., network drive disconnected mid-download) and exits cleanly with a message and `SystemExit(1)` instead of an unhandled traceback.
+- **Pattern Manager placeholder substitution fix** — `load_config_data_from_appdata()` is now called when the Pattern Manager loads, ensuring `{CANVAS_DOMAIN}` and other placeholder tokens are substituted with actual values (e.g., `sfsu`) in the GUI display. Previously, env vars were only populated during course processing, causing raw `{CANVAS_DOMAIN}` tokens to appear in the Patterns tab.
+- **Regex pattern reloading after config load** — added `reload_patterns()` to `sorters/sorters.py` that recompiles all regex patterns with current environment variables. Called automatically before each scan run. Previously, patterns with domain placeholders (`{CANVAS_STUDIO_DOMAIN}`, `{CANVAS_DOMAIN}`, `{BOX_DOMAIN}`) were compiled at module import time before config was loaded, so they contained literal placeholder text and never matched. This caused Canvas Studio embeds, Canvas media embeds, and Box links to be classified as Unsorted.
+- **Canvas Studio downloads use correct URL** — the downloader now uses `download_url` (the DRM video stream URL) for Canvas Studio embeds instead of `url` (the Studio page URL). Previously, Studio video downloads would fail or create shortcuts because the page URL is not a direct file download.
+- **Fixed `is_hidden()` only checking the first node** — `return False` was indented inside the `for` loop, causing the function to return after checking only the leaf node instead of walking the entire ancestor chain. Content inside a hidden or unpublished module/page now correctly reports `is_hidden: True`.
+- Files changed: `core/downloader.py`, `gui/pattern_manager.py`, `sorters/sorters.py`, `core/node_factory.py`, `resource_nodes/content_nodes.py`, `gui/controller.py`, `core/content_scaffolds.py`
+
+### Internal
+- **MVC refactor** — GUI split into `gui/app.py` (view), `gui/controller.py` (controller), and `gui/widgets.py` (shared widgets). Controller handles settings persistence, validation, run logic, and about dialog.
+- **`create_download_manifest()` now returns the manifest directory path** for reuse by callers.
+- Files changed: `gui/app.py`, `gui/controller.py` (new), `gui/widgets.py` (new), `gui/table_widget.py` (new), `gui/content_viewer.py` (new), `gui/pattern_manager.py` (new), `config/re.yaml`, `config/yaml_io.py`, `core/content_scaffolds.py`, `core/downloader.py`
+
+---
+
 ## v1.2.1
 
 ### SOC 2 Remediation — Logging & Security Hardening

@@ -2,7 +2,7 @@ import os
 import logging
 
 import requests
-from requests.exceptions import MissingSchema
+from requests.exceptions import ConnectionError as RequestsConnectionError, MissingSchema
 import json
 import warnings
 
@@ -40,9 +40,9 @@ def response_handler(request_url):
     try:
         # Perform the GET request
         request = requests.get(request_url, verify=True)
-    except ConnectionError as exc:
+    except RequestsConnectionError as exc:
         # Log and warn for connection errors
-        log.exception(f"Connection error occurred: {exc} | URL: {clean_url}")
+        log.error(f"Connection error: {exc} | URL: {clean_url}")
         warnings.warn(f"Connection error\n    {clean_url}", UserWarning)
         return False
     except MissingSchema as exc:
@@ -68,7 +68,7 @@ def response_handler(request_url):
         except json.JSONDecodeError as exc:
             log.exception(f"Failed to decode error JSON: {exc} | URL: {clean_url}")
             error_message = "Failed to parse error response"
-        warnings.warn(f"HTTP {request.status_code} - {error_message}\n    {clean_url}", UserWarning)
+        warnings.warn(f"HTTP {request.status_code} - {error_message}: {clean_url}", UserWarning)
         return None
 
 
@@ -219,12 +219,11 @@ def get_module_items(module_items_url):
     return module_items_url
 
 
-
-
 @response_decorator
 def get_external_tools(course_id):
     external_tools_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                 f"/external_tools?access_token={get_access_token()}"
+    print(external_tools_url)
     return external_tools_url
 
 
@@ -239,7 +238,4 @@ def get_external_tool(course_id, id):
 def get_url(url):
     authenticated_url = f"{url}?access_token={get_access_token()}"
     return authenticated_url
-
-
-
 

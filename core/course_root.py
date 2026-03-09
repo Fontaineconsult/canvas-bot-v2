@@ -1,5 +1,5 @@
 from colorama import Fore, Style, init
-import os, sys
+import os, sys, warnings
 from core.content_extractor import ContentExtractor
 from core.manifest import Manifest
 from network.cred import set_canvas_studio_api_key_to_environment_variable
@@ -45,7 +45,9 @@ class CanvasCourseRoot(ContentExtractor):
 
     def initialize_course(self):
 
-        course_api = get_course(self.course_id)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            course_api = get_course(self.course_id)
 
         if course_api:
             log.info(f"Course API: {self.course_id} Exists")
@@ -64,10 +66,12 @@ class CanvasCourseRoot(ContentExtractor):
 
         self.canvas_tree.init_node(self)
 
-        if set_canvas_studio_api_key_to_environment_variable():
-            self.canvas_studio = CanvasStudio(self.course_id, self)
+        if os.environ.get('studio_enabled') != 'True':
+            print("Canvas Studio is not enabled. Skipping Canvas Studio Import")
+        elif not set_canvas_studio_api_key_to_environment_variable():
+            print("Canvas Studio is enabled but credentials could not be loaded. Skipping Canvas Studio Import")
         else:
-            print("Canvas Studio API Key Not Found. Skipping Canvas Studio Import")
+            self.canvas_studio = CanvasStudio(self.course_id, self)
 
         self.modules = Modules(self.course_id, self)
 

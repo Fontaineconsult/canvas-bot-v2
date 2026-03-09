@@ -8,3 +8,5 @@
 /canvas_bot.exe
 /test_data/
 /nul
+__pycache__/
+*.pyc
