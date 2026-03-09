@@ -99,6 +99,13 @@
 - **Fixed `is_hidden()` only checking the first node** — `return False` was indented inside the `for` loop, causing the function to return after checking only the leaf node instead of walking the entire ancestor chain. Content inside a hidden or unpublished module/page now correctly reports `is_hidden: True`.
 - Files changed: `core/downloader.py`, `gui/pattern_manager.py`, `sorters/sorters.py`, `core/node_factory.py`, `resource_nodes/content_nodes.py`, `gui/controller.py`, `core/content_scaffolds.py`
 
+### Code Signing
+- **Executable is now code-signed** — the PyInstaller `.exe` is signed with an SSL.com Individual Validation (IV) code signing certificate via eSigner cloud signing. Publisher displays as **Daniel Fontaine** in Windows prompts and Properties → Digital Signatures.
+- **Timestamped signatures** — signatures include an RFC 3161 timestamp from SSL.com's TSA, so the signature remains valid after the certificate expires.
+- **SHA256 checksums** — each release includes a SHA256 hash for download verification (`certutil -hashfile CanvasBot.exe SHA256`).
+- **License changed to CC-BY-NC-4.0** — replaced MIT with Creative Commons Attribution-NonCommercial 4.0 International.
+- Files changed: `readme.md`, `LICENSE` (new), `gui/controller.py`
+
 ### Internal
 - **MVC refactor** — GUI split into `gui/app.py` (view), `gui/controller.py` (controller), and `gui/widgets.py` (shared widgets). Controller handles settings persistence, validation, run logic, and about dialog.
 - **`create_download_manifest()` now returns the manifest directory path** for reuse by callers.

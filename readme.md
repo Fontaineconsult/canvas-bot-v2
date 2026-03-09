@@ -209,13 +209,14 @@ python canvas_bot.py --help
 
 ### First Launch on Windows
 
-The executable is not code-signed, so Windows SmartScreen may display a "Windows protected your PC" warning on first launch. This is normal for open-source software distributed outside the Microsoft Store.
+The executable is **code-signed** (publisher: **Daniel Fontaine**). Windows SmartScreen may still show a "Windows protected your PC" warning for new releases — this is normal and stops after enough users download the same version.
 
 To proceed:
-1. Click **"More info"** on the SmartScreen dialog
-2. Click **"Run anyway"**
+1. Click **"More info"**
+2. Verify the publisher shows **"Daniel Fontaine"**
+3. Click **"Run anyway"**
 
-The warning will not appear again after the first run. For institutional deployment, IT administrators can add the executable to their endpoint management allow-list to suppress this warning for all users.
+To verify your download, right-click the `.exe` → Properties → **Digital Signatures** tab, or compare the SHA256 checksum on the [Releases](https://github.com/Fontaineconsult/canvas-bot-v2/releases) page.
 
 ## Quick Start
 
@@ -228,23 +229,25 @@ On first run, you'll be prompted for:
 
 ### GUI Mode
 
-Double-click the executable or run `python canvas_bot.py` with no arguments to launch the graphical interface.
+Double-click the executable or run `python canvas_bot.py` with no arguments to launch the graphical interface. The GUI is organized into three tabs. All settings are saved between sessions. Click **About** for a built-in guide, or use **View Config** / **Reset Config** in the title bar to manage credentials.
 
-The GUI is organized into three tabs:
+#### Run
 
-- **Run tab** — course selection (single ID or batch `.txt` file), a single output folder with action checkboxes (Download files, Export to Excel, Export to JSON), download options (video, audio, image, hidden, inactive, flatten), display options (content tree, full course tree), real-time log output
-- **Content tab** — a persistent browser for all previously scanned courses. Select a course from the dropdown to view its content organized into nested sub-tabs (Documents, Videos, Audio, Images, Unsorted) with sortable tables, a summary banner, detail panel with clickable URLs, and buttons to open file locations or source pages. A filter bar lets you toggle visibility of inactive content (items not linked from any active Canvas page).
-- **Patterns tab** — view, add, remove, validate, and test regex patterns from `re.yaml` without the CLI. Left column lists all pattern categories with counts; right column shows patterns in the selected category with Add, Remove, and Validate buttons; bottom panel tests a URL or filename against all compiled matchers
+Enter a course ID (or select a batch `.txt` file), choose an output folder, and click **Run**. Download options let you include video, audio, image, hidden, or inactive content. Display options print a course tree to the log.
 
-Additional features:
-- **Settings persistence** — all inputs are saved across sessions
-- **About dialog** — click "About" for a guide to every GUI element and first-time setup instructions
+![Run tab](docs/images/screenshot-of-the-run-view.png)
 
-Configuration buttons in the title bar:
-- **View Config** — opens a terminal showing current configuration status
-- **Reset Config** — opens a dialog to reset Canvas API or Canvas Studio credentials
+#### Content
 
-Keyboard shortcuts: `Alt+R` Run, `Alt+V` View Config, `Alt+C` Reset Config, `Alt+A` About, `Ctrl+1/2/3` switch tabs. All dialogs close with `Escape`.
+Browse content from previously scanned courses. Select a course from the dropdown, then use the category buttons (Documents, Videos, Audio, Images, Other, Unsorted) to view content in sortable tables. Mark items as **Passed**, **Needs Review**, or **Ignore** for accessibility auditing — status is saved per course. Action buttons at the bottom open files, folders, and Canvas source pages.
+
+![Content tab](docs/images/screenshot-of-the-content-view.png)
+
+#### Patterns
+
+View and edit the regex patterns that classify content URLs. The left panel lists categories; the right panel shows patterns in the selected category. Use **Add**, **Remove**, and **Validate** to manage patterns, or **Test** a URL to see which categories match it.
+
+![Patterns tab](docs/images/screenshot-of-the-patterns-view.png)
 
 ### CLI Mode
 
