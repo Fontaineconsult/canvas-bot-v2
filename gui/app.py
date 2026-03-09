@@ -96,12 +96,10 @@ class CanvasBotGUI:
         # Buttons
         self.root.bind("<Alt-r>", lambda e: self.controller.on_run() if self.run_btn.cget("state") == "normal" else None)
         self.root.bind("<Alt-v>", lambda e: self.controller.view_config())
-        self.root.bind("<Alt-c>", lambda e: self.controller.reset_config())
         self.root.bind("<Alt-a>", lambda e: self.controller.show_about())
         # Tab selectors
         self.root.bind("<Alt-u>", lambda e: self.tabview.set(TAB_RUN))
         self.root.bind("<Alt-n>", lambda e: self.tabview.set(TAB_CONTENT))
-        self.root.bind("<Alt-p>", lambda e: self.tabview.set(TAB_PATTERNS))
         self.root.bind("<Control-Key-1>", lambda e: self.tabview.set(TAB_RUN))
         self.root.bind("<Control-Key-2>", lambda e: self.tabview.set(TAB_CONTENT))
         self.root.bind("<Control-Key-3>", lambda e: self.tabview.set(TAB_PATTERNS))
@@ -111,9 +109,7 @@ class CanvasBotGUI:
             return lambda e: cb() if self.tabview.get() == TAB_CONTENT else None
         self.root.bind("<Alt-f>", _on_content(self.content_viewer.refresh_course_list))
         self.root.bind("<Alt-o>", _on_content(self.content_viewer._open_course_folder))
-        self.root.bind("<Alt-p>", _on_content(self.content_viewer._open_file_direct))
         self.root.bind("<Alt-s>", _on_content(self.content_viewer._open_source_page))
-        self.root.bind("<Alt-c>", _on_content(self.content_viewer._open_in_canvas))
         self.root.bind("<Alt-w>", _on_content(lambda: self.content_viewer._on_status_changed("Needs Review")))
         self.root.bind("<Alt-i>", _on_content(lambda: self.content_viewer._on_status_changed("Ignore")))
 
@@ -140,6 +136,22 @@ class CanvasBotGUI:
             elif tab == TAB_PATTERNS:
                 self.pattern_manager._on_reset()
         self.root.bind("<Alt-e>", _alt_e)
+
+        def _alt_p(e):
+            tab = self.tabview.get()
+            if tab == TAB_CONTENT:
+                self.content_viewer._open_file_direct()
+            else:
+                self.tabview.set(TAB_PATTERNS)
+        self.root.bind("<Alt-p>", _alt_p)
+
+        def _alt_c(e):
+            tab = self.tabview.get()
+            if tab == TAB_CONTENT:
+                self.content_viewer._open_in_canvas()
+            else:
+                self.controller.reset_config()
+        self.root.bind("<Alt-c>", _alt_c)
 
         # --- Load saved settings ---
         self.controller.load_settings()

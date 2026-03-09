@@ -50,7 +50,7 @@ class GUIController:
                              or data.get("json_folder", ""))
         self.view.var_output_folder.set(output_folder)
 
-        self.view.var_download.set(data.get("download", False))
+        self.view.var_download.set(data.get("download", True))
         self.view.var_video.set(data.get("include_video", False))
         self.view.var_audio.set(data.get("include_audio", False))
         self.view.var_image.set(data.get("include_image", False))
@@ -539,24 +539,51 @@ class GUIController:
     def show_about(self):
         dialog = ctk.CTkToplevel(self.view.root)
         dialog.title("About Canvas Bot")
-        dialog.geometry("620x580")
+        dialog.geometry("640x620")
         dialog.resizable(False, False)
         dialog.transient(self.view.root)
         dialog.grab_set()
 
         # Center on parent
         dialog.update_idletasks()
-        x = self.view.root.winfo_x() + (self.view.root.winfo_width() - 620) // 2
-        y = self.view.root.winfo_y() + (self.view.root.winfo_height() - 580) // 2
+        x = self.view.root.winfo_x() + (self.view.root.winfo_width() - 640) // 2
+        y = self.view.root.winfo_y() + (self.view.root.winfo_height() - 620) // 2
         dialog.geometry(f"+{x}+{y}")
 
-        wrap = 560
+        wrap = 580
+        _indent = 18  # left padding for bullet/detail lines
 
         def _heading(parent, text):
             ctk.CTkLabel(parent, text=text, font=ctk.CTkFont(size=15, weight="bold"), anchor="w").pack(fill="x", pady=(12, 4))
 
         def _body(parent, text):
             ctk.CTkLabel(parent, text=text, font=ctk.CTkFont(size=13), anchor="w", justify="left", wraplength=wrap).pack(fill="x", pady=(0, 2))
+
+        def _bullet(parent, bold, rest=""):
+            """Render a bullet with a bold lead-in and description below it."""
+            _bw = wrap - _indent - 14
+            frame = ctk.CTkFrame(parent, fg_color="transparent")
+            frame.pack(fill="x", padx=(_indent, 0), pady=(0, 2))
+            ctk.CTkLabel(frame, text="\u2022", font=ctk.CTkFont(size=13),
+                         anchor="nw", width=14).pack(side="left", anchor="n")
+            if rest:
+                col = ctk.CTkFrame(frame, fg_color="transparent")
+                col.pack(side="left", fill="x", expand=True)
+                ctk.CTkLabel(col, text=bold, font=ctk.CTkFont(size=13, weight="bold"),
+                             anchor="w").pack(fill="x")
+                desc = rest.lstrip("\u2014 ").strip()
+                ctk.CTkLabel(col, text=desc, font=ctk.CTkFont(size=12),
+                             anchor="w", justify="left", wraplength=_bw,
+                             text_color=("gray30", "gray70")).pack(fill="x")
+            else:
+                ctk.CTkLabel(frame, text=bold, font=ctk.CTkFont(size=13), anchor="w",
+                             justify="left", wraplength=_bw).pack(side="left", fill="x", expand=True)
+
+        def _note(parent, text):
+            """Small, muted text for tips or secondary information."""
+            ctk.CTkLabel(parent, text=text, font=ctk.CTkFont(size=11, slant="italic"),
+                         text_color=("gray45", "gray60"), anchor="w", justify="left",
+                         wraplength=wrap).pack(fill="x", padx=(_indent, 0), pady=(2, 2))
 
         # ── Tabview ──
         tabview = ctk.CTkTabview(dialog)
@@ -595,7 +622,7 @@ class GUIController:
         about_scroll.pack(fill="both", expand=True)
 
         ctk.CTkLabel(about_scroll, text="Canvas Bot", font=ctk.CTkFont(size=20, weight="bold"), anchor="w").pack(fill="x")
-        ctk.CTkLabel(about_scroll, text="v1.2.2", font=ctk.CTkFont(size=13), text_color="gray", anchor="w").pack(fill="x")
+        ctk.CTkLabel(about_scroll, text="v1.2.2  |  CC-BY-NC-4.0", font=ctk.CTkFont(size=13), text_color="gray", anchor="w").pack(fill="x")
 
         _heading(about_scroll, "What is Canvas Bot?")
         _body(about_scroll,
@@ -635,34 +662,29 @@ class GUIController:
         run_scroll.pack(fill="both", expand=True)
 
         _heading(run_scroll, "Course Selection")
-        _body(run_scroll,
-            "Enter a single Canvas course ID (the number from the course URL, e.g. canvas.edu/courses/12345), "
-            "or select a .txt file containing one course ID per line for batch processing."
-        )
+        _body(run_scroll, "Choose what to scan:")
+        _bullet(run_scroll, "Course ID", "\u2014 the number from your course URL (e.g. canvas.edu/courses/12345).")
+        _bullet(run_scroll, "Course List", "\u2014 a .txt file with one course ID per line for batch processing.")
+        _note(run_scroll, "Only one input is active at a time. Entering a Course ID clears the Course List and vice versa.")
 
         _heading(run_scroll, "Output")
-        _body(run_scroll,
-            "Select an output folder and check \"Download files\" to download course documents "
-            "(PDFs, DOCX, media, etc.) organized into subfolders by module and resource type. "
-            "After scanning, course content data is automatically saved so you can browse and "
-            "review it in the Content tab."
-        )
+        _body(run_scroll, "Select an output folder, then check \"Download files\" to enable downloading.")
+        _bullet(run_scroll, "Downloads are organized into subfolders by module and content type.")
+        _bullet(run_scroll, "Content data is saved automatically so you can review it in the Content tab.")
+        _note(run_scroll, "You must set an output folder and check \"Download files\" before the Run button activates.")
 
         _heading(run_scroll, "Download Options")
-        _body(run_scroll,
-            "By default, only document files (PDF, DOCX, PPTX, etc.) are downloaded. Use the "
-            "checkboxes to also include video, audio, or image files. \"Include hidden content\" "
-            "will pull unpublished items. \"Include inactive content\" downloads files not linked "
-            "from any active page. \"Flatten folder structure\" puts all files in one "
-            "directory instead of preserving the course module hierarchy."
-        )
+        _body(run_scroll, "By default only documents (PDF, DOCX, PPTX, etc.) are downloaded.")
+        _bullet(run_scroll, "Include video / audio / image files", "\u2014 adds those media types to the download.")
+        _bullet(run_scroll, "Include hidden content", "\u2014 downloads unpublished items not visible to students.")
+        _bullet(run_scroll, "Include inactive content", "\u2014 downloads files that exist in the course but aren't linked from any active page.")
+        _bullet(run_scroll, "Flatten folder structure", "\u2014 saves all files into a single directory instead of preserving the module hierarchy.")
 
         _heading(run_scroll, "Display Options")
-        _body(run_scroll,
-            "Available for single-course mode only. \"Print content tree\" shows a tree of course "
-            "resources that contain downloadable content. \"Print full course tree\" shows every "
-            "resource in the course including empty modules and pages."
-        )
+        _body(run_scroll, "Available in single-course mode only.")
+        _bullet(run_scroll, "Print content tree", "\u2014 shows a tree of resources that contain downloadable content.")
+        _bullet(run_scroll, "Print full course tree", "\u2014 shows every resource in the course, including empty modules and pages.")
+        _note(run_scroll, "These options are mutually exclusive and disabled during batch processing.")
 
         # ── Content tab ──
         content_scroll = ctk.CTkScrollableFrame(tabview.tab("Content"), fg_color="transparent")
@@ -671,45 +693,46 @@ class GUIController:
         _heading(content_scroll, "Content Viewer")
         _body(content_scroll,
             "Browse and review content from previously scanned courses. After running a scan "
-            "with an output folder selected, course data is saved automatically and appears here."
+            "with an output folder set, course data is saved automatically and appears here."
         )
 
         _heading(content_scroll, "Course Selector")
-        _body(content_scroll,
-            "The dropdown at the top lists all courses found in your output folder. Select a "
-            "course to load its content. Use the Refresh button to re-scan for new data, or "
-            "Open Folder to view the course directory in File Explorer."
-        )
+        _body(content_scroll, "The top bar controls which course you're viewing:")
+        _bullet(content_scroll, "Dropdown", "\u2014 lists all scanned courses found in your output folder.")
+        _bullet(content_scroll, "Refresh", "\u2014 re-scans the output folder for new or updated data.")
+        _bullet(content_scroll, "Open Folder", "\u2014 opens the selected course's directory in File Explorer.")
+        _bullet(content_scroll, "Delete", "\u2014 permanently removes the selected course folder and its data.")
 
-        _heading(content_scroll, "Content Tables")
+        _heading(content_scroll, "Categories & Tables")
         _body(content_scroll,
-            "Content is organized into tabs by type: Documents, Videos, Audio, Images, and Unsorted. "
-            "Some tabs have nested sub-tabs for files vs. sites (e.g. downloadable video files vs. "
-            "YouTube links). Click column headings to sort. Columns show title, type, source page, "
-            "hidden status, download status, and review status."
+            "Content is organized into six categories, each with sub-selectors:"
         )
+        _bullet(content_scroll, "Documents", "\u2014 downloadable files (PDF, DOCX, etc.) and document sites (Google Docs, OneDrive).")
+        _bullet(content_scroll, "Videos", "\u2014 video sites (YouTube, Vimeo), downloadable video files, and institution video.")
+        _bullet(content_scroll, "Audio", "\u2014 audio files (MP3, WAV) and audio sites (podcast links).")
+        _bullet(content_scroll, "Images", "\u2014 downloadable image files (JPG, PNG, GIF).")
+        _bullet(content_scroll, "Other", "\u2014 digital textbooks and file storage (Box, Google Drive).")
+        _bullet(content_scroll, "Unsorted", "\u2014 links that didn't match any known pattern.")
+        _note(content_scroll, "Click column headings to sort. Use arrow keys to navigate between categories and sub-selectors.")
 
         _heading(content_scroll, "Review Status")
         _body(content_scroll,
-            "Select a row and use the status buttons at the bottom to mark it as Passed, "
-            "Needs Review, or Ignore. Status is saved per-course and persists across sessions. "
-            "Rows are color-coded by status: green for Passed, yellow for Needs Review, "
-            "and gray for Ignore."
+            "Select a row, then use the status buttons on the right side of the toolbar:"
         )
+        _bullet(content_scroll, "Passed (green)", "\u2014 item has been reviewed and is acceptable.")
+        _bullet(content_scroll, "Needs Review (yellow)", "\u2014 item requires further attention.")
+        _bullet(content_scroll, "Ignore (gray)", "\u2014 item is excluded from review.")
+        _note(content_scroll, "Status is saved per-course and persists across sessions.")
 
         _heading(content_scroll, "Action Buttons")
-        _body(content_scroll,
-            "Open File Location opens the folder containing a downloaded file. For site-type "
-            "items (document sites, video sites, etc.), this button changes to Open Site and "
-            "opens the URL in your browser. Open Source Page navigates to the Canvas page "
-            "where the content was found."
-        )
+        _body(content_scroll, "The bottom bar provides quick access to files and pages:")
+        _bullet(content_scroll, "Open File Location", "\u2014 opens the folder containing a downloaded file. For site-type items, this becomes \"Open Site\" and opens the URL in your browser.")
+        _bullet(content_scroll, "Open File", "\u2014 opens the downloaded file in its default application. Hidden for site-type categories.")
+        _bullet(content_scroll, "Open Source Page", "\u2014 opens the Canvas page where the content was found.")
+        _bullet(content_scroll, "Open Canvas Files", "\u2014 opens the course's Files page in Canvas.")
 
         _heading(content_scroll, "Filters")
-        _body(content_scroll,
-            "\"Show Inactive Content\" includes items that are not linked from any active "
-            "Canvas page or are marked as hidden. By default, only active, visible content is shown."
-        )
+        _bullet(content_scroll, "Show Inactive Content", "\u2014 includes items not linked from any active Canvas page or marked as hidden. Off by default.")
 
         # ── Patterns tab ──
         patterns_scroll = ctk.CTkScrollableFrame(tabview.tab("Patterns"), fg_color="transparent")
@@ -717,37 +740,35 @@ class GUIController:
 
         _heading(patterns_scroll, "Pattern Manager")
         _body(patterns_scroll,
-            "View and edit the regex patterns that Canvas Bot uses to classify content URLs. "
-            "Patterns determine whether a link is categorized as a document, video, audio, image, "
-            "or other content type."
+            "Canvas Bot uses regex patterns to classify every URL it discovers. Patterns "
+            "determine whether a link is categorized as a document, video, audio, image, or "
+            "other content type. This tab lets you view, edit, and test those patterns."
         )
 
         _heading(patterns_scroll, "Categories")
-        _body(patterns_scroll,
-            "The left panel lists all pattern categories (Documents, Video Sites, Ignore List, etc.). "
-            "Click a category to view its patterns in the table on the right. The count next to each "
-            "category shows how many patterns it contains."
-        )
+        _body(patterns_scroll, "The left panel lists all pattern categories:")
+        _bullet(patterns_scroll, "Click a category", "\u2014 to view its patterns in the table on the right.")
+        _bullet(patterns_scroll, "Count badge", "\u2014 shows how many patterns each category contains.")
+        _note(patterns_scroll, "Some internal categories are hidden from this view but still function in the pipeline.")
 
         _heading(patterns_scroll, "Editing Patterns")
-        _body(patterns_scroll,
-            "Select a category, then use Add Pattern to create a new regex pattern, or select "
-            "an existing pattern and click Remove Pattern to delete it. Use Validate to check "
-            "that a pattern's regex syntax is correct before saving."
-        )
+        _body(patterns_scroll, "Select a category first, then use the toolbar buttons:")
+        _bullet(patterns_scroll, "Add Pattern", "\u2014 enter a new regex pattern for the selected category.")
+        _bullet(patterns_scroll, "Remove Pattern", "\u2014 delete the currently selected pattern from the list.")
+        _bullet(patterns_scroll, "Validate", "\u2014 check that a pattern's regex syntax is valid before saving.")
+        _note(patterns_scroll, "Patterns use Python regex syntax. Changes take effect on the next scan.")
 
         _heading(patterns_scroll, "Test URL")
         _body(patterns_scroll,
-            "Enter a URL or filename in the test box at the bottom and click Test to see which "
-            "pattern categories match it. This is useful for verifying that your patterns "
-            "correctly classify specific URLs."
+            "Enter a URL or filename in the test box at the bottom and click Test. The result "
+            "shows every category that matches, so you can verify a URL is being classified correctly."
         )
 
         _heading(patterns_scroll, "Reset to Defaults")
         _body(patterns_scroll,
-            "The \"Reset All to Defaults\" button restores the bundled default patterns. "
-            "Any custom patterns you have added will be lost."
+            "The \"Reset All to Defaults\" button restores the original bundled patterns."
         )
+        _note(patterns_scroll, "This permanently removes any custom patterns you have added.")
 
         # ── Bottom buttons ──
         btn_row = ctk.CTkFrame(dialog, fg_color="transparent")

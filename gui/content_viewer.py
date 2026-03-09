@@ -424,7 +424,7 @@ class ContentViewer:
         )
         self._open_canvas_btn.pack(side="right")
         _add_focus_ring(self._open_canvas_btn)
-        _underline_char(self._open_canvas_btn, 12)  # F in "Files" → Alt+C
+        _underline_char(self._open_canvas_btn, 5)  # C in "Canvas" → Alt+C
         Tooltip(self._open_canvas_btn, "Open the course Files page in Canvas to manage files (Alt+C)")
 
         # Keyboard navigation for selector buttons
@@ -681,7 +681,6 @@ class ContentViewer:
             return
         ext = os.path.splitext(save_path)[1].lower()
         if ext in self._BLOCKED_EXTENSIONS:
-            from tkinter import messagebox
             messagebox.showwarning(
                 "Blocked File Type",
                 f"Cannot open '{os.path.basename(save_path)}'.\n\n"
