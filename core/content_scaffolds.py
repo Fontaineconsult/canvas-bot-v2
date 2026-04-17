@@ -187,6 +187,7 @@ def document_dict(document_node, file_download_directory, flatten):
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(document_node),
+        "file_source": "Canvas" if getattr(document_node, "is_canvas_file", False) else "External File",
         "file_type": get_file_type(document_node),
         "order": get_order(document_node),
         "path": [node.title for node in build_path(document_node, ignore_root=True) if node.title is not None],

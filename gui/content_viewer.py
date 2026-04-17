@@ -24,6 +24,7 @@ _COLUMNS = {
         _ORDER_COL,
         {"id": "title", "heading": "Title", "width": 150, "stretch": True, "max_chars": 60},
         {"id": "file_type", "heading": "Type", "width": 100},
+        {"id": "file_source", "heading": "File Source", "width": 120},
         {"id": "source_page_type", "heading": "Source", "width": 150},
         {"id": "is_hidden", "heading": "Hidden", "width": 100},
         {"id": "downloaded", "heading": "Downloaded", "width": 130},
