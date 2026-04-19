@@ -4,11 +4,11 @@ import os
 import re
 import shutil
 import webbrowser
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 import customtkinter as ctk
 
 from gui.table_widget import ContentTable
-from gui.widgets import _add_focus_ring, _underline_char, Tooltip
+from gui.widgets import _add_focus_ring, _underline_char, Tooltip, show_dialog
 
 
 # Review status options (add new values here to expand)
@@ -422,10 +422,19 @@ class ContentViewer:
             btn_row, text="Open Source Page", width=140,
             command=self._open_source_page, state="disabled",
         )
-        self._open_source_btn.pack(side="left")
+        self._open_source_btn.pack(side="left", padx=(0, 5))
         _add_focus_ring(self._open_source_btn)
         _underline_char(self._open_source_btn, 5)  # S in "Source" → Alt+S
         Tooltip(self._open_source_btn, "Open the Canvas page where this content was found (Alt+S)")
+
+        self._replace_file_btn = ctk.CTkButton(
+            btn_row, text="Replace File", width=120,
+            command=self._replace_file, state="disabled",
+        )
+        self._replace_file_btn.pack(side="left")
+        _add_focus_ring(self._replace_file_btn)
+        _underline_char(self._replace_file_btn, 0)  # R in "Replace" → Alt+R
+        Tooltip(self._replace_file_btn, "Replace this file in Canvas with a new file (Alt+R)")
 
         self._open_canvas_btn = ctk.CTkButton(
             btn_row, text="Open Canvas Files", width=150,
@@ -501,6 +510,7 @@ class ContentViewer:
         self._open_file_btn.configure(state="disabled")
         self._open_direct_btn.configure(state="disabled")
         self._open_source_btn.configure(state="disabled")
+        self._replace_file_btn.configure(state="disabled")
         self._open_canvas_btn.configure(state="disabled")
         for btn in self._status_buttons.values():
             btn.configure(state="disabled")
@@ -549,6 +559,11 @@ class ContentViewer:
             self._open_direct_btn.pack_forget()
         else:
             self._open_direct_btn.pack(side="left", padx=(0, 5), after=self._open_file_btn)
+        # Show "Replace File" only for documents table
+        if key == "documents":
+            self._replace_file_btn.pack(side="left", after=self._open_source_btn)
+        else:
+            self._replace_file_btn.pack_forget()
 
     def _setup_selector_keyboard_nav(self):
         """Wire arrow keys on category and sub-category buttons, Enter/Escape for table focus."""
@@ -713,6 +728,60 @@ class ContentViewer:
         course_url = self._current_data.get("course_url", "")
         if course_url:
             webbrowser.open(f"{course_url}/files")
+
+    def _replace_file(self):
+        """Replace the selected Canvas file with a user-chosen file."""
+        if not self._selected_row or not self._current_data:
+            return
+        canvas_file_id = self._selected_row.get("canvas_file_id")
+        course_id = self._current_data.get("course_id")
+        if not canvas_file_id or not course_id:
+            return
+
+        file_path = filedialog.askopenfilename(
+            title="Select replacement file",
+        )
+        if not file_path:
+            return
+
+        original_title = self._selected_row.get("title", "file")
+        original_ext = os.path.splitext(original_title)[1].lower()
+        local_ext = os.path.splitext(file_path)[1].lower()
+        if original_ext and local_ext and original_ext != local_ext:
+            show_dialog(
+                self._parent, "File Type Mismatch",
+                f"Cannot replace '{original_title}' ({original_ext}) "
+                f"with a {local_ext} file.\n\nSelect a {original_ext} file instead.",
+                dialog_type="warning",
+            )
+            return
+
+        if not show_dialog(
+            self._parent, "Replace File",
+            f"Replace '{original_title}' in Canvas with:\n\n{os.path.basename(file_path)}",
+            dialog_type="confirm",
+        ):
+            return
+
+        from network.cred import set_canvas_api_key_to_environment_variable, load_config_data_from_appdata
+        load_config_data_from_appdata()
+        if not set_canvas_api_key_to_environment_variable():
+            show_dialog(self._parent, "Authentication Error",
+                        "Canvas API token not found. Run a scan first or configure your API token.",
+                        dialog_type="error")
+            return
+
+        from network.api import replace_file
+        result = replace_file(course_id, canvas_file_id, file_path)
+        if result:
+            new_name = result.get("display_name", result.get("filename", os.path.basename(file_path)))
+            show_dialog(self._parent, "File Replaced",
+                        f"Successfully replaced '{original_title}' with '{new_name}'.",
+                        dialog_type="info")
+        else:
+            show_dialog(self._parent, "Replace Failed",
+                        f"Failed to replace '{original_title}'. Check the log for details.",
+                        dialog_type="error")
 
     def _load_review_statuses(self, manifest_dir):
         """Load review_status.json from the manifest directory."""
@@ -924,6 +993,7 @@ class ContentViewer:
         self._open_file_btn.configure(state="disabled")
         self._open_direct_btn.configure(state="disabled")
         self._open_source_btn.configure(state="disabled")
+        self._replace_file_btn.configure(state="disabled")
         for btn in self._status_buttons.values():
             btn.configure(state="disabled")
         self._set_detail("")
@@ -967,6 +1037,14 @@ class ContentViewer:
             self._open_source_btn.configure(state="normal")
         else:
             self._open_source_btn.configure(state="disabled")
+
+        # Enable Replace File for Canvas documents only
+        if (self._selected_table_key == "documents"
+                and row.get("canvas_file_id")
+                and row.get("file_source") == "Canvas"):
+            self._replace_file_btn.configure(state="normal")
+        else:
+            self._replace_file_btn.configure(state="disabled")
 
         # Populate detail panel
         lines = []

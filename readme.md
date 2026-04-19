@@ -35,7 +35,7 @@ CanvasBot is a Windows application designed for accessible media coordinators an
 - **Export** content inventories to Excel or JSON for accessibility auditing
 - **Track** download progress to avoid re-downloading files
 
-CanvasBot operates in **read-only mode** — it reads course content via the Canvas API but never creates, modifies, or deletes any content, grades, enrollments, or settings in Canvas.
+CanvasBot operates in **read-only mode** by default — it reads course content via the Canvas API but never creates, modifies, or deletes any content, grades, enrollments, or settings in Canvas. The only exception is the **Replace File** feature, which explicitly uploads a replacement file to Canvas when initiated by the user.
 
 CanvasBot can be used through a graphical user interface (GUI) or the command line (CLI). Double-click the executable or run without arguments to launch the GUI; pass command-line flags for scripted/automated workflows.
 
@@ -649,6 +649,13 @@ python -m test.pipeline_testing compare --raw raw.json --processed processed.jso
 | `--patterns-validate TEXT` | Validate regex syntax |
 | `--patterns-reset` | Reset patterns to defaults |
 | `-y` | Skip confirmation prompts |
+
+### File Replace
+
+| Flag | Description |
+|------|-------------|
+| `--replace_file TEXT` | Path to local file to upload as replacement (requires `--canvas_file_id` and `--course_id`) |
+| `--canvas_file_id TEXT` | Canvas file ID of the file to replace (requires `--replace_file` and `--course_id`) |
 
 ### Configuration
 

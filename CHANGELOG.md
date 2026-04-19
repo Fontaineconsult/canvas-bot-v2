@@ -15,6 +15,12 @@
 - **`canvas_file_id` field** — documents now include the Canvas file ID in the JSON export for use by the file replace feature.
 - Files changed: `core/content_scaffolds.py`, `gui/content_viewer.py`
 
+### File Replace
+- **Replace File button** — the Content Viewer now has a "Replace File" button (Alt+R) that uploads a local file to replace the selected Canvas document. Enabled only for Canvas-hosted documents (`file_source == "Canvas"`). Opens a file picker, confirms with the user, then performs a 3-step Canvas API upload (notify → upload → confirm). Shows success/error feedback via message dialog.
+- **`replace_file()` API function** — new function in `network/api.py` that handles the Canvas 3-step file replace process: POST to notify Canvas, POST multipart upload, POST to confirm. Handles redirects, error responses, and connection failures with logging and warnings.
+- **CLI `--replace_file` option** — replace a Canvas file from the command line without a full course scan. Usage: `Canvasbot.exe --course_id 12345 --replace_file "C:\new_syllabus.pdf" --canvas_file_id 67890`. Requires all three flags. Authenticates, uploads, and exits.
+- Files changed: `network/api.py`, `gui/content_viewer.py`, `canvas_bot.py`, `readme.md`
+
 ### Refactoring
 - **`core/utilities.py`** — extracted `build_path()`, `is_hidden()`, and `get_hidden_reasons()` from `content_scaffolds.py` into a shared utility module. These tree-traversal and visibility functions are now reusable by any module without importing from the scaffold layer.
 - **Removed `is_hidden()` and `build_path()` from `content_scaffolds.py`** — all callers (`content_scaffolds.py`, `downloader.py`, `canvas_tree.py`, `content_nodes.py`) updated to import from `core.utilities`.

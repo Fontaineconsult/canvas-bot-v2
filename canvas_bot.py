@@ -656,6 +656,12 @@ if __name__=='__main__':
                   help='Canvas Studio media ID for caption upload target. '
                        'Requires --caption_file_location.')
 
+    # === File Replace ===
+    @click.option('--replace_file', type=click.STRING,
+                  help='Path to local file to upload as a replacement. Requires --canvas_file_id and --course_id.')
+    @click.option('--canvas_file_id', type=click.STRING,
+                  help='Canvas file ID of the file to replace. Requires --replace_file and --course_id.')
+
     # === Pattern Management ===
     @click.option('--patterns-list', 'patterns_list', default=None, is_flag=False, flag_value='',
                   help='List pattern categories. Optionally specify CATEGORY to see patterns in it.')
@@ -693,6 +699,8 @@ if __name__=='__main__':
              reset_canvas_studio_params,
              caption_file_location,
              canvas_studio_media_id,
+             replace_file,
+             canvas_file_id,
              patterns_list,
              patterns_add,
              patterns_remove,
@@ -742,6 +750,27 @@ if __name__=='__main__':
         if patterns_reset:
             reset_patterns(skip_confirm)
             sys.exit(0)
+
+        # Handle --replace_file (requires --canvas_file_id and --course_id)
+        if replace_file or canvas_file_id:
+            if not (replace_file and canvas_file_id and course_id):
+                click.echo("Error: --replace_file, --canvas_file_id, and --course_id are all required.")
+                sys.exit(1)
+            if not os.path.isfile(replace_file):
+                click.echo(f"Error: File not found: {replace_file}")
+                sys.exit(1)
+            load_json_config_file_from_appdata()
+            check_if_api_key_exists()
+            from network.api import replace_file as api_replace_file
+            print(f"Replacing Canvas file {canvas_file_id} with {os.path.basename(replace_file)}...")
+            result = api_replace_file(course_id, canvas_file_id, replace_file)
+            if result:
+                new_name = result.get("display_name", result.get("filename", os.path.basename(replace_file)))
+                print(f"[OK] File replaced successfully: {new_name}")
+                sys.exit(0)
+            else:
+                print("[ERROR] File replace failed. Check the log for details.")
+                sys.exit(3)
 
         params = {
             "download_folder": download_folder,

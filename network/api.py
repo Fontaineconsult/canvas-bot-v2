@@ -238,3 +238,132 @@ def get_url(url):
     authenticated_url = f"{url}?access_token={get_access_token()}"
     return authenticated_url
 
+
+def replace_file(course_id, file_id, file_path):
+    """Replace a Canvas file using the 3-step upload process.
+
+    1. GET the existing file to obtain folder_id and display_name
+    2. POST to /courses/{id}/files to notify Canvas (same name + folder + on_duplicate=overwrite)
+    3. POST multipart upload to the upload_url
+    4. GET the redirect Location to confirm
+
+    Returns the final file metadata dict on success, or None on failure.
+    """
+    # Step 0: Get existing file metadata for folder_id and display_name
+    existing = get_file(course_id, file_id)
+    if not existing:
+        warnings.warn(f"File replace failed: could not retrieve file {file_id}", UserWarning)
+        return None
+
+    folder_id = existing.get("folder_id")
+    original_name = existing.get("display_name") or existing.get("filename")
+    if not folder_id or not original_name:
+        warnings.warn("File replace failed: missing folder_id or filename from file metadata", UserWarning)
+        return None
+
+    filename = os.path.basename(file_path)
+    filesize = os.path.getsize(file_path)
+
+    # Enforce file type match
+    original_ext = os.path.splitext(original_name)[1].lower()
+    local_ext = os.path.splitext(filename)[1].lower()
+    if original_ext != local_ext:
+        warnings.warn(
+            f"File type mismatch: Canvas file is '{original_ext}' but replacement is '{local_ext}'",
+            UserWarning,
+        )
+        return None
+
+    # Step 1: Notify Canvas of the upload
+    notify_url = (f"{os.environ.get('API_PATH')}/courses/{course_id}"
+                  f"/files?access_token={get_access_token()}")
+    clean_url = _clean_url(notify_url)
+    try:
+        resp = requests.post(notify_url, data={
+            "name": original_name,
+            "size": filesize,
+            "parent_folder_id": folder_id,
+            "on_duplicate": "overwrite",
+        }, verify=True)
+    except RequestsConnectionError as exc:
+        log.error(f"Connection error during file replace step 1: {exc}")
+        return None
+
+    if resp.status_code != 200:
+        log.warning(f"File replace step 1 failed: {clean_url} | {resp.status_code}")
+        try:
+            error_message = _extract_error_message(json.loads(resp.content))
+        except json.JSONDecodeError:
+            error_message = resp.text
+        warnings.warn(f"File replace failed (step 1): HTTP {resp.status_code} - {error_message}", UserWarning)
+        return None
+
+    upload_info = json.loads(resp.content)
+    upload_url = upload_info.get("upload_url")
+    upload_params = upload_info.get("upload_params", {})
+    if not upload_url:
+        log.error("File replace step 1 returned no upload_url")
+        return None
+
+    log.info(f"File replace step 1 OK: {clean_url}")
+
+    # Step 2: Upload the file
+    try:
+        with open(file_path, "rb") as f:
+            resp2 = requests.post(upload_url, data=upload_params,
+                                  files={"file": (original_name, f)}, verify=True,
+                                  allow_redirects=False)
+    except (RequestsConnectionError, OSError) as exc:
+        log.error(f"Connection error during file replace step 2: {exc}")
+        return None
+
+    # Canvas returns 3xx with Location header, or 201 with JSON
+    if resp2.status_code in (301, 302, 303):
+        confirm_url = resp2.headers.get("Location")
+    elif resp2.status_code in (200, 201):
+        try:
+            result = json.loads(resp2.content)
+            if result.get("id"):
+                log.info(f"File replace complete (no confirmation needed): {original_name}")
+                return result
+            confirm_url = result.get("location")
+        except json.JSONDecodeError:
+            confirm_url = None
+    else:
+        log.warning(f"File replace step 2 failed: {resp2.status_code}")
+        try:
+            error_message = _extract_error_message(json.loads(resp2.content))
+        except json.JSONDecodeError:
+            error_message = resp2.text
+        warnings.warn(f"File replace failed (step 2): HTTP {resp2.status_code} - {error_message}", UserWarning)
+        return None
+
+    if not confirm_url:
+        log.error("File replace step 2 returned no confirmation URL")
+        return None
+
+    log.info("File replace step 2 OK, confirming upload")
+
+    # Step 3: Confirm the upload (GET to the redirect Location)
+    try:
+        separator = "&" if "?" in confirm_url else "?"
+        resp3 = requests.get(f"{confirm_url}{separator}access_token={get_access_token()}", verify=True)
+    except RequestsConnectionError as exc:
+        log.error(f"Connection error during file replace step 3: {exc}")
+        return None
+
+    if resp3.status_code in (200, 201):
+        log.info(f"File replace complete: {original_name}")
+        try:
+            return json.loads(resp3.content)
+        except json.JSONDecodeError:
+            return {"status": "ok"}
+    else:
+        log.warning(f"File replace step 3 failed: {resp3.status_code}")
+        try:
+            error_message = _extract_error_message(json.loads(resp3.content))
+        except json.JSONDecodeError:
+            error_message = resp3.text
+        warnings.warn(f"File replace failed (step 3): HTTP {resp3.status_code} - {error_message}", UserWarning)
+        return None
+

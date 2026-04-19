@@ -130,6 +130,76 @@ class Tooltip:
             self._tip = None
 
 
+def show_dialog(parent, title, message, dialog_type="info", on_confirm=None):
+    """Show a CTk-styled dialog. Returns True/False for confirm dialogs.
+
+    dialog_type: "info", "warning", "error", "confirm"
+    on_confirm: callback for confirm dialog (called if user clicks Yes)
+    """
+    result = [False]
+
+    dialog = ctk.CTkToplevel(parent)
+    dialog.title(title)
+    dialog.resizable(False, False)
+    dialog.transient(parent.winfo_toplevel())
+    dialog.grab_set()
+
+    # Icon/color per type
+    colors = {
+        "info":    {"fg": "#2d6a2d", "label": ""},
+        "warning": {"fg": "#8a6d00", "label": ""},
+        "error":   {"fg": "#b22222", "label": ""},
+        "confirm": {"fg": "#3B8ED0", "label": ""},
+    }
+    style = colors.get(dialog_type, colors["info"])
+
+    # Message
+    msg_label = ctk.CTkLabel(
+        dialog, text=message, font=ctk.CTkFont(size=13),
+        wraplength=400, justify="left",
+    )
+    msg_label.pack(padx=20, pady=(20, 15))
+
+    # Buttons
+    btn_row = ctk.CTkFrame(dialog, fg_color="transparent")
+    btn_row.pack(fill="x", padx=20, pady=(0, 15))
+
+    if dialog_type == "confirm":
+        def _yes():
+            result[0] = True
+            dialog.destroy()
+            if on_confirm:
+                on_confirm()
+
+        no_btn = ctk.CTkButton(btn_row, text="No", width=80, fg_color="gray40",
+                               hover_color="gray30", command=dialog.destroy)
+        no_btn.pack(side="right", padx=(5, 0))
+        _add_focus_ring(no_btn)
+        yes_btn = ctk.CTkButton(btn_row, text="Yes", width=80,
+                                fg_color=style["fg"], command=_yes)
+        yes_btn.pack(side="right")
+        _add_focus_ring(yes_btn)
+        yes_btn.focus_set()
+    else:
+        ok_btn = ctk.CTkButton(btn_row, text="OK", width=80,
+                               fg_color=style["fg"], command=dialog.destroy)
+        ok_btn.pack(side="right")
+        _add_focus_ring(ok_btn)
+        ok_btn.focus_set()
+
+    dialog.bind("<Escape>", lambda e: dialog.destroy())
+    dialog.bind("<Return>", lambda e: (result.__setitem__(0, True), dialog.destroy()) if dialog_type == "confirm" else (None, dialog.destroy()))
+
+    # Size dialog after content is laid out
+    dialog.update_idletasks()
+    w = max(dialog.winfo_reqwidth(), 350)
+    h = dialog.winfo_reqheight()
+    dialog.geometry(f"{w}x{h}")
+
+    dialog.wait_window()
+    return result[0]
+
+
 class TextRedirector:
     """Captures stdout/stderr writes and routes them to the GUI log textbox."""
 
