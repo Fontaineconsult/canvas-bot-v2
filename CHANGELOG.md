@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.2.3
+
+### Content Visibility
+- **Visibility column** — replaced the boolean "Hidden" column in all Content Viewer tables with a single "Visibility" column that shows context-aware labels: **Visible**, **Hidden**, **Unpublished**, or **Locked**. Items with multiple flags show combined labels (e.g. "Unpublished, Locked").
+- **Context-aware hidden detection** — files marked `hidden_for_user` or `hidden_from_students` in Canvas but linked from a published page or module are shown as **Visible**, since students can still access them via the link. Only truly inaccessible items are labeled **Hidden**.
+- **`hidden_reason` field in JSON export** — every content item in `.manifest/content.json` now includes a `hidden_reason` string listing the specific Canvas API flags that caused the item to be hidden (e.g. `"hidden_for_user"`, `"unpublished"`, `"locked"`, `"hidden_from_students"`). Empty string when visible.
+- **Content Visibility section in README** — added a reference table documenting how Canvas API visibility flags and link context map to the Visibility column labels.
+- Files changed: `gui/content_viewer.py`, `core/content_scaffolds.py`, `core/utilities.py` (new), `readme.md`
+
+### File Source Identification
+- **`file_source` field for documents** — the documents scaffold now includes a `file_source` field: `"Canvas"` for files hosted in Canvas (with an API dict), `"External File"` for files discovered via URL scraping.
+- **File Source column** — added a "File Source" column (width 120) to the documents table in the Content Viewer, showing whether each document is a Canvas-hosted file or an external link.
+- **`canvas_file_id` field** — documents now include the Canvas file ID in the JSON export for use by the file replace feature.
+- Files changed: `core/content_scaffolds.py`, `gui/content_viewer.py`
+
+### Refactoring
+- **`core/utilities.py`** — extracted `build_path()`, `is_hidden()`, and `get_hidden_reasons()` from `content_scaffolds.py` into a shared utility module. These tree-traversal and visibility functions are now reusable by any module without importing from the scaffold layer.
+- **Removed `is_hidden()` and `build_path()` from `content_scaffolds.py`** — all callers (`content_scaffolds.py`, `downloader.py`, `canvas_tree.py`, `content_nodes.py`) updated to import from `core.utilities`.
+- Files changed: `core/utilities.py` (new), `core/content_scaffolds.py`, `core/downloader.py`, `tools/canvas_tree.py`, `resource_nodes/content_nodes.py`, `resource_nodes/base_content_node.py`
+
+---
+
 ## v1.2.2
 
 ### Content Viewer Layout Rearrangement

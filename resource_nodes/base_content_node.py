@@ -78,8 +78,7 @@ class BaseContentNode:
 
 
     def __str__(self):
-        from core.content_scaffolds import is_hidden
-
+        from core.utilities import is_hidden
         return f"{Style.BRIGHT}{Fore.LIGHTWHITE_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {'hidden' if is_hidden(self) else 'visible'} {self.url if self.url else self.title} ){Style.RESET_ALL}"
 
     def __repr__(self):

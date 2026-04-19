@@ -184,6 +184,23 @@ CanvasBot classifies content into these categories:
 | Canvas Studio | Canvas Studio embeds | Institution media |
 | Unsorted | Unclassified links | Everything else |
 
+### Content Visibility
+
+CanvasBot determines the visibility of each content item by combining Canvas API flags with link context. The Visibility column in the Content Viewer shows the effective student-facing visibility status:
+
+| Canvas API Flag | Linked from a page/module? | Visibility Label | Meaning |
+|---|---|---|---|
+| None | Yes | **Visible** | Students can see and access the content |
+| None | No | **Visible** | Not linked but not restricted |
+| `hidden_for_user` / `hidden_from_students` | Yes | **Visible** | File is unlisted from the Files browser but still accessible via link |
+| `hidden_for_user` / `hidden_from_students` | No | **Hidden** | Not linked anywhere and hidden from Files — students cannot access |
+| `published = false` | Any | **Unpublished** | Draft state — completely invisible to students |
+| `locked` | Any | **Locked** | Restricted by date range or prerequisites — students can see but not open |
+
+Items with multiple flags show combined labels (e.g. "Unpublished, Locked").
+
+The raw API flags are preserved in the JSON export (`is_hidden`, `hidden_reason`) for programmatic use. The Visibility column is a GUI-only interpretation that accounts for link context.
+
 ## Requirements
 
 - Windows 10 or later
@@ -355,9 +372,11 @@ Canvasbot.exe --course_id 12345 --output_as_json "C:\Reports"
         "title": "Syllabus.pdf",
         "url": "https://yourschool.instructure.com/files/123/download",
         "file_type": "pdf",
+        "file_source": "Canvas",
         "source_page_type": "Page",
         "source_page_url": "https://yourschool.instructure.com/courses/12345/pages/welcome",
         "is_hidden": false,
+        "hidden_reason": "",
         "order": 1
       }
     ],

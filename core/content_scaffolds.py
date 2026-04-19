@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import List
 from urllib.parse import unquote_plus
 
 from core.downloader import path_constructor, derive_file_name
+from core.utilities import build_path, is_hidden, get_hidden_reasons
 from tools.captioning_check import get_youtube_caption_info
 from tools.string_checking.other_tools import get_extension_from_filename, get_extension_from_mime_type
 
@@ -111,53 +111,6 @@ def get_order(node) -> int:
     return 0
 
 
-def is_hidden(node) -> bool:
-
-    """
-    Check if the node is hidden.
-    :param node:
-    :return:
-    """
-
-    # don't print node, will cause max recursion error
-    path_list = build_path(node)
-
-
-    for node_ in path_list:
-        if node_.__dict__.get("hidden_for_user") is True\
-                or node_.__dict__.get('published') is False\
-                or node_.__dict__.get("hide_from_students") is True \
-                or node_.__dict__.get("locked") is True:
-            return True
-    return False
-
-
-
-def build_path(node, ignore_root=False) -> List:
-
-    """
-    Build a list of the path from the node to the root node.
-    :param node:
-    :param ignore_root:
-    :return:
-    """
-
-    path_list = list()
-
-    def get_parent(node_):
-
-        if hasattr(node_, "root_node"):
-
-            if not ignore_root:
-                pass
-            else:
-                path_list.append(node_)
-        if not hasattr(node_, "root_node"):
-
-            path_list.append(node_)
-            get_parent(node_.parent)
-    get_parent(node)
-    return path_list
 
 
 
@@ -187,7 +140,9 @@ def document_dict(document_node, file_download_directory, flatten):
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(document_node),
+        "hidden_reason": get_hidden_reasons(document_node),
         "file_source": "Canvas" if getattr(document_node, "is_canvas_file", False) else "External File",
+        "canvas_file_id": getattr(document_node, "id", None),
         "file_type": get_file_type(document_node),
         "order": get_order(document_node),
         "path": [node.title for node in build_path(document_node, ignore_root=True) if node.title is not None],
@@ -211,6 +166,7 @@ def document_site_dict(document_site_node):
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(document_site_node),
+        "hidden_reason": get_hidden_reasons(document_site_node),
         "order": get_order(document_site_node),
         "path": [node.title for node in build_path(document_site_node, ignore_root=True) if node.title is not None],
 
@@ -230,6 +186,7 @@ def video_site_dict(video_site_node, check_caption_status):
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(video_site_node),
+        "hidden_reason": get_hidden_reasons(video_site_node),
         "order": get_order(video_site_node),
         "is_captioned": getattr(video_site_node, "captioned", False),
         "path": [node.title for node in build_path(video_site_node, ignore_root=True) if node.title is not None],
@@ -258,6 +215,7 @@ def video_file_dict(video_file_node, file_download_directory, flatten):
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(video_file_node),
+        "hidden_reason": get_hidden_reasons(video_file_node),
         "file_type": get_file_type(video_file_node),
         "order": get_order(video_file_node),
         "is_captioned": getattr(video_file_node, "captioned", False),
@@ -309,6 +267,7 @@ def audio_file_dict(audio_file_node, file_download_directory, flatten):
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(audio_file_node),
+        "hidden_reason": get_hidden_reasons(audio_file_node),
         "file_type": get_file_type(audio_file_node),
         "order": get_order(audio_file_node),
         "path": [node.title for node in build_path(audio_file_node, ignore_root=True) if node.title is not None],
@@ -331,6 +290,7 @@ def audio_site_dict(audio_site_node):
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(audio_site_node),
+        "hidden_reason": get_hidden_reasons(audio_site_node),
         "order": get_order(audio_site_node),
         "path": [node.title for node in build_path(audio_site_node, ignore_root=True) if node.title is not None],
 
@@ -351,6 +311,7 @@ def image_file_dict(image_file_node, file_download_directory, flatten):
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(image_file_node),
+        "hidden_reason": get_hidden_reasons(image_file_node),
         "file_type": get_file_type(image_file_node),
         "order": get_order(image_file_node),
         "path": [node.title for node in build_path(image_file_node, ignore_root=True) if node.title is not None],
@@ -373,6 +334,7 @@ def digital_textbook_dict(node):
         "source_page_url": get_source_page_url(node),
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(node),
+        "hidden_reason": get_hidden_reasons(node),
         "order": get_order(node),
         "path": [n.title for n in build_path(node, ignore_root=True) if n.title is not None],
 
@@ -390,6 +352,7 @@ def institution_video_dict(node):
         "source_page_url": get_source_page_url(node),
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(node),
+        "hidden_reason": get_hidden_reasons(node),
         "order": get_order(node),
         "path": [n.title for n in build_path(node, ignore_root=True) if n.title is not None],
 
@@ -407,6 +370,7 @@ def file_storage_dict(node):
         "source_page_url": get_source_page_url(node),
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(node),
+        "hidden_reason": get_hidden_reasons(node),
         "order": get_order(node),
         "path": [n.title for n in build_path(node, ignore_root=True) if n.title is not None],
 
@@ -425,6 +389,7 @@ def unsorted_dict(unsorted_node):
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
         "is_hidden": is_hidden(unsorted_node),
+        "hidden_reason": get_hidden_reasons(unsorted_node),
         "order": get_order(unsorted_node),
         "path": [node.title for node in build_path(unsorted_node, ignore_root=True) if node.title is not None],
 

@@ -87,7 +87,6 @@ class Node:
                       + get_src_links_from_html_iframe_tag(html_body)\
                       + get_src_links_from_video_tag(html_body)\
                       + get_src_links_from_img_tag(html_body)
-        print(return_list)
         return return_list
 
     @staticmethod

@@ -2,7 +2,7 @@ import re
 
 from colorama import Fore, Style, init
 
-from core.content_scaffolds import is_hidden
+from core.utilities import is_hidden
 from network.api import get_file, get_media_object, get_media_objects
 from network.studio_api import get_media_by_id, get_media_sources_by_id, get_media_perspectives_by_id, \
     get_captions_by_media_id

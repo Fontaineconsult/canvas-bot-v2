@@ -276,9 +276,8 @@ def _format_node_display(node, show_urls=True):
 
     if is_content:
         # Content node - show more details
-        from core.content_scaffolds import is_hidden
-
-        hidden = is_hidden(node) if hasattr(node, 'parent') else False
+        from core.utilities import is_hidden
+        hidden = is_hidden(node)
         hidden_indicator = f"{Fore.RED}[hidden]{Style.RESET_ALL} " if hidden else ""
 
         # Get title or URL
@@ -434,7 +433,7 @@ class CanvasTree:
 
             if getattr(node, 'is_content', False):
                 self._stats['_total_content'] += 1
-                from core.content_scaffolds import is_hidden
+                from core.utilities import is_hidden
                 if is_hidden(node):
                     self._stats['_hidden_content'] += 1
             else:
@@ -445,7 +444,7 @@ class CanvasTree:
 
     def show_content_only(self, show_stats=True, show_urls=True):
         """Display tree showing only resource nodes that contain content."""
-        from core.content_scaffolds import build_path
+        from core.utilities import build_path
 
         # 1. Collect IDs of all nodes to keep
         keep_ids = set()

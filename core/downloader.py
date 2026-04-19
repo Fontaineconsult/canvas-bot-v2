@@ -312,7 +312,7 @@ def path_constructor(root_directory: str, node: BaseContentNode, flatten: bool) 
     derive_file_name : Generates the filename portion
     sanitize_windows_filename : Cleans invalid characters
     """
-    from core.content_scaffolds import build_path
+    from core.utilities import build_path
 
     filename = sanitize_windows_filename(derive_file_name(node))
     node_path = build_path(node, ignore_root=True)
@@ -504,7 +504,8 @@ class DownloaderMixin:
         ...     flatten=True
         ... )
         """
-        from core.content_scaffolds import is_hidden, get_source_page_url
+        from core.content_scaffolds import get_source_page_url
+        from core.utilities import is_hidden
 
         download_manifest = read_download_manifest(root_directory)['downloaded_files']
         log.info(f"Downloading files to {root_directory} with params: {params}")

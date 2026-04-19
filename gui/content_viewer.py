@@ -16,6 +16,14 @@ _REVIEW_STATUSES = ["Needs Review", "Passed", "Ignore"]
 _DEFAULT_STATUS = "-"  # unreviewed — no color
 _SHOW_DETAIL_PANEL = False  # Set to True to show the diagnostic detail panel
 
+# Short display labels for hidden_reason values
+_REASON_LABELS = {
+    "hidden_for_user": "Hidden",
+    "hidden_from_students": "Hidden",
+    "unpublished": "Unpublished",
+    "locked": "Locked",
+}
+
 # Column definitions per content sub-type
 _ORDER_COL = {"id": "order", "heading": "Order", "width": 65}
 
@@ -26,7 +34,7 @@ _COLUMNS = {
         {"id": "file_type", "heading": "Type", "width": 100},
         {"id": "file_source", "heading": "File Source", "width": 120},
         {"id": "source_page_type", "heading": "Source", "width": 150},
-        {"id": "is_hidden", "heading": "Hidden", "width": 100},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "downloaded", "heading": "Downloaded", "width": 130},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
@@ -35,7 +43,7 @@ _COLUMNS = {
         {"id": "title", "heading": "Title", "width": 165, "stretch": True},
         {"id": "url", "heading": "URL", "width": 235, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 140},
-        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "video_sites": [
@@ -43,14 +51,14 @@ _COLUMNS = {
         {"id": "title", "heading": "Title", "width": 165, "stretch": True},
         {"id": "url", "heading": "URL", "width": 235, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 140},
-        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "video_files": [
         _ORDER_COL,
         {"id": "title", "heading": "Title", "width": 175, "stretch": True, "max_chars": 60},
         {"id": "file_type", "heading": "Type", "width": 80},
-        {"id": "is_hidden", "heading": "Hidden", "width": 80},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "source_page_type", "heading": "Source", "width": 130},
         {"id": "downloaded", "heading": "Downloaded", "width": 110},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
@@ -60,7 +68,7 @@ _COLUMNS = {
         {"id": "title", "heading": "Title", "width": 175, "stretch": True, "max_chars": 60},
         {"id": "file_type", "heading": "Type", "width": 80},
         {"id": "source_page_type", "heading": "Source", "width": 130},
-        {"id": "is_hidden", "heading": "Hidden", "width": 80},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "downloaded", "heading": "Downloaded", "width": 110},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
@@ -69,7 +77,7 @@ _COLUMNS = {
         {"id": "title", "heading": "Title", "width": 165, "stretch": True},
         {"id": "url", "heading": "URL", "width": 235, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 140},
-        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "image_files": [
@@ -77,7 +85,7 @@ _COLUMNS = {
         {"id": "title", "heading": "Title", "width": 175, "stretch": True, "max_chars": 60},
         {"id": "file_type", "heading": "Type", "width": 80},
         {"id": "source_page_type", "heading": "Source", "width": 130},
-        {"id": "is_hidden", "heading": "Hidden", "width": 80},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "downloaded", "heading": "Downloaded", "width": 110},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
@@ -86,7 +94,7 @@ _COLUMNS = {
         {"id": "title", "heading": "Title", "width": 165, "stretch": True},
         {"id": "url", "heading": "URL", "width": 235, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 140},
-        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "digital_textbooks": [
@@ -94,7 +102,7 @@ _COLUMNS = {
         {"id": "title", "heading": "Title", "width": 165, "stretch": True},
         {"id": "url", "heading": "URL", "width": 235, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 140},
-        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "file_storage": [
@@ -102,7 +110,7 @@ _COLUMNS = {
         {"id": "title", "heading": "Title", "width": 165, "stretch": True},
         {"id": "url", "heading": "URL", "width": 235, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 140},
-        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "unsorted": [
@@ -110,7 +118,7 @@ _COLUMNS = {
         {"id": "title", "heading": "Title", "width": 175, "stretch": True},
         {"id": "url", "heading": "URL", "width": 250, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 130},
-        {"id": "is_hidden", "heading": "Hidden", "width": 80},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
 }
@@ -839,6 +847,22 @@ class ContentViewer:
             for row in rows:
                 url = row.get("url", "")
                 row["status"] = self._review_statuses.get(url, {}).get("status", _DEFAULT_STATUS)
+                # Build visibility column from hidden_reason + source_page_url
+                reason = row.get("hidden_reason", "")
+                has_source = bool(row.get("source_page_url"))
+                if reason:
+                    labels = []
+                    for part in reason.split(", "):
+                        label = _REASON_LABELS.get(part, part)
+                        # Hidden items linked from a page are visible to students
+                        if label == "Hidden" and has_source:
+                            continue
+                        labels.append(label)
+                    seen = set()
+                    unique = [l for l in labels if not (l in seen or seen.add(l))]
+                    row["visibility"] = ", ".join(unique) if unique else "Visible"
+                else:
+                    row["visibility"] = "Visible"
             self._tables[table_key].populate(rows)
             counts[table_key] = len(rows)
 
