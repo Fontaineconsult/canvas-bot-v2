@@ -234,6 +234,13 @@ def get_external_tool(course_id, id):
 
 
 @response_decorator
+def get_course_permissions(course_id):
+    permissions_url = (f"{os.environ.get('API_PATH')}/courses/{course_id}"
+                       f"/permissions?access_token={get_access_token()}")
+    return permissions_url
+
+
+@response_decorator
 def get_url(url):
     authenticated_url = f"{url}?access_token={get_access_token()}"
     return authenticated_url

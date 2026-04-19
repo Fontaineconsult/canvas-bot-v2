@@ -143,6 +143,8 @@ class ContentViewer:
         self._current_data = None  # raw JSON data for re-filtering
         self._review_statuses = {}  # url -> {"status": "Passed"|"Needs Review"|...}
         self._manifest_dir = None   # current course's .manifest/ path
+        self._can_replace = False   # whether current course allows file replace
+        self._replace_perms_cache = {}  # course_id -> bool
 
         # Placeholder shown when no data is available
         self._placeholder = ctk.CTkLabel(
@@ -729,6 +731,31 @@ class ContentViewer:
         if course_url:
             webbrowser.open(f"{course_url}/files")
 
+    def _check_replace_permission(self, course_id):
+        """Check if the current API token has file management permission for this course."""
+        if not course_id:
+            return False
+
+        # Return cached result if available
+        if course_id in self._replace_perms_cache:
+            return self._replace_perms_cache[course_id]
+
+        try:
+            from network.cred import set_canvas_api_key_to_environment_variable, load_config_data_from_appdata
+            load_config_data_from_appdata()
+            if not set_canvas_api_key_to_environment_variable():
+                self._replace_perms_cache[course_id] = False
+                return False
+
+            from network.api import get_course_permissions
+            perms = get_course_permissions(course_id)
+            can_manage = bool(perms and perms.get("manage_files_edit"))
+            self._replace_perms_cache[course_id] = can_manage
+            return can_manage
+        except Exception:
+            self._replace_perms_cache[course_id] = False
+            return False
+
     def _replace_file(self):
         """Replace the selected Canvas file with a user-chosen file."""
         if not self._selected_row or not self._current_data:
@@ -847,6 +874,7 @@ class ContentViewer:
         self._manifest_dir = manifest_dir
         self._review_statuses = self._load_review_statuses(manifest_dir)
         self._current_data = data
+        self._can_replace = self._check_replace_permission(data.get("course_id"))
         self._populate_from_data(data)
 
     def _on_filter_changed(self):
@@ -1038,8 +1066,9 @@ class ContentViewer:
         else:
             self._open_source_btn.configure(state="disabled")
 
-        # Enable Replace File for Canvas documents only
-        if (self._selected_table_key == "documents"
+        # Enable Replace File for Canvas documents only (if user has permission)
+        if (self._can_replace
+                and self._selected_table_key == "documents"
                 and row.get("canvas_file_id")
                 and row.get("file_source") == "Canvas"):
             self._replace_file_btn.configure(state="normal")
