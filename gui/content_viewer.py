@@ -3,6 +3,7 @@ import json
 import os
 import re
 import shutil
+import threading
 import webbrowser
 from tkinter import messagebox, filedialog
 import customtkinter as ctk
@@ -145,6 +146,7 @@ class ContentViewer:
         self._manifest_dir = None   # current course's .manifest/ path
         self._can_replace = False   # whether current course allows file replace
         self._replace_perms_cache = {}  # course_id -> bool
+        self._pending_perm_course = None  # course_id of in-flight permission check
 
         # Placeholder shown when no data is available
         self._placeholder = ctk.CTkLabel(
@@ -731,30 +733,64 @@ class ContentViewer:
         if course_url:
             webbrowser.open(f"{course_url}/files")
 
-    def _check_replace_permission(self, course_id):
-        """Check if the current API token has file management permission for this course."""
+    def _check_replace_permission_async(self, course_id):
+        """Kick off a permission check; updates self._can_replace when the result arrives.
+
+        Fast path: if the course is already cached, apply the result synchronously.
+        Otherwise default to False and spawn a worker thread that posts back via after().
+        """
         if not course_id:
-            return False
+            self._can_replace = False
+            self._pending_perm_course = None
+            return
 
-        # Return cached result if available
         if course_id in self._replace_perms_cache:
-            return self._replace_perms_cache[course_id]
+            self._can_replace = self._replace_perms_cache[course_id]
+            self._pending_perm_course = None
+            return
 
+        self._can_replace = False
+        self._pending_perm_course = course_id
+
+        thread = threading.Thread(
+            target=self._perm_worker,
+            args=(course_id,),
+            daemon=True,
+        )
+        thread.start()
+
+    def _perm_worker(self, course_id):
+        """Background thread: fetch course permissions and post result to main thread."""
         try:
             from network.cred import set_canvas_api_key_to_environment_variable, load_config_data_from_appdata
             load_config_data_from_appdata()
             if not set_canvas_api_key_to_environment_variable():
-                self._replace_perms_cache[course_id] = False
-                return False
-
-            from network.api import get_course_permissions
-            perms = get_course_permissions(course_id)
-            can_manage = bool(perms and perms.get("manage_files_edit"))
-            self._replace_perms_cache[course_id] = can_manage
-            return can_manage
+                can_manage = False
+            else:
+                from network.api import get_course_permissions
+                perms = get_course_permissions(course_id)
+                can_manage = bool(perms and perms.get("manage_files_edit"))
         except Exception:
-            self._replace_perms_cache[course_id] = False
-            return False
+            can_manage = False
+
+        try:
+            self._parent.after(0, self._on_perms_ready, course_id, can_manage)
+        except Exception:
+            pass
+
+    def _on_perms_ready(self, course_id, can_manage):
+        """Main thread: apply the async permission result, ignoring stale selections."""
+        self._replace_perms_cache[course_id] = can_manage
+
+        current = self._current_data.get("course_id") if self._current_data else None
+        if course_id != current:
+            return
+
+        self._can_replace = can_manage
+        self._pending_perm_course = None
+
+        if self._selected_row is not None:
+            self._on_row_select(self._selected_row)
 
     def _replace_file(self):
         """Replace the selected Canvas file with a user-chosen file."""
@@ -874,7 +910,7 @@ class ContentViewer:
         self._manifest_dir = manifest_dir
         self._review_statuses = self._load_review_statuses(manifest_dir)
         self._current_data = data
-        self._can_replace = self._check_replace_permission(data.get("course_id"))
+        self._check_replace_permission_async(data.get("course_id"))
         self._populate_from_data(data)
 
     def _on_filter_changed(self):
@@ -931,8 +967,16 @@ class ContentViewer:
         show_inactive = self._show_inactive_var.get()
 
         counts = {}
+        hidden_fallback = 0
+        inactive_count = 0
         for table_key, (category, sub_key) in mapping.items():
-            rows = content.get(category, {}).get(sub_key, [])
+            rows_all = content.get(category, {}).get(sub_key, [])
+            for row in rows_all:
+                if not row.get("source_page_url"):
+                    inactive_count += 1
+                if row.get("is_hidden"):
+                    hidden_fallback += 1
+            rows = rows_all
             if not show_inactive:
                 rows = [r for r in rows if r.get("source_page_url") and not r.get("is_hidden")]
             if table_key in downloadable:
@@ -967,17 +1011,12 @@ class ContentViewer:
         course_name = data.get("course_name", "")
         self._course_label.configure(text=course_name or "Untitled Course")
 
-        # Count hidden and inactive across all unfiltered content
-        hidden_count = 0
-        inactive_count = 0
-        for table_key, (category, sub_key) in mapping.items():
-            for row in content.get(category, {}).get(sub_key, []):
-                if row.get("is_hidden"):
-                    hidden_count += 1
-                if not row.get("source_page_url"):
-                    inactive_count += 1
+        # Prefer the manifest's authoritative counts; fall back to live counts for pre-summary manifests
+        summary = data.get("summary", {}).get("content", {})
+        total = summary.get("total", sum(counts.values()))
+        hidden_count = summary.get("hidden", hidden_fallback)
+        by_class = summary.get("by_class")
 
-        total = sum(counts.values())
         # Line 1: total, hidden, inactive
         line1_parts = [f"{total} items"]
         if hidden_count:
@@ -986,25 +1025,41 @@ class ContentViewer:
             line1_parts.append(f"Inactive: {inactive_count}")
 
         # Line 2+: content type counts (max 3 per line)
-        type_parts = []
-        doc_count = counts["documents"] + counts["document_sites"]
-        if doc_count:
-            type_parts.append(f"Docs: {doc_count}")
-        vid_count = counts["video_sites"] + counts["video_files"]
-        if vid_count:
-            type_parts.append(f"Video: {vid_count}")
-        if counts.get("institution_video", 0):
-            type_parts.append(f"Inst. Video: {counts['institution_video']}")
-        aud_count = counts["audio_files"] + counts["audio_sites"]
-        if aud_count:
-            type_parts.append(f"Audio: {aud_count}")
-        if counts["image_files"]:
-            type_parts.append(f"Images: {counts['image_files']}")
-        other_count = counts.get("digital_textbooks", 0) + counts.get("file_storage", 0)
-        if other_count:
-            type_parts.append(f"Other: {other_count}")
-        if counts["unsorted"]:
-            type_parts.append(f"Unsorted: {counts['unsorted']}")
+        if by_class is not None:
+            type_groups = [
+                ("Docs",        ("Document", "DocumentSite")),
+                ("Video",       ("VideoFile", "VideoSite", "CanvasMediaEmbed", "CanvasStudioEmbed")),
+                ("Inst. Video", ("InstitutionVideo",)),
+                ("Audio",       ("AudioFile", "AudioSite")),
+                ("Images",      ("ImageFile",)),
+                ("Other",       ("DigitalTextbook", "FileStorageSite", "BoxPage")),
+                ("Unsorted",    ("Unsorted",)),
+            ]
+            type_parts = []
+            for label, classes in type_groups:
+                n = sum(by_class.get(c, 0) for c in classes)
+                if n:
+                    type_parts.append(f"{label}: {n}")
+        else:
+            type_parts = []
+            doc_count = counts["documents"] + counts["document_sites"]
+            if doc_count:
+                type_parts.append(f"Docs: {doc_count}")
+            vid_count = counts["video_sites"] + counts["video_files"]
+            if vid_count:
+                type_parts.append(f"Video: {vid_count}")
+            if counts.get("institution_video", 0):
+                type_parts.append(f"Inst. Video: {counts['institution_video']}")
+            aud_count = counts["audio_files"] + counts["audio_sites"]
+            if aud_count:
+                type_parts.append(f"Audio: {aud_count}")
+            if counts["image_files"]:
+                type_parts.append(f"Images: {counts['image_files']}")
+            other_count = counts.get("digital_textbooks", 0) + counts.get("file_storage", 0)
+            if other_count:
+                type_parts.append(f"Other: {other_count}")
+            if counts["unsorted"]:
+                type_parts.append(f"Unsorted: {counts['unsorted']}")
 
         lines = ["  |  ".join(line1_parts)]
         for i in range(0, len(type_parts), 3):

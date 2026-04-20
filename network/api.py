@@ -39,7 +39,7 @@ def response_handler(request_url):
     clean_url = _clean_url(request_url)
     try:
         # Perform the GET request
-        request = requests.get(request_url, verify=True)
+        request = requests.get(request_url, verify=True, timeout=10)
     except RequestsConnectionError as exc:
         # Log and warn for connection errors
         log.error(f"Connection error: {exc} | URL: {clean_url}")

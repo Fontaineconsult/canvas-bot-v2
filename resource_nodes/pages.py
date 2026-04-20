@@ -9,6 +9,8 @@ class Pages(Node):
     This class is a container for all pages in a course.
     """
 
+    is_container = True
+
     def __init__(self, course_id, parent):
 
         super().__init__(parent, parent)

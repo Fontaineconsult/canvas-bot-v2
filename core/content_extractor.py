@@ -674,6 +674,10 @@ class ContentExtractor(DownloaderMixin):
             "course_id": self.course_id,
             "course_url": self.course_url,
             "course_name": self.course_name,
+            "summary": {
+                "content": self.manifest.content_summary(),
+                "resources": self.manifest.resource_summary(),
+            },
             "content": {
                 "documents": self.build_documents_dict(file_download_directory, flatten),
                 "videos": self.build_videos_dict(file_download_directory, flatten, check_video_site_caption_status),

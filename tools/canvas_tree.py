@@ -401,7 +401,6 @@ class CanvasTree:
     def __init__(self):
         self.tree = Tree()
         self._node_registry = {}  # Track nodes for statistics
-        self._stats = defaultdict(int)
         self._show_urls = True  # Default to showing URLs
 
     def init_node(self, root):
@@ -426,19 +425,6 @@ class CanvasTree:
         try:
             self.tree.create_node(node_display, node_value, parent)
             self._node_registry[node_value] = node
-
-            # Track statistics
-            node_type = node.__class__.__name__
-            self._stats[node_type] += 1
-
-            if getattr(node, 'is_content', False):
-                self._stats['_total_content'] += 1
-                from core.utilities import is_hidden
-                if is_hidden(node):
-                    self._stats['_hidden_content'] += 1
-            else:
-                self._stats['_total_resources'] += 1
-
         except Exception as e:
             warnings.warn(f"Could not add node {node}: {e}")
 
@@ -546,25 +532,18 @@ class CanvasTree:
         print(f"{Fore.CYAN}{'=' * 80}{Style.RESET_ALL}")
         print()
 
-        # Group stats by category
-        resources = []
-        content = []
+        # Pull authoritative counts from the manifest (via the registered root node)
+        root = next((n for n in self._node_registry.values() if hasattr(n, 'root_node')), None)
+        if root is None or not hasattr(root, 'manifest'):
+            return
+        content_stats = root.manifest.content_summary()
+        resource_stats = root.manifest.resource_summary()
 
-        # Container nodes that are just organizational wrappers (always 1 each)
-        containers = {'Modules', 'Pages', 'Assignments', 'Quizzes',
-                      'Discussions', 'Announcements', 'CanvasFiles',
-                      'CanvasMediaObjects', 'CanvasStudio'}
-
-        for node_type, count in sorted(self._stats.items()):
-            if node_type.startswith('_') or node_type in containers:
-                continue
-            if node_type in ('Document', 'DocumentSite', 'VideoFile', 'VideoSite',
-                           'AudioFile', 'AudioSite', 'ImageFile', 'FileStorageSite',
-                           'DigitalTextbook', 'CanvasMediaEmbed', 'CanvasStudioEmbed',
-                           'Unsorted', 'BoxPage'):
-                content.append((node_type, count))
-            else:
-                resources.append((node_type, count))
+        containers = root.manifest.container_classes()
+        resources = sorted(
+            (nt, c) for nt, c in resource_stats['by_class'].items() if nt not in containers
+        )
+        content = sorted(content_stats['by_class'].items())
 
         # Print resources
         if resources:
@@ -591,8 +570,8 @@ class CanvasTree:
             print()
 
         # Print totals
-        total_content = self._stats.get('_total_content', 0)
-        hidden_content = self._stats.get('_hidden_content', 0)
+        total_content = content_stats['total']
+        hidden_content = content_stats['hidden']
         visible_content = total_content - hidden_content
 
         print(f"  {Fore.CYAN}{'-' * 40}{Style.RESET_ALL}")
@@ -612,10 +591,6 @@ class CanvasTree:
     #     print()
     #     print(f"{Fore.CYAN}{'=' * 80}{Style.RESET_ALL}")
     #     print()
-
-    def get_statistics(self):
-        """Return statistics as a dictionary."""
-        return dict(self._stats)
 
     def get_all_urls(self):
         """

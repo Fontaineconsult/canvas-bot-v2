@@ -10,6 +10,8 @@ class CanvasFiles(Node):
     content nodes based on their API data before adding to the tree.
     """
 
+    is_container = True
+
     def __init__(self, course_id, parent):
 
         super().__init__(parent, parent)
