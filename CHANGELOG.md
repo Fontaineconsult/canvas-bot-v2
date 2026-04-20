@@ -19,12 +19,33 @@
 - **Replace File button** — the Content Viewer now has a "Replace File" button (Alt+R) that uploads a local file to replace the selected Canvas document. Enabled only for Canvas-hosted documents (`file_source == "Canvas"`). Opens a file picker, confirms with the user, then performs a 3-step Canvas API upload (notify → upload → confirm). Shows success/error feedback via message dialog.
 - **`replace_file()` API function** — new function in `network/api.py` that handles the Canvas 3-step file replace process: POST to notify Canvas, POST multipart upload, POST to confirm. Handles redirects, error responses, and connection failures with logging and warnings.
 - **CLI `--replace_file` option** — replace a Canvas file from the command line without a full course scan. Usage: `Canvasbot.exe --course_id 12345 --replace_file "C:\new_syllabus.pdf" --canvas_file_id 67890`. Requires all three flags. Authenticates, uploads, and exits.
+- **Replace picker opens at downloaded file's folder** — clicking Replace File now opens the file picker at the same location the Open File Location button uses (the parent folder of the selected row's `save_path`). Falls back to the system default when the file hasn't been downloaded yet or the folder no longer exists. Mirrors the `os.path.dirname(save_path)` + `os.path.isdir` guard in `_open_file_or_site()`.
 - Files changed: `network/api.py`, `gui/content_viewer.py`, `canvas_bot.py`, `readme.md`
 
 ### Refactoring
 - **`core/utilities.py`** — extracted `build_path()`, `is_hidden()`, and `get_hidden_reasons()` from `content_scaffolds.py` into a shared utility module. These tree-traversal and visibility functions are now reusable by any module without importing from the scaffold layer.
 - **Removed `is_hidden()` and `build_path()` from `content_scaffolds.py`** — all callers (`content_scaffolds.py`, `downloader.py`, `canvas_tree.py`, `content_nodes.py`) updated to import from `core.utilities`.
 - Files changed: `core/utilities.py` (new), `core/content_scaffolds.py`, `core/downloader.py`, `tools/canvas_tree.py`, `resource_nodes/content_nodes.py`, `resource_nodes/base_content_node.py`
+
+### Counting & Summary Centralization
+- **`Manifest.content_summary()` / `Manifest.resource_summary()`** — new methods returning a unified `{total, hidden, by_class}` dict. Single source of truth replacing three independent counting implementations across `core/content_extractor.py`, `tools/canvas_tree.py`, and `gui/content_viewer.py`.
+- **`is_container` class attribute** — added to all 9 plural container classes (`Modules`, `Pages`, `Assignments`, `Quizzes`, `Discussions`, `Announcements`, `CanvasFiles`, `CanvasMediaObjects`, `CanvasStudio`) so they can be distinguished from per-item nodes (`Module`, `Page`, etc.) that share the same `Node` base.
+- **`Manifest.container_classes()`** — derives the set of container-shell class names from the `is_container` flag. Removes the hardcoded class-name set previously baked into `tools/canvas_tree.py`.
+- **`summary` block in `content.json`** — `ContentExtractor.get_all_content()` now embeds `summary.content` and `summary.resources` at the top of the manifest JSON. Downstream consumers (currently the GUI) can read counts directly without re-tallying.
+- **Content Viewer reads summary from JSON** — `_populate_from_data` now sources total, hidden, and per-type breakdown from `data["summary"]["content"]`. Falls back to live counting for older manifests without the block. The Show Inactive filter no longer affects the summary header — only what's shown in the tables.
+- **CONTENT SUMMARY tree printout uses Manifest** — `tools/canvas_tree.py` `_print_statistics` now consumes `manifest.content_summary()` and `manifest.resource_summary()` instead of its own `_stats` dict. Dead `_stats` accumulation in `add_node` and the unused `get_statistics()` method removed.
+- Files changed: `core/manifest.py`, `core/content_extractor.py`, `gui/content_viewer.py`, `tools/canvas_tree.py`, `resource_nodes/modules.py`, `resource_nodes/pages.py`, `resource_nodes/assignments.py`, `resource_nodes/quizzes.py`, `resource_nodes/discussions.py`, `resource_nodes/announcements.py`, `resource_nodes/canvasfiles.py`, `resource_nodes/media_objects.py`, `resource_nodes/canvas_studio.py`
+
+### GUI Responsiveness
+- **Async replace-permission check** — `ContentViewer._check_replace_permission` no longer blocks the main thread on Canvas's `/permissions` endpoint. Course selection spawns a daemon thread that posts the result back via `after(0, ...)`; cached results stay synchronous. Stale results from rapid course switching are guarded so the wrong course's permission can't enable the Replace File button.
+- **HTTP request timeout** — `network/api.py` `response_handler` now passes `timeout=10` to `requests.get`, preventing zombie threads when Canvas is unresponsive.
+- Files changed: `gui/content_viewer.py`, `network/api.py`
+
+### GUI Tweaks
+- **Smaller checkbox indicators** — all 11 `CTkCheckBox` widgets (Run tab options + Content Viewer filter) reduced from the default 24×24 to 19×19 (~21% smaller). Label text size unchanged.
+- **Clearer Download Options labels** — the media-type checkboxes now read "Download video files" / "Download audio files" / "Download image files" instead of "Include …", reflecting that they affect the download step only (all types are scanned regardless). "Include hidden content" → "Include hidden/locked" to cover all four Canvas flags (`hidden_for_user`, `published=False`, `hide_from_students`, `locked`). "Include inactive content" → "Include unlinked" to match how the filter actually works.
+- **About dialog Download Options section updated** — the Run tab in the About dialog uses the new label terminology and adds a note clarifying that Hidden/locked and Unlinked are independent filters — a file that is both hidden and unlinked requires both options checked to download.
+- Files changed: `gui/app.py`, `gui/content_viewer.py`, `gui/controller.py`
 
 ---
 

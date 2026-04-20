@@ -622,7 +622,7 @@ class GUIController:
         about_scroll.pack(fill="both", expand=True)
 
         ctk.CTkLabel(about_scroll, text="Canvas Bot", font=ctk.CTkFont(size=20, weight="bold"), anchor="w").pack(fill="x")
-        ctk.CTkLabel(about_scroll, text="v1.2.2  |  CC-BY-NC-4.0", font=ctk.CTkFont(size=13), text_color="gray", anchor="w").pack(fill="x")
+        ctk.CTkLabel(about_scroll, text="v1.2.3  |  CC-BY-NC-4.0", font=ctk.CTkFont(size=13), text_color="gray", anchor="w").pack(fill="x")
 
         _heading(about_scroll, "What is Canvas Bot?")
         _body(about_scroll,
@@ -674,11 +674,12 @@ class GUIController:
         _note(run_scroll, "You must set an output folder and check \"Download files\" before the Run button activates.")
 
         _heading(run_scroll, "Download Options")
-        _body(run_scroll, "By default only documents (PDF, DOCX, PPTX, etc.) are downloaded.")
-        _bullet(run_scroll, "Include video / audio / image files", "\u2014 adds those media types to the download.")
-        _bullet(run_scroll, "Include hidden content", "\u2014 downloads unpublished items not visible to students.")
-        _bullet(run_scroll, "Include inactive content", "\u2014 downloads files that exist in the course but aren't linked from any active page.")
+        _body(run_scroll, "By default only documents (PDF, DOCX, PPTX, etc.) that are visible and linked from a course page are downloaded.")
+        _bullet(run_scroll, "Download video / audio / image files", "\u2014 adds those media types alongside documents.")
+        _bullet(run_scroll, "Include hidden/locked", "\u2014 also includes items flagged hidden, unpublished, locked, or hidden from students.")
+        _bullet(run_scroll, "Include unlinked", "\u2014 also includes files that exist in the course but aren't linked from any active page.")
         _bullet(run_scroll, "Flatten folder structure", "\u2014 saves all files into a single directory instead of preserving the module hierarchy.")
+        _note(run_scroll, "Hidden/locked and Unlinked are independent filters \u2014 a file that is both hidden and unlinked requires both options checked to download.")
 
         _heading(run_scroll, "Display Options")
         _body(run_scroll, "Available in single-course mode only.")

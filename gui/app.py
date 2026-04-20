@@ -21,7 +21,7 @@ class CanvasBotGUI:
         ctk.set_default_color_theme("blue")
 
         self.root = ctk.CTk()
-        self.root.title("Canvas Bot v1.2.2")
+        self.root.title("Canvas Bot v1.2.3")
         self.root.geometry("900x800")
         self.root.minsize(700, 650)
 
@@ -195,7 +195,7 @@ class CanvasBotGUI:
 
         ctk.CTkLabel(
             top_row,
-            text="v1.2.2",
+            text="v1.2.3",
             font=ctk.CTkFont(size=12),
             text_color="gray",
         ).pack(side="left", padx=(8, 0), pady=(4, 0))
@@ -307,7 +307,8 @@ class CanvasBotGUI:
 
         cb_download = ctk.CTkCheckBox(actions_row, text="Download files",
                                       variable=self.var_download,
-                                      command=self.controller.validate_run)
+                                      command=self.controller.validate_run,
+                                      checkbox_width=19, checkbox_height=19)
         cb_download.pack(side="left", padx=(0, 15))
         _add_focus_ring(cb_download)
         Tooltip(cb_download, "Download course documents to the output folder")
@@ -332,32 +333,32 @@ class CanvasBotGUI:
         left.columnconfigure(0, weight=1)
         left.columnconfigure(1, weight=1)
 
-        cb_video = ctk.CTkCheckBox(left, text="Include video files", variable=self.var_video)
+        cb_video = ctk.CTkCheckBox(left, text="Download video files", variable=self.var_video, checkbox_width=19, checkbox_height=19)
         cb_video.grid(row=1, column=0, sticky="w", padx=6, pady=1)
         _add_focus_ring(cb_video)
         Tooltip(cb_video, "Also download video files (MP4, MOV, MKV, AVI, WebM)")
 
-        cb_audio = ctk.CTkCheckBox(left, text="Include audio files", variable=self.var_audio)
+        cb_audio = ctk.CTkCheckBox(left, text="Download audio files", variable=self.var_audio, checkbox_width=19, checkbox_height=19)
         cb_audio.grid(row=1, column=1, sticky="w", padx=6, pady=1)
         _add_focus_ring(cb_audio)
         Tooltip(cb_audio, "Also download audio files (MP3, M4A, WAV, OGG)")
 
-        cb_image = ctk.CTkCheckBox(left, text="Include image files", variable=self.var_image)
+        cb_image = ctk.CTkCheckBox(left, text="Download image files", variable=self.var_image, checkbox_width=19, checkbox_height=19)
         cb_image.grid(row=2, column=0, sticky="w", padx=6, pady=1)
         _add_focus_ring(cb_image)
         Tooltip(cb_image, "Also download image files (JPG, PNG, GIF, SVG, WebP)")
 
-        cb_hidden = ctk.CTkCheckBox(left, text="Include hidden content", variable=self.var_hidden)
+        cb_hidden = ctk.CTkCheckBox(left, text="Include hidden/locked", variable=self.var_hidden, checkbox_width=19, checkbox_height=19)
         cb_hidden.grid(row=2, column=1, sticky="w", padx=6, pady=1)
         _add_focus_ring(cb_hidden)
         Tooltip(cb_hidden, "Include content that is hidden or unpublished in Canvas")
 
-        cb_inactive = ctk.CTkCheckBox(left, text="Include inactive content", variable=self.var_inactive)
+        cb_inactive = ctk.CTkCheckBox(left, text="Include unlinked", variable=self.var_inactive, checkbox_width=19, checkbox_height=19)
         cb_inactive.grid(row=3, column=0, sticky="w", padx=6, pady=(1, 4))
         _add_focus_ring(cb_inactive)
         Tooltip(cb_inactive, "Also download files not linked from any active Canvas page")
 
-        cb_flatten = ctk.CTkCheckBox(left, text="Flatten folder structure", variable=self.var_flatten)
+        cb_flatten = ctk.CTkCheckBox(left, text="Flatten folder structure", variable=self.var_flatten, checkbox_width=19, checkbox_height=19)
         cb_flatten.grid(row=3, column=1, sticky="w", padx=6, pady=(1, 4))
         _add_focus_ring(cb_flatten)
         Tooltip(cb_flatten, "Download all files to a single flat directory instead of preserving module structure")
@@ -371,12 +372,12 @@ class CanvasBotGUI:
         right.columnconfigure(0, weight=1)
         right.columnconfigure(1, weight=1)
 
-        self.cb_content_tree = ctk.CTkCheckBox(right, text="Print content tree", variable=self.var_content_tree, command=self.controller.on_content_tree_toggled)
+        self.cb_content_tree = ctk.CTkCheckBox(right, text="Print content tree", variable=self.var_content_tree, command=self.controller.on_content_tree_toggled, checkbox_width=19, checkbox_height=19)
         self.cb_content_tree.grid(row=1, column=0, sticky="w", padx=6, pady=(1, 4))
         _add_focus_ring(self.cb_content_tree)
         Tooltip(self.cb_content_tree, "Print course tree showing only resources that contain content (single course only)")
 
-        self.cb_full_tree = ctk.CTkCheckBox(right, text="Print full course tree", variable=self.var_full_tree, command=self.controller.on_full_tree_toggled)
+        self.cb_full_tree = ctk.CTkCheckBox(right, text="Print full course tree", variable=self.var_full_tree, command=self.controller.on_full_tree_toggled, checkbox_width=19, checkbox_height=19)
         self.cb_full_tree.grid(row=1, column=1, sticky="w", padx=6, pady=(1, 4))
         _add_focus_ring(self.cb_full_tree)
         Tooltip(self.cb_full_tree, "Print complete course tree including all resources (single course only)")

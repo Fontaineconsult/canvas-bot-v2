@@ -357,6 +357,7 @@ class ContentViewer:
             filter_bar, text="Show Inactive Content",
             variable=self._show_inactive_var,
             command=self._on_filter_changed,
+            checkbox_width=19, checkbox_height=19,
         )
         cb_inactive.pack(side="left", padx=(0, 10))
         _add_focus_ring(cb_inactive)
@@ -801,8 +802,16 @@ class ContentViewer:
         if not canvas_file_id or not course_id:
             return
 
+        initial_dir = ""
+        save_path = self._selected_row.get("save_path", "")
+        if save_path:
+            folder = os.path.dirname(save_path)
+            if os.path.isdir(folder):
+                initial_dir = folder
+
         file_path = filedialog.askopenfilename(
             title="Select replacement file",
+            initialdir=initial_dir,
         )
         if not file_path:
             return
