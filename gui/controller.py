@@ -228,11 +228,36 @@ class GUIController:
             from network.cred import check_config_status
             ok, message = check_config_status()
             if ok:
-                self.view.status_label.configure(text=f"Status: {message}", text_color=("gray10", "gray90"))
+                self.view.status_label.configure(
+                    text=f"Status: {message} — validating token...",
+                    text_color=("gray10", "gray90"),
+                )
+                threading.Thread(target=self._validate_token_worker, daemon=True).start()
             else:
                 self.view.status_label.configure(text=f"Status: WARNING — {message}", text_color=("#B45309", "#F59E0B"))
         except Exception:
             self.view.status_label.configure(text="Status: WARNING — Configuration check failed", text_color=("#B45309", "#F59E0B"))
+
+    def _validate_token_worker(self):
+        """Background thread: ask Canvas if the stored token is still valid."""
+        try:
+            from network.cred import validate_api_token
+            ok, message, info = validate_api_token()
+        except Exception:
+            ok, message, info = False, "Validation error", None
+        try:
+            self.view.root.after(0, self._apply_token_validation, ok, message, info)
+        except Exception:
+            pass
+
+    def _apply_token_validation(self, ok, message, info):
+        """Main thread: apply the async token-validation result to the status label."""
+        if ok:
+            name = (info or {}).get("name")
+            text = f"Status: {message} ({name})" if name else f"Status: {message}"
+            self.view.status_label.configure(text=text, text_color=("gray10", "gray90"))
+        else:
+            self.view.status_label.configure(text=f"Status: WARNING — {message}", text_color=("#B45309", "#F59E0B"))
 
     def launch_cli(self, flag):
         import subprocess
@@ -731,6 +756,7 @@ class GUIController:
         _bullet(content_scroll, "Open File", "\u2014 opens the downloaded file in its default application. Hidden for site-type categories.")
         _bullet(content_scroll, "Open Source Page", "\u2014 opens the Canvas page where the content was found.")
         _bullet(content_scroll, "Open Canvas Files", "\u2014 opens the course's Files page in Canvas.")
+        _bullet(content_scroll, "Replace File (Alt+R)", "\u2014 uploads a local file to overwrite the selected Canvas document. Available only for Canvas-hosted documents when your token has file-edit permission. After a successful replace, the row's title is suffixed with \"(replaced)\" until the next scan refreshes the manifest.")
 
         _heading(content_scroll, "Filters")
         _bullet(content_scroll, "Show Inactive Content", "\u2014 includes items not linked from any active Canvas page or marked as hidden. Off by default.")

@@ -72,7 +72,6 @@ from typing import TYPE_CHECKING
 from urllib.parse import unquote_plus
 
 import requests
-import win32com.client
 from colorama import Fore, Style
 from requests.exceptions import MissingSchema, InvalidURL
 
@@ -353,57 +352,32 @@ def path_constructor(root_directory: str, node: BaseContentNode, flatten: bool) 
 
 def create_windows_shortcut_from_url(url: str, shortcut_path: str) -> str:
     """
-    Create a Windows shortcut (.lnk) file pointing to a URL.
+    Create an Internet Shortcut (.url) file pointing to a URL.
 
-    Used when a file cannot be downloaded directly (authentication required,
-    unavailable, etc.). The shortcut allows users to manually access the
-    resource by double-clicking.
+    .url files are plain INI-formatted text Windows recognizes natively.
+    Double-click opens the URL in the default browser. Written via standard
+    file I/O so the \\?\\ extended-length path prefix works — no MAX_PATH limit
+    (unlike WScript.Shell.CreateShortCut which is stuck at 260 chars).
 
-    Parameters
-    ----------
-    url : str
-        The URL the shortcut should point to.
-
-    shortcut_path : str
-        The intended file path. The extension will be replaced with ".lnk".
-
-    Returns
-    -------
-    str
-        The actual path where the shortcut was saved.
-
-    Raises
-    ------
-    Exception
-        If shortcut creation fails (logged before re-raising).
-
-    Notes
-    -----
-    - Non-ASCII characters in the path are stripped to avoid encoding issues.
-    - The original file extension is replaced with ".lnk".
-    - Uses Windows Script Host (WScript.Shell) COM object.
-
-    Example
-    -------
-    >>> create_windows_shortcut_from_url(
-    ...     "https://example.com/protected.pdf",
-    ...     "C:/Downloads/protected.pdf"
-    ... )
-    'C:/Downloads/protected.lnk'
+    Returns the saved path, or None on OSError. The original file extension
+    is replaced with ".url"; non-ASCII characters in the path are stripped.
     """
-    # Strip non-ASCII characters and change extension to .lnk
+    # Strip non-ASCII characters and change extension to .url
     encode_path_to_ascii = shortcut_path.encode('ascii', errors='ignore').decode('ascii')
-    shortcut_path = os.path.splitext(encode_path_to_ascii)[0] + ".lnk"
+    shortcut_path = os.path.splitext(encode_path_to_ascii)[0] + ".url"
+
+    # Use long-path prefix on Windows so MAX_PATH doesn't bite the write
+    write_path = create_long_path_file(shortcut_path) if os.name == 'nt' else shortcut_path
+    contents = f"[InternetShortcut]\nURL={url}\n"
 
     try:
-        shell = win32com.client.Dispatch("WScript.Shell")
-        shortcut = shell.CreateShortCut(shortcut_path)
-        shortcut.Targetpath = url
-        shortcut.save()
+        os.makedirs(os.path.dirname(write_path), exist_ok=True)
+        with open(write_path, 'w', encoding='utf-8') as f:
+            f.write(contents)
         return shortcut_path
-    except Exception as exc:
-        log.exception(f"Failed to create shortcut for {url} at {shortcut_path}: {exc}")
-        raise
+    except OSError as exc:
+        log.warning(f"Skipped shortcut for {url} at {shortcut_path}: {exc}")
+        return None
 
 
 
@@ -600,7 +574,7 @@ class DownloaderMixin:
 
             # Track result
             if result:
-                if result.endswith('.lnk'):
+                if result.endswith('.lnk') or result.endswith('.url'):
                     stats['shortcuts'] += 1
                 else:
                     stats['downloaded'] += 1

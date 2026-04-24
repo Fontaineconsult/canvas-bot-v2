@@ -20,7 +20,8 @@
 - **`replace_file()` API function** — new function in `network/api.py` that handles the Canvas 3-step file replace process: POST to notify Canvas, POST multipart upload, POST to confirm. Handles redirects, error responses, and connection failures with logging and warnings.
 - **CLI `--replace_file` option** — replace a Canvas file from the command line without a full course scan. Usage: `Canvasbot.exe --course_id 12345 --replace_file "C:\new_syllabus.pdf" --canvas_file_id 67890`. Requires all three flags. Authenticates, uploads, and exits.
 - **Replace picker opens at downloaded file's folder** — clicking Replace File now opens the file picker at the same location the Open File Location button uses (the parent folder of the selected row's `save_path`). Falls back to the system default when the file hasn't been downloaded yet or the folder no longer exists. Mirrors the `os.path.dirname(save_path)` + `os.path.isdir` guard in `_open_file_or_site()`.
-- Files changed: `network/api.py`, `gui/content_viewer.py`, `canvas_bot.py`, `readme.md`
+- **About dialog documentation** — Replace File (Alt+R) added to the Action Buttons list in the About → Content tab, documenting availability rules and the `(replaced)` title-suffix behavior.
+- Files changed: `network/api.py`, `gui/content_viewer.py`, `gui/controller.py`, `canvas_bot.py`, `readme.md`
 
 ### Refactoring
 - **`core/utilities.py`** — extracted `build_path()`, `is_hidden()`, and `get_hidden_reasons()` from `content_scaffolds.py` into a shared utility module. These tree-traversal and visibility functions are now reusable by any module without importing from the scaffold layer.
@@ -46,6 +47,36 @@
 - **Clearer Download Options labels** — the media-type checkboxes now read "Download video files" / "Download audio files" / "Download image files" instead of "Include …", reflecting that they affect the download step only (all types are scanned regardless). "Include hidden content" → "Include hidden/locked" to cover all four Canvas flags (`hidden_for_user`, `published=False`, `hide_from_students`, `locked`). "Include inactive content" → "Include unlinked" to match how the filter actually works.
 - **About dialog Download Options section updated** — the Run tab in the About dialog uses the new label terminology and adds a note clarifying that Hidden/locked and Unlinked are independent filters — a file that is both hidden and unlinked requires both options checked to download.
 - Files changed: `gui/app.py`, `gui/content_viewer.py`, `gui/controller.py`
+
+### Scan Freshness & Replace Tracking
+- **`scanned_date` field at JSON root** — `ContentExtractor.get_all_content()` now embeds `"scanned_date": "YYYY-MM-DD HH:MM:SS"` at the top of every manifest, so consumers can see when the data was captured.
+- **"Last scanned: …" label in Content Viewer** — right-aligned on the filter row alongside Show Inactive. Updates per course; clears when no course is selected.
+- **`(replaced)` title suffix on successful Replace File** — appended in-memory and persisted to `content.json` via new `_save_content_json()` helper. Acts as a "rescan me" nudge so users know the local `canvas_file_id` may be stale (Canvas issues a new ID on overwrite, which causes a 404 on subsequent same-row replaces after restart). Suffix is naturally wiped by the next scan, which writes fresh title + ID + URL data from Canvas.
+- **`_mark_row_replaced(canvas_file_id)` helper** — finds the matching document row in `_current_data`, appends the suffix (guarded against double-appending), writes back, and re-renders the document table.
+- Files changed: `core/content_extractor.py`, `gui/content_viewer.py`
+
+### API Token Validation
+- **`get_user_self()` in `network/api.py`** — wraps the lightweight Canvas `/users/self` endpoint; cheapest authoritative way to confirm a token works.
+- **`validate_api_token()` in `network/cred.py`** — loads config + token, calls `get_user_self()`, returns `(ok, message)` distinguishing **`Token rejected by Canvas`** (401/403), **`Could not reach Canvas`** (network failure), and **`Configuration missing` / `API token missing`** (local state). Wraps the call in `warnings.catch_warnings()` so an expected 401 doesn't leak a UserWarning.
+- **GUI status bar — async validation on launch** — `controller.check_config()` keeps its sync fast path; on success it shows `"Status: Ready — validating token..."` and spawns a daemon thread (`_validate_token_worker`) that posts the result back via `after(0, _apply_token_validation, ok, message)`. No startup blocking. Same async pattern as `_check_replace_permission_async`. Status label transitions to `Ready` (normal) or `WARNING — <reason>` (amber) when the result arrives.
+- **CLI integration** — `check_if_api_key_exists()` validates immediately after a freshly-pasted token is saved (`[OK] Token validated against Canvas.` / `[WARN] Token saved but Canvas check failed: …`). `show_config_status()` (the `--config_status` CLI command) gains a "Live Token Validation" section at the bottom reporting `[OK] Ready` / `[WARN] Token rejected by Canvas` / etc. — the command now actually verifies the stored token works against Canvas instead of only listing what's stored locally.
+- Files changed: `network/api.py`, `network/cred.py`, `gui/controller.py`, `canvas_bot.py`
+
+### Course Permission Summary
+- **`_print_permission_summary()` in `core/course_root.py`** — called from `initialize_course()` right after the "Starting import" line, before scanning kicks off. Calls `get_course_permissions(course_id)` and prints one line surfacing the three perms Canvas Bot actually depends on:
+  - **Read** = `read_as_admin OR read_as_member`
+  - **View Unpublished** = `view_unpublished_items`
+  - **Edit Files** = `manage_files_edit`
+- Output uses colorama: green `OK` / red `NO` per capability. Falls back to yellow "could not retrieve" if the API call fails (no scan abort).
+- Writes a structured `AUDIT: Permissions | course_id=X | read=True | view_unpublished=True | edit_files=True` log entry for diagnostic history.
+- Files changed: `core/course_root.py`
+
+### Long-Path Resilience (Shortcut Format Switch)
+- **Bug fixed:** scans with deeply-nested module/page names crashed with `pywintypes.com_error -2147024690` (`ERROR_FILENAME_EXCED_RANGE`) when `WScript.Shell.CreateShortCut` tried to write a "Content Location" shortcut at a path > 260 chars. File downloads worked because they use `\\?\` extended-length paths via `create_long_path_file()`, but the COM shortcut API doesn't support that prefix and is stuck at MAX_PATH.
+- **Fix:** `create_windows_shortcut_from_url()` in `core/downloader.py` now writes plain INI-formatted `.url` Internet Shortcut files via standard file I/O. Same Windows-recognized format (browser icon, double-click opens URL in default browser), but supports the `\\?\` prefix so MAX_PATH no longer applies. Returns `None` on `OSError` (with a log warning) instead of raising, so a single bad shortcut can't abort the whole download run.
+- **Removed dead `import win32com.client`** — was the only call site.
+- **Stats check** at `core/downloader.py:605` recognizes both `.lnk` (legacy on-disk) and `.url` (new) extensions so the `Shortcuts:` count stays accurate during incremental scans.
+- Files changed: `core/downloader.py`
 
 ---
 

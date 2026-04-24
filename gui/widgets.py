@@ -139,10 +139,9 @@ def show_dialog(parent, title, message, dialog_type="info", on_confirm=None):
     result = [False]
 
     dialog = ctk.CTkToplevel(parent)
+    dialog.withdraw()
     dialog.title(title)
     dialog.resizable(False, False)
-    dialog.transient(parent.winfo_toplevel())
-    dialog.grab_set()
 
     # Icon/color per type
     colors = {
@@ -156,13 +155,13 @@ def show_dialog(parent, title, message, dialog_type="info", on_confirm=None):
     # Message
     msg_label = ctk.CTkLabel(
         dialog, text=message, font=ctk.CTkFont(size=13),
-        wraplength=400, justify="left",
+        wraplength=380, justify="left",
     )
-    msg_label.pack(padx=20, pady=(20, 15))
+    msg_label.pack(padx=18, pady=(12, 6), anchor="w")
 
     # Buttons
     btn_row = ctk.CTkFrame(dialog, fg_color="transparent")
-    btn_row.pack(fill="x", padx=20, pady=(0, 15))
+    btn_row.pack(fill="x", padx=18, pady=(0, 10))
 
     if dialog_type == "confirm":
         def _yes():
@@ -190,11 +189,15 @@ def show_dialog(parent, title, message, dialog_type="info", on_confirm=None):
     dialog.bind("<Escape>", lambda e: dialog.destroy())
     dialog.bind("<Return>", lambda e: (result.__setitem__(0, True), dialog.destroy()) if dialog_type == "confirm" else (None, dialog.destroy()))
 
-    # Size dialog after content is laid out
-    dialog.update_idletasks()
-    w = max(dialog.winfo_reqwidth(), 350)
-    h = dialog.winfo_reqheight()
+    # Size the dialog deterministically — CTkToplevel's reqheight doesn't reflect packed content
+    line_count = message.count('\n') + 1
+    w = 380
+    h = 12 + (line_count * 20) + 6 + 34 + 10  # top pad + lines + mid pad + button row + bottom pad
     dialog.geometry(f"{w}x{h}")
+
+    dialog.deiconify()
+    dialog.transient(parent.winfo_toplevel())
+    dialog.grab_set()
 
     dialog.wait_window()
     return result[0]

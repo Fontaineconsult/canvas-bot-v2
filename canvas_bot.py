@@ -61,6 +61,14 @@ def check_if_api_key_exists():
             save_canvas_api_key(api_key)
             set_canvas_api_key_to_environment_variable()
             print("[OK] Access token saved securely.\n")
+
+            from network.cred import validate_api_token
+            ok, message, info = validate_api_token()
+            if ok:
+                name = (info or {}).get("name") or "Canvas"
+                print(f"[OK] Token validated. Connected as {name}.\n")
+            else:
+                print(f"[WARN] Token saved but Canvas check failed: {message}\n")
         else:
             print("[ERROR] No token provided. Exiting.")
             sys.exit(1)
@@ -366,6 +374,25 @@ def show_config_status():
         print(f"  {'Studio Refresh Token:':<25} {mask_value(studio_refresh)}")
     except Exception:
         print(f"  {'Studio Refresh Token:':<25} [error reading]")
+
+    # Live token validation — actually call Canvas to confirm the token works
+    print("\n" + "-" * 60)
+    print("Connection Diagnostics")
+    print("-" * 60)
+    try:
+        from network.cred import validate_api_token
+        ok, message, info = validate_api_token()
+        marker = "[OK]" if ok else "[WARN]"
+        print(f"  {'Token validity:':<25} {marker} {message}")
+        if info:
+            print(f"  {'Connected as:':<25} {info.get('name') or '[unknown]'}")
+            print(f"  {'User ID:':<25} {info.get('id') or '[unknown]'}")
+            print(f"  {'Canvas API URL:':<25} {info.get('api_path') or '[unknown]'}")
+            locale = info.get('locale')
+            if locale:
+                print(f"  {'Effective locale:':<25} {locale}")
+    except Exception as e:
+        print(f"  {'Token validity:':<25} [ERROR] {e}")
 
     print("\n" + "=" * 60)
     print("Use --reset_canvas_params to reconfigure Canvas settings")

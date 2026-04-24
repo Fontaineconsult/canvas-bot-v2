@@ -92,6 +92,48 @@ def get_course(course_id):
     return course_url
 
 
+def get_course_with_status(course_id):
+    """
+    Like get_course but returns (data, status_code, reason). Used by
+    initialize_course for diagnostic error messages.
+
+    For 404 responses, reason is either "course_not_found" (Canvas-style
+    JSON error body) or "api_path_invalid" (non-Canvas body, suggesting
+    the configured API path is wrong).
+    """
+    course_url = (f"{os.environ.get('API_PATH')}/courses/{course_id}"
+                  f"?access_token={get_access_token()}")
+    try:
+        resp = requests.get(course_url, verify=True, timeout=10)
+    except RequestsConnectionError as exc:
+        return None, None, str(exc)
+    except MissingSchema as exc:
+        return None, None, f"Invalid URL: {exc}"
+
+    if resp.status_code == 200:
+        try:
+            return json.loads(resp.content), 200, "OK"
+        except json.JSONDecodeError as exc:
+            return None, 200, f"Malformed JSON: {exc}"
+
+    if resp.status_code == 404:
+        try:
+            body = json.loads(resp.content)
+            if isinstance(body, dict) and "errors" in body:
+                return None, 404, "course_not_found"
+        except (json.JSONDecodeError, ValueError):
+            pass
+        return None, 404, "api_path_invalid"
+
+    return None, resp.status_code, resp.reason
+
+
+@response_decorator
+def get_user_self():
+    user_url = f"{os.environ.get('API_PATH')}/users/self?access_token={get_access_token()}"
+    return user_url
+
+
 @response_decorator
 def get_users_in_account(account_id):
     course_url = f"{os.environ.get('API_PATH')}/accounts/{account_id}/users?access_token={get_access_token()}"

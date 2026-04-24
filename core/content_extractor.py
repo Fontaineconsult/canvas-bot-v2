@@ -73,6 +73,7 @@ import json
 import logging
 import os
 import shutil
+from datetime import datetime
 
 from config.yaml_io import create_download_manifest
 from core.content_scaffolds import *
@@ -674,6 +675,7 @@ class ContentExtractor(DownloaderMixin):
             "course_id": self.course_id,
             "course_url": self.course_url,
             "course_name": self.course_name,
+            "scanned_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "summary": {
                 "content": self.manifest.content_summary(),
                 "resources": self.manifest.resource_summary(),

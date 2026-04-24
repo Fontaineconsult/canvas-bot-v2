@@ -1,7 +1,10 @@
 import atexit
 import os, json
+import warnings
 
 import keyring, keyring.errors
+import requests
+from requests.exceptions import RequestException
 
 
 import logging
@@ -182,6 +185,65 @@ def check_config_status():
         return False, "No API Token — click Reset Config to set your access token"
 
     return True, "Ready"
+
+
+def validate_api_token():
+    """
+    Call Canvas /users/self to confirm the stored token is still honored.
+
+    Returns (ok, message, info) where info on success is a dict containing
+    name, id, locale, and api_path. info is None on failure. Failure messages
+    include HTTP status + Canvas error message when available, so the user
+    can distinguish 401 from 500 etc.
+    """
+    try:
+        if not load_config_data_from_appdata():
+            return False, "Configuration missing", None
+        if not set_canvas_api_key_to_environment_variable():
+            return False, "API token missing", None
+
+        api_path = os.environ.get("API_PATH")
+        url = f"{api_path}/users/self?access_token={get_access_token()}"
+
+        try:
+            resp = requests.get(url, verify=True, timeout=10)
+        except RequestException as exc:
+            log.warning(f"Token validation connection error: {exc}")
+            return False, f"Could not reach Canvas ({type(exc).__name__})", None
+
+        if resp.status_code == 200:
+            try:
+                response = resp.json()
+            except ValueError as exc:
+                log.warning(f"Token validation JSON decode error: {exc}")
+                return False, "Response not JSON (API path may be wrong)", None
+
+            if response and response.get("id"):
+                info = {
+                    "name": response.get("name"),
+                    "id": response.get("id"),
+                    "locale": response.get("effective_locale") or response.get("locale"),
+                    "api_path": api_path,
+                }
+                return True, "Ready", info
+            return False, "Unexpected response shape", None
+
+        detail = f"HTTP {resp.status_code}"
+        try:
+            body = resp.json()
+            if isinstance(body, dict):
+                errs = body.get("errors") or []
+                if errs and isinstance(errs[0], dict):
+                    msg = errs[0].get("message")
+                    if msg:
+                        detail += f" — {msg}"
+        except ValueError:
+            pass
+        return False, f"Token rejected ({detail})", None
+
+    except Exception as exc:
+        log.warning(f"Token validation error: {exc}")
+        return False, f"Validation error: {type(exc).__name__}: {exc}", None
 
 
 def load_config_data_from_appdata():

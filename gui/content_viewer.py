@@ -31,11 +31,11 @@ _ORDER_COL = {"id": "order", "heading": "Order", "width": 65}
 _COLUMNS = {
     "documents": [
         _ORDER_COL,
-        {"id": "title", "heading": "Title", "width": 150, "stretch": True, "max_chars": 60},
+        {"id": "title", "heading": "Title", "width": 130, "stretch": True, "max_chars": 70},
         {"id": "file_type", "heading": "Type", "width": 100},
         {"id": "file_source", "heading": "File Source", "width": 120},
         {"id": "source_page_type", "heading": "Source", "width": 150},
-        {"id": "visibility", "heading": "Visibility", "width": 120},
+        {"id": "visibility", "heading": "Visibility", "width": 150},
         {"id": "downloaded", "heading": "Downloaded", "width": 130},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
@@ -83,11 +83,11 @@ _COLUMNS = {
     ],
     "image_files": [
         _ORDER_COL,
-        {"id": "title", "heading": "Title", "width": 175, "stretch": True, "max_chars": 60},
+        {"id": "title", "heading": "Title", "width": 120, "stretch": True, "max_chars": 60},
         {"id": "file_type", "heading": "Type", "width": 80},
         {"id": "source_page_type", "heading": "Source", "width": 130},
-        {"id": "visibility", "heading": "Visibility", "width": 120},
-        {"id": "downloaded", "heading": "Downloaded", "width": 110},
+        {"id": "visibility", "heading": "Visibility", "width": 140},
+        {"id": "downloaded", "heading": "Downloaded", "width": 140},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "institution_video": [
@@ -144,6 +144,7 @@ class ContentViewer:
         self._current_data = None  # raw JSON data for re-filtering
         self._review_statuses = {}  # url -> {"status": "Passed"|"Needs Review"|...}
         self._manifest_dir = None   # current course's .manifest/ path
+        self._content_json_path = None  # full path to current course's content.json
         self._can_replace = False   # whether current course allows file replace
         self._replace_perms_cache = {}  # course_id -> bool
         self._pending_perm_course = None  # course_id of in-flight permission check
@@ -363,6 +364,12 @@ class ContentViewer:
         _add_focus_ring(cb_inactive)
         Tooltip(cb_inactive, "Show content not linked from any active Canvas page")
 
+        self._scan_date_label = ctk.CTkLabel(
+            filter_bar, text="", font=ctk.CTkFont(size=12),
+            text_color="gray", anchor="e",
+        )
+        self._scan_date_label.pack(side="right", padx=(0, 4))
+
         # ── Row 4: table frame (holds all 8 tables, one visible at a time) ──
         self._table_frame = ctk.CTkFrame(self._container, fg_color="transparent")
         self._table_frame.pack(fill="both", expand=True, pady=(0, 2))
@@ -510,6 +517,7 @@ class ContentViewer:
         self._selected_table_key = None
         self._course_label.configure(text="")
         self._stats_label.configure(text="")
+        self._scan_date_label.configure(text="")
         self._open_folder_btn.configure(state="disabled")
         self._delete_btn.configure(state="disabled")
         self._open_file_btn.configure(state="disabled")
@@ -847,6 +855,7 @@ class ContentViewer:
         result = replace_file(course_id, canvas_file_id, file_path)
         if result:
             new_name = result.get("display_name", result.get("filename", os.path.basename(file_path)))
+            self._mark_row_replaced(canvas_file_id)
             show_dialog(self._parent, "File Replaced",
                         f"Successfully replaced '{original_title}' with '{new_name}'.",
                         dialog_type="info")
@@ -854,6 +863,27 @@ class ContentViewer:
             show_dialog(self._parent, "Replace Failed",
                         f"Failed to replace '{original_title}'. Check the log for details.",
                         dialog_type="error")
+
+    def _mark_row_replaced(self, canvas_file_id):
+        """Append ' - (replaced)' to the matching document's title and persist to content.json."""
+        if not self._current_data or not canvas_file_id:
+            return
+        suffix = " - (replaced)"
+        docs = (self._current_data.get("content", {})
+                .get("documents", {})
+                .get("documents", []))
+        for row in docs:
+            if row.get("canvas_file_id") == canvas_file_id:
+                title = row.get("title", "") or ""
+                if not title.endswith(suffix):
+                    row["title"] = title + suffix
+                break
+        if self._selected_row and self._selected_row.get("canvas_file_id") == canvas_file_id:
+            sel_title = self._selected_row.get("title", "") or ""
+            if not sel_title.endswith(suffix):
+                self._selected_row["title"] = sel_title + suffix
+        self._save_content_json()
+        self._populate_from_data(self._current_data)
 
     def _load_review_statuses(self, manifest_dir):
         """Load review_status.json from the manifest directory."""
@@ -872,6 +902,16 @@ class ContentViewer:
         try:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(self._review_statuses, f, indent=2)
+        except OSError:
+            pass
+
+    def _save_content_json(self):
+        """Write the current in-memory content data back to the course's JSON file."""
+        if not self._content_json_path or not self._current_data:
+            return
+        try:
+            with open(self._content_json_path, "w", encoding="utf-8") as f:
+                json.dump(self._current_data, f, indent=4, sort_keys=True, default=str)
         except OSError:
             pass
 
@@ -917,6 +957,7 @@ class ContentViewer:
             return
 
         self._manifest_dir = manifest_dir
+        self._content_json_path = json_path
         self._review_statuses = self._load_review_statuses(manifest_dir)
         self._current_data = data
         self._check_replace_permission_async(data.get("course_id"))
@@ -1019,6 +1060,11 @@ class ContentViewer:
         # Update summary
         course_name = data.get("course_name", "")
         self._course_label.configure(text=course_name or "Untitled Course")
+
+        scanned = data.get("scanned_date", "")
+        self._scan_date_label.configure(
+            text=f"Last scanned: {scanned}" if scanned else ""
+        )
 
         # Prefer the manifest's authoritative counts; fall back to live counts for pre-summary manifests
         summary = data.get("summary", {}).get("content", {})
