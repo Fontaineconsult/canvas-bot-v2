@@ -266,7 +266,7 @@ def show_config_status():
     import keyring
 
     print("\n" + "=" * 60)
-    print("Canvas Bot Configuration Status")
+    print(f"Canvas Bot v{__version__} Configuration Status")
     print("=" * 60)
 
     # Get config file path

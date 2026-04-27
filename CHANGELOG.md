@@ -55,11 +55,16 @@
 - **`_mark_row_replaced(canvas_file_id)` helper** — finds the matching document row in `_current_data`, appends the suffix (guarded against double-appending), writes back, and re-renders the document table.
 - Files changed: `core/content_extractor.py`, `gui/content_viewer.py`
 
-### API Token Validation
-- **`get_user_self()` in `network/api.py`** — wraps the lightweight Canvas `/users/self` endpoint; cheapest authoritative way to confirm a token works.
-- **`validate_api_token()` in `network/cred.py`** — loads config + token, calls `get_user_self()`, returns `(ok, message)` distinguishing **`Token rejected by Canvas`** (401/403), **`Could not reach Canvas`** (network failure), and **`Configuration missing` / `API token missing`** (local state). Wraps the call in `warnings.catch_warnings()` so an expected 401 doesn't leak a UserWarning.
-- **GUI status bar — async validation on launch** — `controller.check_config()` keeps its sync fast path; on success it shows `"Status: Ready — validating token..."` and spawns a daemon thread (`_validate_token_worker`) that posts the result back via `after(0, _apply_token_validation, ok, message)`. No startup blocking. Same async pattern as `_check_replace_permission_async`. Status label transitions to `Ready` (normal) or `WARNING — <reason>` (amber) when the result arrives.
-- **CLI integration** — `check_if_api_key_exists()` validates immediately after a freshly-pasted token is saved (`[OK] Token validated against Canvas.` / `[WARN] Token saved but Canvas check failed: …`). `show_config_status()` (the `--config_status` CLI command) gains a "Live Token Validation" section at the bottom reporting `[OK] Ready` / `[WARN] Token rejected by Canvas` / etc. — the command now actually verifies the stored token works against Canvas instead of only listing what's stored locally.
+### API Token Validation & Connection Diagnostics
+- **`validate_api_token()` in `network/cred.py`** — hits Canvas `/users/self` directly (its own `requests.get` so it can capture the status code) and returns `(ok, message, info)`. On success `info` is a dict of `name`, `id`, `locale`, and `api_path`. Failure messages carry the HTTP status plus Canvas's own error body when available (e.g. `Token rejected (HTTP 401 — Invalid access token.)`), the exception class for network failures (`Could not reach Canvas (ConnectionError)`), or the full exception type+text for unexpected crashes — so users troubleshooting can tell 401 from 500 from a DNS failure at a glance.
+- **GUI status bar — async validation on launch** — `controller.check_config()` keeps its sync fast path; on success it shows `"Status: Ready — validating token..."` and spawns a daemon thread (`_validate_token_worker`) that posts the result back via `after(0, _apply_token_validation, ok, message, info)`. No startup blocking. When the async result arrives, the status label becomes `Status: Ready (Connected User Name)` on success or `Status: WARNING — <message>` (amber) on failure — the account identity is visible at a glance to catch "wrong account" surprises.
+- **CLI integration** — `check_if_api_key_exists()` validates immediately after a freshly-pasted token is saved (`[OK] Token validated. Connected as <name>.` / `[WARN] Token saved but Canvas check failed: …`). The `--config_status` command gains a **Connection Diagnostics** section at the bottom (renamed from "Live Token Validation") that reports:
+  - `Token validity: [OK] Ready` / `[WARN] Token rejected (HTTP 401 — …)`
+  - `Connected as: <name>`
+  - `User ID: <id>`
+  - `Canvas API URL: <api_path>`
+  - `Effective locale: <locale>` (when present)
+  So the command actually verifies the stored token and surfaces which Canvas instance + user it authenticated as, not just what's stored locally.
 - Files changed: `network/api.py`, `network/cred.py`, `gui/controller.py`, `canvas_bot.py`
 
 ### Course Permission Summary
@@ -67,9 +72,19 @@
   - **Read** = `read_as_admin OR read_as_member`
   - **View Unpublished** = `view_unpublished_items`
   - **Edit Files** = `manage_files_edit`
-- Output uses colorama: green `OK` / red `NO` per capability. Falls back to yellow "could not retrieve" if the API call fails (no scan abort).
+- Output uses colorama: green `OK` / red `NO` per capability. Falls back to yellow "could not retrieve" if the API call fails (scan continues — benefit of the doubt).
 - Writes a structured `AUDIT: Permissions | course_id=X | read=True | view_unpublished=True | edit_files=True` log entry for diagnostic history.
+- **Halts the scan when Read is NO** — if both `read_as_admin` and `read_as_member` are False the function prints `[ERROR] No read access to this course. Scan cannot continue.` and returns `False`, and `initialize_course()` skips `_init_modules_root()` so we don't make a cascade of doomed resource fetches. A `AUDIT: Scan halted | reason=no_read_access` entry is logged. View Unpublished NO and Edit Files NO still allow the scan to proceed.
 - Files changed: `core/course_root.py`
+
+### Course Load Error Diagnostics
+- **Replaced the bare `Course ID: X does not exist` message** with a status-aware diagnostic block. `initialize_course()` now surfaces the Canvas API URL, the HTTP status code, and a short explanation per failure mode, so users can tell the difference between "course truly missing," "wrong Canvas URL," "token rejected," "no permission," and "network down" without opening the log.
+- **`get_course_with_status()` in `network/api.py`** — sibling of `get_course()` that returns `(data, status_code, reason)` instead of only the body on success. Bypasses `response_handler` so the HTTP status isn't lost. The existing `get_course()` is untouched (still used by `test/pipeline_testing/`).
+- **JSON vs generic 404 distinction** — on HTTP 404, the response body is inspected. A Canvas-style JSON error (`{"errors":[...]}`) sets reason `course_not_found`, while an HTML/empty body (the domain responds but isn't Canvas, or the API path is wrong) sets reason `api_path_invalid`. The diagnostic block then prints one of:
+  - `Course not found at this Canvas URL.`
+  - `Canvas didn't recognize this URL. Run --reset_canvas_params to re-enter your Canvas subdomain.`
+- **Per-status explanations** for 401 ("API token rejected"), 403 ("Token works, but your account doesn't have permission…"), and network failure ("Could not reach Canvas. Check your network connection.") round out the diagnostic. Every block also logs `AUDIT: Course API: X | status=Y | reason=Z` for later review.
+- Files changed: `network/api.py`, `core/course_root.py`
 
 ### Long-Path Resilience (Shortcut Format Switch)
 - **Bug fixed:** scans with deeply-nested module/page names crashed with `pywintypes.com_error -2147024690` (`ERROR_FILENAME_EXCED_RANGE`) when `WScript.Shell.CreateShortCut` tried to write a "Content Location" shortcut at a path > 260 chars. File downloads worked because they use `\\?\` extended-length paths via `create_long_path_file()`, but the COM shortcut API doesn't support that prefix and is stuck at MAX_PATH.
