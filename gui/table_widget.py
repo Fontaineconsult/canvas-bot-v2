@@ -129,9 +129,14 @@ class ContentTable(ctk.CTkFrame):
     # ── Public API ──
 
     def populate(self, rows):
-        """Clear the table and insert *rows* (list of dicts keyed by column id)."""
+        """Clear the table and insert *rows* (list of dicts keyed by column id).
+
+        Preserves the active sort column + direction so user-applied sorts survive
+        data refreshes (filter toggles, replace operations, course reload).
+        """
         self.clear()
         self._rows = list(rows)
+        self._sort_rows_in_place()
         if not self._rows and self._placeholder.cget("text"):
             self._tree.grid_remove()
             self._vsb.grid_remove()
@@ -203,6 +208,25 @@ class ContentTable(ctk.CTkFrame):
 
     # ── Sorting ──
 
+    def _sort_rows_in_place(self):
+        """Sort self._rows by the current sort column/direction (numeric-aware).
+
+        No-op when no column has been clicked yet. Used by both heading-click
+        and populate() so the active sort survives data refreshes.
+        """
+        if not self._sort_col:
+            return
+        col_id = self._sort_col
+
+        def _sort_key(r):
+            val = r.get(col_id, "")
+            s = str(val)
+            if s.isdigit():
+                return (0, int(s), "")
+            return (1, 0, s.lower())
+
+        self._rows.sort(key=_sort_key, reverse=not self._sort_asc)
+
     def _on_heading_click(self, col_id):
         if self._sort_col == col_id:
             self._sort_asc = not self._sort_asc
@@ -217,16 +241,8 @@ class ContentTable(ctk.CTkFrame):
                 suffix = " \u25b2" if self._sort_asc else " \u25bc"
             self._tree.heading(col["id"], text=col["heading"] + suffix)
 
-        # Sort rows (numeric-aware: pure digit values sort numerically)
-        def _sort_key(r):
-            val = r.get(col_id, "")
-            s = str(val)
-            if s.isdigit():
-                return (0, int(s), "")
-            return (1, 0, s.lower())
-
-        self._rows.sort(key=_sort_key, reverse=not self._sort_asc)
-        # Re-populate without clearing _rows
+        self._sort_rows_in_place()
+        # Re-render without clearing _rows
         self._tree.delete(*self._tree.get_children())
         for i, row in enumerate(self._rows):
             values = self._values_for_row(row)
