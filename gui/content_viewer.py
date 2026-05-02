@@ -8,6 +8,12 @@ import webbrowser
 from tkinter import messagebox, filedialog
 import customtkinter as ctk
 
+from gui.file_replace import (
+    REPLACED_SUFFIX,
+    mark_row_replaced,
+    save_content_json,
+    start_single_replace,
+)
 from gui.table_widget import ContentTable
 from gui.widgets import _add_focus_ring, _underline_char, Tooltip, show_dialog
 
@@ -441,7 +447,8 @@ class ContentViewer:
 
         self._replace_file_btn = ctk.CTkButton(
             btn_row, text="Replace File", width=120,
-            command=self._replace_file, state="disabled",
+            command=lambda: start_single_replace(self, self._selected_row),
+            state="disabled",
         )
         self._replace_file_btn.pack(side="left")
         _add_focus_ring(self._replace_file_btn)
@@ -801,88 +808,15 @@ class ContentViewer:
         if self._selected_row is not None:
             self._on_row_select(self._selected_row)
 
-    def _replace_file(self):
-        """Replace the selected Canvas file with a user-chosen file."""
-        if not self._selected_row or not self._current_data:
+    def _apply_replaced_to_ui(self, canvas_file_id):
+        """Mark the row in current_data, sync the selection, persist, and refresh the table."""
+        if not mark_row_replaced(self._current_data, canvas_file_id):
             return
-        canvas_file_id = self._selected_row.get("canvas_file_id")
-        course_id = self._current_data.get("course_id")
-        if not canvas_file_id or not course_id:
-            return
-
-        initial_dir = ""
-        save_path = self._selected_row.get("save_path", "")
-        if save_path:
-            folder = os.path.dirname(save_path)
-            if os.path.isdir(folder):
-                initial_dir = folder
-
-        file_path = filedialog.askopenfilename(
-            title="Select replacement file",
-            initialdir=initial_dir,
-        )
-        if not file_path:
-            return
-
-        original_title = self._selected_row.get("title", "file")
-        original_ext = os.path.splitext(original_title)[1].lower()
-        local_ext = os.path.splitext(file_path)[1].lower()
-        if original_ext and local_ext and original_ext != local_ext:
-            show_dialog(
-                self._parent, "File Type Mismatch",
-                f"Cannot replace '{original_title}' ({original_ext}) "
-                f"with a {local_ext} file.\n\nSelect a {original_ext} file instead.",
-                dialog_type="warning",
-            )
-            return
-
-        if not show_dialog(
-            self._parent, "Replace File",
-            f"Replace '{original_title}' in Canvas with:\n\n{os.path.basename(file_path)}",
-            dialog_type="confirm",
-        ):
-            return
-
-        from network.cred import set_canvas_api_key_to_environment_variable, load_config_data_from_appdata
-        load_config_data_from_appdata()
-        if not set_canvas_api_key_to_environment_variable():
-            show_dialog(self._parent, "Authentication Error",
-                        "Canvas API token not found. Run a scan first or configure your API token.",
-                        dialog_type="error")
-            return
-
-        from network.api import replace_file
-        result = replace_file(course_id, canvas_file_id, file_path)
-        if result:
-            new_name = result.get("display_name", result.get("filename", os.path.basename(file_path)))
-            self._mark_row_replaced(canvas_file_id)
-            show_dialog(self._parent, "File Replaced",
-                        f"Successfully replaced '{original_title}' with '{new_name}'.",
-                        dialog_type="info")
-        else:
-            show_dialog(self._parent, "Replace Failed",
-                        f"Failed to replace '{original_title}'. Check the log for details.",
-                        dialog_type="error")
-
-    def _mark_row_replaced(self, canvas_file_id):
-        """Append ' - (replaced)' to the matching document's title and persist to content.json."""
-        if not self._current_data or not canvas_file_id:
-            return
-        suffix = " - (replaced)"
-        docs = (self._current_data.get("content", {})
-                .get("documents", {})
-                .get("documents", []))
-        for row in docs:
-            if row.get("canvas_file_id") == canvas_file_id:
-                title = row.get("title", "") or ""
-                if not title.endswith(suffix):
-                    row["title"] = title + suffix
-                break
         if self._selected_row and self._selected_row.get("canvas_file_id") == canvas_file_id:
             sel_title = self._selected_row.get("title", "") or ""
-            if not sel_title.endswith(suffix):
-                self._selected_row["title"] = sel_title + suffix
-        self._save_content_json()
+            if not sel_title.endswith(REPLACED_SUFFIX):
+                self._selected_row["title"] = sel_title + REPLACED_SUFFIX
+        save_content_json(self._content_json_path, self._current_data)
         self._populate_from_data(self._current_data)
 
     def _load_review_statuses(self, manifest_dir):
@@ -902,16 +836,6 @@ class ContentViewer:
         try:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(self._review_statuses, f, indent=2)
-        except OSError:
-            pass
-
-    def _save_content_json(self):
-        """Write the current in-memory content data back to the course's JSON file."""
-        if not self._content_json_path or not self._current_data:
-            return
-        try:
-            with open(self._content_json_path, "w", encoding="utf-8") as f:
-                json.dump(self._current_data, f, indent=4, sort_keys=True, default=str)
         except OSError:
             pass
 
