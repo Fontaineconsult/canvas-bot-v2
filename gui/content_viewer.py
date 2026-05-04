@@ -12,6 +12,7 @@ from gui.file_replace import (
     REPLACED_SUFFIX,
     mark_row_replaced,
     save_content_json,
+    start_bulk_replace,
     start_single_replace,
 )
 from gui.table_widget import ContentTable
@@ -154,6 +155,7 @@ class ContentViewer:
         self._can_replace = False   # whether current course allows file replace
         self._replace_perms_cache = {}  # course_id -> bool
         self._pending_perm_course = None  # course_id of in-flight permission check
+        self._bulk_dialog = None    # active BulkReplaceDialog instance, if any
 
         # Placeholder shown when no data is available
         self._placeholder = ctk.CTkLabel(
@@ -455,6 +457,17 @@ class ContentViewer:
         _underline_char(self._replace_file_btn, 0)  # R in "Replace" → Alt+R
         Tooltip(self._replace_file_btn, "Replace this file in Canvas with a new file (Alt+R)")
 
+        self._bulk_replace_btn = ctk.CTkButton(
+            btn_row, text="Bulk Replace", width=130,
+            fg_color="#8a6d00", hover_color="#6d5500",
+            command=lambda: start_bulk_replace(self),
+            state="disabled",
+        )
+        self._bulk_replace_btn.pack(side="left", padx=(5, 0))
+        _add_focus_ring(self._bulk_replace_btn)
+        _underline_char(self._bulk_replace_btn, 0)  # B in "Bulk" → Alt+B
+        Tooltip(self._bulk_replace_btn, "Replace many Canvas files from a local folder (Alt+B)")
+
         self._open_canvas_btn = ctk.CTkButton(
             btn_row, text="Open Canvas Files", width=150,
             command=self._open_in_canvas, state="disabled",
@@ -531,6 +544,7 @@ class ContentViewer:
         self._open_direct_btn.configure(state="disabled")
         self._open_source_btn.configure(state="disabled")
         self._replace_file_btn.configure(state="disabled")
+        self._bulk_replace_btn.configure(state="disabled")
         self._open_canvas_btn.configure(state="disabled")
         for btn in self._status_buttons.values():
             btn.configure(state="disabled")
@@ -579,11 +593,13 @@ class ContentViewer:
             self._open_direct_btn.pack_forget()
         else:
             self._open_direct_btn.pack(side="left", padx=(0, 5), after=self._open_file_btn)
-        # Show "Replace File" only for documents table
+        # Show "Replace File" + "Bulk Replace" only for documents table
         if key == "documents":
             self._replace_file_btn.pack(side="left", after=self._open_source_btn)
+            self._bulk_replace_btn.pack(side="left", padx=(5, 0), after=self._replace_file_btn)
         else:
             self._replace_file_btn.pack_forget()
+            self._bulk_replace_btn.pack_forget()
 
     def _setup_selector_keyboard_nav(self):
         """Wire arrow keys on category and sub-category buttons, Enter/Escape for table focus."""
@@ -805,8 +821,18 @@ class ContentViewer:
         self._can_replace = can_manage
         self._pending_perm_course = None
 
+        self._update_bulk_replace_btn_state()
         if self._selected_row is not None:
             self._on_row_select(self._selected_row)
+
+    def _update_bulk_replace_btn_state(self):
+        """Bulk Replace is independent of the selected row — gate on permission + data
+        and disable while a BulkReplaceDialog is already open for this viewer."""
+        active = getattr(self, "_bulk_dialog", None) is not None
+        if self._can_replace and self._current_data is not None and not active:
+            self._bulk_replace_btn.configure(state="normal")
+        else:
+            self._bulk_replace_btn.configure(state="disabled")
 
     def _apply_replaced_to_ui(self, canvas_file_id):
         """Mark the row in current_data, sync the selection, persist, and refresh the table."""
@@ -1050,6 +1076,7 @@ class ContentViewer:
         self._open_canvas_btn.configure(
             state="normal" if data.get("course_url") else "disabled"
         )
+        self._update_bulk_replace_btn_state()
         self._selected_row = None
         self._selected_table_key = None
         self._open_file_btn.configure(state="disabled")

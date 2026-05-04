@@ -29,17 +29,39 @@ _THEMES = {
     },
 }
 
-# Row background colors keyed by review status
+# Row background colors keyed by status (review or bulk-replace).
+# Bulk-replace status values are name-spaced enough that they don't collide
+# with the existing review statuses (Passed / Needs Review / Ignore).
 _STATUS_COLORS = {
     "dark": {
         "Passed": "#1a3a1a",
         "Needs Review": "#3a2a0a",
         "Ignore": "#2a2a2a",
+        # Bulk replace dialog statuses
+        "Will replace":     "#1a3a1a",  # green
+        "Replacing…":       "#3a2a0a",  # amber (in flight)
+        "Done":             "#1a3a1a",  # green
+        "Failed":           "#4a1a1a",  # red
+        "Skipped":          "#2a2a2a",  # gray
+        "No match":         "#2a2a2a",  # gray
+        "Already replaced": "#2a2a2a",  # gray
+        "Ambiguous":        "#2a2a2a",  # gray
+        "Ignored":          "#2a2a2a",  # gray (matches existing Ignore swatch)
     },
     "light": {
         "Passed": "#d4edda",
         "Needs Review": "#fff3cd",
         "Ignore": "#e2e3e5",
+        # Bulk replace dialog statuses
+        "Will replace":     "#d4edda",  # green
+        "Replacing…":       "#fff3cd",  # amber (in flight)
+        "Done":             "#d4edda",  # green
+        "Failed":           "#f8d7da",  # red
+        "Skipped":          "#e2e3e5",  # gray
+        "No match":         "#e2e3e5",  # gray
+        "Already replaced": "#e2e3e5",  # gray
+        "Ambiguous":        "#e2e3e5",  # gray
+        "Ignored":          "#e2e3e5",  # gray
     },
 }
 
@@ -176,6 +198,12 @@ class ContentTable(ctk.CTkFrame):
     def get_row_count(self):
         """Return the number of rows currently displayed."""
         return len(self._rows)
+
+    def get_row(self, idx):
+        """Return the row dict at idx, or None if out of range."""
+        if 0 <= idx < len(self._rows):
+            return self._rows[idx]
+        return None
 
     def update_row(self, idx, row):
         """Update a single row's data and displayed values in place."""
