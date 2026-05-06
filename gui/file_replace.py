@@ -44,6 +44,24 @@ def _format_bytes(n):
     return f"{n / (1024 * 1024 * 1024):.2f} GB"
 
 
+def _course_root_folder(viewer):
+    """Return the course's top-level folder (parent of .manifest/) when
+    we can locate it, else None.
+
+    Used as a contextual fallback for file pickers when per-row save_path
+    data isn't available, has been moved, or doesn't exist on disk in the
+    current execution context. Without this, Tk falls back to the cwd —
+    which on the PyInstaller bundle is wherever the exe was launched from
+    (often Documents), losing all course context.
+    """
+    manifest_dir = getattr(viewer, "_manifest_dir", None)
+    if manifest_dir and os.path.isdir(manifest_dir):
+        course_folder = os.path.dirname(manifest_dir)
+        if os.path.isdir(course_folder):
+            return course_folder
+    return None
+
+
 def perform_replace(course_id, file_id, local_path, on_progress=None, cancel_event=None):
     """Bootstrap Canvas auth, then run the streamed file replace.
 
@@ -366,6 +384,11 @@ def start_single_replace(viewer, row):
         folder = os.path.dirname(save_path)
         if os.path.isdir(folder):
             initial_dir = folder
+    if not initial_dir:
+        # Fall back to the course's top-level folder so the picker stays
+        # contextual instead of dropping to Tk's cwd default (Documents on
+        # the bundled exe).
+        initial_dir = _course_root_folder(viewer) or ""
 
     file_path = filedialog.askopenfilename(
         title="Select replacement file",
@@ -484,12 +507,26 @@ class BulkReplaceDialog:
         all_docs = (course_data.get("content", {})
                     .get("documents", {})
                     .get("documents", []))
-        # Eligibility: Canvas-hosted with a canvas_file_id. Already-replaced
-        # rows still appear (greyed out) so the user sees the full picture.
-        self._eligible_docs = [
-            doc for doc in all_docs
-            if doc.get("file_source") == "Canvas" and doc.get("canvas_file_id")
-        ]
+        # Eligibility split:
+        #   _eligible_docs        — course files (file_scope == 'courses' or None
+        #                           for old scans before scope tracking landed).
+        #                           These can actually be replaced.
+        #   _not_in_course_docs   — user/group files. Canvas-hosted but live in
+        #                           personal/group storage, so the course /files
+        #                           endpoint can't replace them. Shown in the
+        #                           table with 'Not in course' status so the user
+        #                           sees them but can't queue them for replace.
+        # Already-replaced rows still appear (greyed out) so the user sees the
+        # full picture.
+        self._eligible_docs = []
+        self._not_in_course_docs = []
+        for doc in all_docs:
+            if doc.get("file_source") != "Canvas" or not doc.get("canvas_file_id"):
+                continue
+            if doc.get("file_scope") in ("users", "groups"):
+                self._not_in_course_docs.append(doc)
+            else:
+                self._eligible_docs.append(doc)
 
         # Build dialog window
         self.dialog = ctk.CTkToplevel(self._parent)
@@ -536,12 +573,15 @@ class BulkReplaceDialog:
         )
         self._counter_label.grid(row=2, column=0, sticky="ew", padx=14, pady=(0, 6))
 
-        # Table
+        # Table — bulk_status holds the display text (which can be dynamic,
+        # e.g. "Uploading 12.4 / 47 MB (26%)" during a run); bulk_color holds
+        # the stable tag-color key (one of _STATUS_COLORS' values).
         self._table = ContentTable(
             self.dialog, _BULK_COLUMNS,
             on_select=self._on_row_select,
             placeholder="No Canvas-hosted documents in this course.",
             status_key="bulk_status",
+            color_key="bulk_color",
         )
         self._table.grid(row=3, column=0, sticky="nsew", padx=14, pady=(0, 8))
 
@@ -591,15 +631,34 @@ class BulkReplaceDialog:
         viewer._update_bulk_replace_btn_state()
 
     def _build_initial_rows(self):
-        """Make per-row dicts for the dialog table — adds bulk_status + local_match."""
+        """Make per-row dicts for the dialog table — adds bulk_status + local_match.
+
+        Sets both bulk_status (the column display text) and bulk_color (the
+        color tag). For static states they're equal; during a run, bulk_status
+        will tick through dynamic stage strings while bulk_color stays
+        'Replacing…' so the row tag color doesn't flicker.
+        """
         rows = []
         for doc in self._eligible_docs:
             row = dict(doc)
             title = row.get("title", "") or ""
             if title.endswith(REPLACED_SUFFIX):
                 row["bulk_status"] = "Already replaced"
+                row["bulk_color"] = "Already replaced"
             else:
                 row["bulk_status"] = ""
+                row["bulk_color"] = ""
+            row["local_match"] = ""
+            rows.append(row)
+        for doc in self._not_in_course_docs:
+            # User/group files surface in the table so the user sees them, but
+            # they're never matchable (folder pick can't move them to 'Will
+            # replace') and the Ignore button stays disabled for these statuses.
+            row = dict(doc)
+            scope = doc.get("file_scope")
+            label = "Group File" if scope == "groups" else "User File"
+            row["bulk_status"] = label
+            row["bulk_color"] = label
             row["local_match"] = ""
             rows.append(row)
         return rows
@@ -642,14 +701,22 @@ class BulkReplaceDialog:
         self._on_row_select(sel)
 
     def _guess_initial_dir(self):
-        """Default the folder picker to the course's downloads folder when we can find it."""
+        """Default the folder picker contextual to the current course.
+
+        Preference order:
+        1. Parent dir of the first eligible doc's existing save_path (where
+           Canvas Bot put the downloaded copy).
+        2. The course's top-level folder (parent of .manifest/) — always
+           exists when a course is loaded.
+        3. Empty string (Tk falls back to cwd).
+        """
         for doc in self._eligible_docs:
             save_path = doc.get("save_path", "")
             if save_path:
                 folder = os.path.dirname(save_path)
                 if os.path.isdir(folder):
                     return folder
-        return ""
+        return _course_root_folder(self._viewer) or ""
 
     def _apply_match_result(self, result):
         """Translate MatchResult buckets into per-row table updates.
@@ -682,6 +749,7 @@ class BulkReplaceDialog:
             if cid in updates:
                 status, local_match = updates[cid]
                 row["bulk_status"] = status
+                row["bulk_color"] = status   # static state — color follows display
                 row["local_match"] = local_match
                 self._table.update_row(idx, row)
 
@@ -814,7 +882,34 @@ class BulkReplaceDialog:
         row = self._table.get_row(idx)
         if row:
             row["bulk_status"] = "Replacing…"
+            row["bulk_color"] = "Replacing…"
             self._table.update_row(idx, row)
+
+    def _on_file_progress(self, cid, stage, bytes_read, total):
+        """Worker thread's on_progress callback marshalled here. Updates the
+        row's display text per stage; the color tag stays 'Replacing…' so
+        the row stays amber throughout."""
+        idx = self._find_row_idx_by_canvas_file_id(cid)
+        if idx < 0:
+            return
+        row = self._table.get_row(idx)
+        if not row:
+            return
+        if stage == "uploading" and total:
+            pct = int(bytes_read * 100 / total) if total else 0
+            text = (f"Uploading {_format_bytes(bytes_read)} / "
+                    f"{_format_bytes(total)} ({pct}%)")
+        elif stage == "fetching":
+            text = "Fetching…"
+        elif stage == "notifying":
+            text = "Notifying…"
+        elif stage == "confirming":
+            text = "Confirming…"
+        else:
+            return  # 'done' is handled by _on_file_complete
+        row["bulk_status"] = text
+        row["bulk_color"] = "Replacing…"
+        self._table.update_row(idx, row)
 
     def _on_file_complete(self, cid, status, apply_replaced=False):
         """Worker finished a file. status is 'Done' / 'Failed' / 'Skipped'."""
@@ -823,6 +918,7 @@ class BulkReplaceDialog:
             row = self._table.get_row(idx)
             if row:
                 row["bulk_status"] = status
+                row["bulk_color"] = status   # static state — color follows display
                 self._table.update_row(idx, row)
         if apply_replaced:
             try:
@@ -849,7 +945,9 @@ class BulkReplaceDialog:
         """Worker thread finished. Enter DONE state and show the summary."""
         self._state = "DONE"
         try:
-            self._cancel_btn.configure(text="Close")
+            # Re-enable the button (it may have been disabled mid-cancel) and
+            # rename it to "Close" since there's nothing to cancel anymore.
+            self._cancel_btn.configure(text="Close", state="normal")
         except Exception:
             pass
         a = self._job.replaced_count if self._job else 0
@@ -873,8 +971,10 @@ class BulkReplaceDialog:
         status = row.get("bulk_status", "")
         if status == "Will replace":
             row["bulk_status"] = "Ignored"
+            row["bulk_color"] = "Ignored"
         elif status == "Ignored":
             row["bulk_status"] = "Will replace"
+            row["bulk_color"] = "Will replace"
         else:
             return  # button shouldn't be enabled in other states; defensive no-op
         self._table.update_row(idx, row)
@@ -885,13 +985,29 @@ class BulkReplaceDialog:
     def _close(self):
         """Cancel button / X / Escape handler.
 
-        During RUNNING: signals cancel to the worker but keeps the dialog
-        open until the in-flight upload finishes and _on_job_done fires.
-        Step 3.7 will wrap this with a confirm dialog. Otherwise: release
-        the modal grab, destroy the window, re-enable the parent button.
+        During RUNNING: prompt for confirmation; on Yes signal cancel to the
+        worker but keep the dialog open until the in-flight upload finishes
+        and _on_job_done fires. Repeat clicks while a cancel is already in
+        flight are silent no-ops.
+        Otherwise: release the modal grab, destroy the window, re-enable
+        the parent button.
         """
         if self._state == "RUNNING" and self._job and self._job.is_running():
+            if self._job.cancel_event.is_set():
+                return  # cancel already pending; ignore repeat clicks
+            confirmed = show_dialog(
+                self.dialog, "Cancel Bulk Replace",
+                "Cancel bulk replace?\n\nThe current upload will finish first; "
+                "remaining files will be skipped.",
+                dialog_type="confirm",
+            )
+            if not confirmed:
+                return
             self._job.cancel()
+            try:
+                self._cancel_btn.configure(text="Cancelling…", state="disabled")
+            except Exception:
+                pass
             return
         try:
             self.dialog.grab_release()
@@ -957,9 +1073,26 @@ class BulkReplaceJob:
 
             parent.after(0, self.dialog._on_file_starting, cid)
 
+            # Per-file throttle state — one writer (this worker thread).
+            throttle = {"last_emit": 0.0, "last_stage": None}
+
+            def _on_progress(stage, bytes_read, total, _cid=cid):
+                """Marshal stage updates to the dialog's _on_file_progress.
+                Same throttle pattern as start_single_replace: emit on stage
+                change, on 'done', or after _PROGRESS_THROTTLE_SEC."""
+                now = time.monotonic()
+                if (stage != throttle["last_stage"]
+                        or stage in ("done",)
+                        or now - throttle["last_emit"] >= _PROGRESS_THROTTLE_SEC):
+                    throttle["last_emit"] = now
+                    throttle["last_stage"] = stage
+                    parent.after(0, self.dialog._on_file_progress,
+                                 _cid, stage, bytes_read, total)
+
             try:
                 result = perform_replace(
                     course_id, cid, local_path,
+                    on_progress=_on_progress,
                     cancel_event=self.cancel_event,
                 )
             except Exception:

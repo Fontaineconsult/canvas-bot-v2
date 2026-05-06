@@ -49,10 +49,14 @@ class Node:
         from tools.string_checking.other_tools import get_content_id_key_from_api_url
         from resource_nodes.modules import Module
 
-
         data_api_links = self.get_data_api_links(html)
+        from sorters.sorters import canvas_file_scope_regex
 
         for link in data_api_links:
+
+            scope_match = canvas_file_scope_regex.match(link[0])
+            file_scope = scope_match.group(1).lower() if scope_match else None
+
             api_page = get_url(link[0])
             if api_page:
                 if not isinstance(api_page, list):
@@ -62,11 +66,16 @@ class Node:
                     item_id = api_dict[get_content_id_key_from_api_url(link[0])]
                     if not self.root.manifest.id_exists(item_id):
                         data_api_node = get_node_by_a_tag_match(link[0], api_dict) # returns class object node type
+
                         if data_api_node:
                             if data_api_node == Module:
                                 # need to handle this differently
                                 continue
-                            initialized_node = data_api_node(self, self.root, api_dict, bypass_get_url=True)
+                            initialized_node = data_api_node(
+                                self, self.root, api_dict,
+                                bypass_get_url=True,
+                                file_scope=file_scope,
+                            )
                             self.children.append(initialized_node)
 
     def add_content_nodes_to_children(self, html):

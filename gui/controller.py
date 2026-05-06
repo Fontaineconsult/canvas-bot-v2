@@ -757,6 +757,7 @@ class GUIController:
         _bullet(content_scroll, "Open Source Page", "\u2014 opens the Canvas page where the content was found.")
         _bullet(content_scroll, "Open Canvas Files", "\u2014 opens the course's Files page in Canvas.")
         _bullet(content_scroll, "Replace File (Alt+R)", "\u2014 uploads a local file to overwrite the selected Canvas document. Available only for Canvas-hosted documents when your token has file-edit permission. After a successful replace, the row's title is suffixed with \"(replaced)\" until the next scan refreshes the manifest.")
+        _bullet(content_scroll, "Bulk Replace (Alt+B)", "\u2014 opens a dialog to replace many Canvas documents at once from a local folder. Pick any file in the folder; matching files (case-insensitive basename, extension-strict) are queued as \"Will replace\" while non-matches and already-replaced docs stay greyed. User-owned and group-owned files are surfaced as \"User File\" / \"Group File\" since the course /files endpoint can't replace those. Use the per-row Ignore button to exclude individual matches before running. Available only on the Documents sub-table when your token has file-edit permission.")
 
         _heading(content_scroll, "Filters")
         _bullet(content_scroll, "Show Inactive Content", "\u2014 includes items not linked from any active Canvas page or marked as hidden. Off by default.")

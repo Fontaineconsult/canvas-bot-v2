@@ -15,6 +15,7 @@ A tool for downloading, auditing, and organizing content from Canvas LMS courses
 - [Usage](#usage)
   - [Downloading Files](#downloading-files)
   - [Exporting Data](#exporting-data)
+  - [Replacing Files](#replacing-files)
   - [Pattern Management](#pattern-management)
 - [Configuration](#configuration)
 - [Security and Privacy](#security-and-privacy)
@@ -399,6 +400,40 @@ Canvasbot.exe --course_id 12345 --print_content_tree
 # Show complete course tree
 Canvasbot.exe --course_id 12345 --print_full_course
 ```
+
+### Replacing Files
+
+CanvasBot can upload local files back into Canvas to overwrite existing course documents — useful when you've revised a syllabus, fixed a broken PDF, or need to update assignment handouts in bulk. Replacement uses Canvas's standard 3-step upload (notify → upload → confirm) with `on_duplicate=overwrite`, so the Canvas file ID is preserved (links elsewhere in the course don't break).
+
+**Requirements**: your Canvas API token must have `manage_files_edit` permission on the course. CanvasBot checks this automatically when you select a course in the Content tab and disables the Replace buttons if you can't edit course files.
+
+#### Single File Replace (Alt+R)
+
+In the Content tab's Documents sub-table, select a row and click **Replace File** (or press `Alt+R`). A file picker opens at the document's downloaded folder when available; pick the local replacement. CanvasBot validates the extension matches the original, asks you to confirm, then streams the upload while showing live byte progress (`Uploading 12.4 MB / 47 MB · 26%`) in a small modal. The dialog has a Cancel button that aborts cleanly between Canvas's stages — a cancel during the upload itself waits for the current upload to finish (the multipart encoder doesn't expose a clean mid-stream abort).
+
+After a successful replace, the row's title gets a `(replaced)` suffix as a "rescan me" reminder. Canvas issues a new file ID on overwrite, so the same row's `canvas_file_id` becomes stale and a second replace from the same content.json would 404. Re-scan the course to refresh the manifest before replacing the same file again.
+
+#### Bulk Replace (Alt+B)
+
+When you have many revised documents in a single folder, use **Bulk Replace** instead of replacing one at a time. From the Documents sub-table click **Bulk Replace** (or press `Alt+B`).
+
+The dialog shows every Canvas-hosted document in the course alongside three columns: Title, Local Match, and Status. Click **Pick a File…**, then select any file inside your replacement folder — CanvasBot uses that file's parent directory as the source folder. (Why a file picker instead of a folder picker? Tk's folder picker on Windows uses the legacy "Browse for Folder" dialog with no files visible; the file picker shows the folder's contents so you can confirm you're in the right place before committing.)
+
+CanvasBot then matches files by **case-insensitive exact basename, extension-strict** — `Foo.pdf` in your folder matches `foo.pdf` in Canvas, but `Foo.docx` does not match `foo.pdf`. Each row's status updates:
+
+| Status | Meaning |
+|---|---|
+| **Will replace** (green) | Local file matched; queued for upload |
+| **No match** (gray) | Canvas document with no corresponding local file |
+| **Already replaced** (gray) | Title ends with `(replaced)` from a prior run; skipped until re-scan |
+| **Ambiguous** (gray) | Two Canvas documents share the same title AND a local file matches; skipped to avoid guessing |
+| **User File** / **Group File** (gray) | File lives in personal/group storage, not the course's. Canvas's course /files endpoint can't replace these, so they're surfaced for visibility but never queued |
+
+Select any "Will replace" row and click **Ignore** to exclude it from the run; the button label flips to "Don't ignore" so you can easily revert. The counter line at the top shows `{will_replace} of {matched} matched will be replaced ({total} documents total)` and updates as you toggle.
+
+When you're ready, click **Replace Matched (N)**, confirm the count, and CanvasBot uploads each file sequentially. Each row tickets through `Notifying… → Uploading X / Y MB (Z%) → Confirming… → Done`. Failed rows show the error in red; the batch continues. You can cancel mid-batch — the current upload finishes, remaining files are marked Skipped, and the dialog stays open in DONE state with a final summary line.
+
+If you close the main app window while a bulk replace is running, CanvasBot prompts to confirm the cancel and waits up to 30 seconds for the current upload to finish before exiting.
 
 ### Pattern Management
 

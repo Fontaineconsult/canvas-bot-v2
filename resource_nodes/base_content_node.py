@@ -15,6 +15,7 @@ class BaseContentNode:
                  url=None,
                  title=None,
                  captioned=False,
+                 file_scope=None,
                  **kwargs):
         self.api_dict = api_dict
         self.is_canvas_file = False
@@ -29,6 +30,8 @@ class BaseContentNode:
         self.root = root
         self.children = list()
         self.is_content = True
+        # 'courses' | 'users' | 'groups' | None (no scope detected; treat as course)
+        self.file_scope = file_scope
         self.item_id = self.derive_id()
         self._expand_api_dict_to_class_attributes()
         self.add_node_to_tree()

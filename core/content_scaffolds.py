@@ -142,6 +142,7 @@ def document_dict(document_node, file_download_directory, flatten):
         "is_hidden": is_hidden(document_node),
         "hidden_reason": get_hidden_reasons(document_node),
         "file_source": "Canvas" if getattr(document_node, "is_canvas_file", False) else "External File",
+        "file_scope": getattr(document_node, "file_scope", None),
         "canvas_file_id": getattr(document_node, "id", None),
         "file_type": get_file_type(document_node),
         "order": get_order(document_node),

@@ -165,6 +165,37 @@ class CanvasBotGUI:
         # --- Set initial focus ---
         self.entry_course_id.focus_set()
 
+        # --- Window-close handler (intercepts X to confirm an in-flight bulk job) ---
+        self.root.protocol("WM_DELETE_WINDOW", self._on_root_close)
+
+    def _on_root_close(self):
+        """Intercept the main window's X button.
+
+        If a BulkReplaceJob is running, prompt the user to cancel; on Yes,
+        signal cancel to the worker, bounded-wait up to 30s for the current
+        upload to finish, then close. Otherwise close immediately.
+        """
+        bulk_dialog = getattr(self.content_viewer, "_bulk_dialog", None)
+        active_job = (bulk_dialog and getattr(bulk_dialog, "_job", None)
+                      and bulk_dialog._job.is_running())
+        if active_job:
+            from gui.widgets import show_dialog
+            confirmed = show_dialog(
+                self.root, "Bulk Replace Running",
+                "A bulk replace is in progress. Quit anyway?\n\n"
+                "The current file will finish; remaining files will be skipped.",
+                dialog_type="confirm",
+            )
+            if not confirmed:
+                return
+            try:
+                bulk_dialog._job.cancel()
+                # Bounded wait so a hung upload can't keep the app alive forever.
+                bulk_dialog._job.thread.join(timeout=30)
+            except Exception:
+                pass
+        self.root.destroy()
+
     def _center_window(self):
         self.root.update_idletasks()
         w = self.root.winfo_width()

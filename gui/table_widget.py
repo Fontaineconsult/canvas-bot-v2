@@ -47,6 +47,8 @@ _STATUS_COLORS = {
         "Already replaced": "#2a2a2a",  # gray
         "Ambiguous":        "#2a2a2a",  # gray
         "Ignored":          "#2a2a2a",  # gray (matches existing Ignore swatch)
+        "User File":        "#2a2a2a",  # gray (lives in user storage — can't be replaced via course endpoint)
+        "Group File":       "#2a2a2a",  # gray (lives in group storage — can't be replaced via course endpoint)
     },
     "light": {
         "Passed": "#d4edda",
@@ -62,6 +64,8 @@ _STATUS_COLORS = {
         "Already replaced": "#e2e3e5",  # gray
         "Ambiguous":        "#e2e3e5",  # gray
         "Ignored":          "#e2e3e5",  # gray
+        "User File":        "#e2e3e5",  # gray
+        "Group File":       "#e2e3e5",  # gray
     },
 }
 
@@ -79,7 +83,7 @@ class ContentTable(ctk.CTkFrame):
         Called with the selected row dict when a row is clicked.
     """
 
-    def __init__(self, parent, columns, on_select=None, placeholder="", status_key=None, **kwargs):
+    def __init__(self, parent, columns, on_select=None, placeholder="", status_key=None, color_key=None, **kwargs):
         super().__init__(parent, fg_color="transparent", **kwargs)
 
         self._columns = columns
@@ -87,7 +91,10 @@ class ContentTable(ctk.CTkFrame):
         self._sort_col = None
         self._sort_asc = True
         self._rows = []  # mirrors treeview content as list[dict]
-        self._status_key = status_key  # row field used for status-based row coloring
+        self._status_key = status_key  # row field shown in a column AND used for color
+        self._color_key = color_key    # optional separate field used ONLY for color
+                                        # (lets display text vary per-row while the
+                                        # tag stays stable, e.g. live upload progress)
 
         # Placeholder shown when table is empty
         self._placeholder = ctk.CTkLabel(
@@ -366,6 +373,12 @@ class ContentTable(ctk.CTkFrame):
 
     def _row_tag(self, idx, row):
         """Return the tag name for a row based on status or alternating index."""
+        # color_key (if set) takes priority — lets the displayed status_key
+        # text vary (e.g. dynamic upload progress) while the tag stays stable.
+        if self._color_key:
+            color = row.get(self._color_key, "")
+            if color in _STATUS_COLORS.get("dark", {}):
+                return f"status_{color}"
         if self._status_key:
             status = row.get(self._status_key, "")
             if status in _STATUS_COLORS.get("dark", {}):

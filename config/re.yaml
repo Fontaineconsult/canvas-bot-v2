@@ -59,6 +59,8 @@ image_content_regex:
 - .*\.raw
 canvas_user_file_content_regex: .*.users/[0-9]{0,7}/files/[0-9]{0,9}/preview\?verifier=\w{40}
 canvas_file_content_regex: .*.courses/[0-9]{0,7}/files/[0-9]{0,9}.*.
+canvas_file_scope_regex:
+- .*\/(courses|users|groups)\/[0-9]+\/files\/.*
 web_video_resources_regex:
 - .*..*.youtu[\.]?be.*..*.
 - .*.vimeo.*.
