@@ -689,6 +689,19 @@ if __name__=='__main__':
     @click.option('--canvas_file_id', type=click.STRING,
                   help='Canvas file ID of the file to replace. Requires --replace_file and --course_id.')
 
+    # === Replace Content (orchestrator path: file replace + optional body rewrites) ===
+    @click.option('--replace_pair', nargs=2, default=None,
+                  metavar='OLD_FILE_ID LOCAL_PATH',
+                  help='Replace one Canvas file with a local file via the new orchestrator path. '
+                       'Single file per invocation. Use --rewrite_target (repeatable) to also '
+                       'rewrite body link references. Requires --course_id.')
+    @click.option('--rewrite_target', nargs=2, multiple=True,
+                  metavar='RESOURCE_TYPE IDENTIFIER',
+                  help='Body to rewrite (repeatable). RESOURCE_TYPE is one of '
+                       'page/discussion/announcement/assignment/quiz; IDENTIFIER is the page slug '
+                       'for pages, numeric id for the others. Optional — module-file replacements '
+                       'need no body rewrites. Used with --replace_pair.')
+
     # === Pattern Management ===
     @click.option('--patterns-list', 'patterns_list', default=None, is_flag=False, flag_value='',
                   help='List pattern categories. Optionally specify CATEGORY to see patterns in it.')
@@ -728,6 +741,8 @@ if __name__=='__main__':
              canvas_studio_media_id,
              replace_file,
              canvas_file_id,
+             replace_pair,
+             rewrite_target,
              patterns_list,
              patterns_add,
              patterns_remove,
@@ -798,6 +813,13 @@ if __name__=='__main__':
             else:
                 print("[ERROR] File replace failed. Check the log for details.")
                 sys.exit(3)
+
+        # Handle --replace_pair (orchestrator path: file replace + optional body rewrites)
+        if replace_pair:
+            load_json_config_file_from_appdata()
+            check_if_api_key_exists()
+            from tools.replace_content_cli import run as run_replace_content
+            sys.exit(run_replace_content(course_id, replace_pair, rewrite_target))
 
         params = {
             "download_folder": download_folder,

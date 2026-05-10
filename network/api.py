@@ -78,6 +78,91 @@ def response_decorator(calling_function):
     return wrapper
 
 
+def put_response_handler(request_url, data):
+    clean_url = _clean_url(request_url)
+    try:
+        request = requests.put(request_url, data=data, verify=True, timeout=30)
+    except RequestsConnectionError as exc:
+        log.error(f"Connection error: {exc} | URL: {clean_url}")
+        warnings.warn(f"Connection error\n    {clean_url}", UserWarning)
+        return False
+    except MissingSchema as exc:
+        log.exception(f"Invalid URL schema: {exc} | URL: {clean_url}")
+        warnings.warn(f"Invalid URL\n    {clean_url}", UserWarning)
+        return None
+
+    if request.status_code == 200:
+        log.info(f"Request successful: {clean_url} | Status Code: {request.status_code}")
+        try:
+            return json.loads(request.content)
+        except json.JSONDecodeError as exc:
+            log.exception(f"Failed to decode JSON: {exc} | URL: {clean_url}")
+            warnings.warn(f"Invalid JSON response\n    {clean_url}", UserWarning)
+            return None
+    else:
+        log.warning(f"Request failed: {clean_url} | Status Code: {request.status_code}")
+        try:
+            error_message = _extract_error_message(json.loads(request.content))
+        except json.JSONDecodeError as exc:
+            log.exception(f"Failed to decode error JSON: {exc} | URL: {clean_url}")
+            error_message = "Failed to parse error response"
+        warnings.warn(f"HTTP {request.status_code} - {error_message}: {clean_url}", UserWarning)
+        return None
+
+
+def put_response_decorator(calling_function):
+    def wrapper(*args):
+        url, data = calling_function(*args)
+        return put_response_handler(url, data)
+    return wrapper
+
+
+def post_response_handler(request_url, data=None):
+    """POST with optional form data; mirrors put_response_handler. Returns
+    parsed JSON on 200/201, None on failure (with a UserWarning emitted).
+    """
+    clean_url = _clean_url(request_url)
+    try:
+        request = requests.post(request_url, data=data or {}, verify=True, timeout=30)
+    except RequestsConnectionError as exc:
+        log.error(f"Connection error: {exc} | URL: {clean_url}")
+        warnings.warn(f"Connection error\n    {clean_url}", UserWarning)
+        return False
+    except MissingSchema as exc:
+        log.exception(f"Invalid URL schema: {exc} | URL: {clean_url}")
+        warnings.warn(f"Invalid URL\n    {clean_url}", UserWarning)
+        return None
+
+    if request.status_code in (200, 201):
+        log.info(f"Request successful: {clean_url} | Status Code: {request.status_code}")
+        try:
+            return json.loads(request.content)
+        except json.JSONDecodeError as exc:
+            log.exception(f"Failed to decode JSON: {exc} | URL: {clean_url}")
+            warnings.warn(f"Invalid JSON response\n    {clean_url}", UserWarning)
+            return None
+    else:
+        log.warning(f"Request failed: {clean_url} | Status Code: {request.status_code}")
+        try:
+            error_message = _extract_error_message(json.loads(request.content))
+        except json.JSONDecodeError as exc:
+            log.exception(f"Failed to decode error JSON: {exc} | URL: {clean_url}")
+            error_message = "Failed to parse error response"
+        warnings.warn(f"HTTP {request.status_code} - {error_message}: {clean_url}", UserWarning)
+        return None
+
+
+def post_response_decorator(calling_function):
+    """Wrap a function that returns either a URL or (URL, data) tuple."""
+    def wrapper(*args):
+        result = calling_function(*args)
+        if isinstance(result, tuple):
+            url, data = result
+            return post_response_handler(url, data)
+        return post_response_handler(result, None)
+    return wrapper
+
+
 
 @response_decorator
 def get_active_accounts(page):
@@ -169,6 +254,16 @@ def get_assignment(course_id, assignment_id):
     return assignment_url
 
 
+@put_response_decorator
+def update_assignment(course_id, assignment_id, description):
+    """PUT a new description (HTML body) to an assignment. Returns the
+    updated assignment dict on success, None on failure.
+    """
+    url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
+          f"/assignments/{assignment_id}?access_token={get_access_token()}"
+    return url, {"assignment[description]": description}
+
+
 @response_decorator
 def get_discussions(course_id):
     discussions_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
@@ -183,6 +278,18 @@ def get_discussion(course_id, topic_id):
                       f"/discussion_topics/{topic_id}?access_token={get_access_token()}"
 
     return discussions_url
+
+
+@put_response_decorator
+def update_discussion_topic(course_id, topic_id, message):
+    """PUT a new message (HTML body) to a discussion topic. Works for both
+    regular discussions and announcements (announcements are discussion_topics
+    with is_announcement=true). Returns the updated topic dict on success.
+    """
+    url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
+          f"/discussion_topics/{topic_id}?access_token={get_access_token()}"
+    return url, {"message": message}
+
 
 @response_decorator
 def get_modules(course_id):
@@ -208,6 +315,43 @@ def get_page(course_id, page_url):
     return page_url
 
 
+@put_response_decorator
+def update_page(course_id, page_url, body):
+    """PUT a new body to a Canvas page. Always sets notify_of_update=false
+    so students don't get a 'page updated' email for what is effectively
+    a link cleanup. Returns the updated page dict on success, None on failure.
+    """
+    url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
+          f"/pages/{page_url}?access_token={get_access_token()}"
+    return url, {
+        "wiki_page[body]": body,
+        "wiki_page[notify_of_update]": "false",
+    }
+
+
+@response_decorator
+def get_page_revision_latest(course_id, page_url):
+    """GET metadata for a page's most recent revision. Returns a dict with
+    revision_id (and other fields) on success. Used by the rollback path —
+    captured at __init__ time so a later POST to the revisions endpoint can
+    revert to this exact state if a verify-after-push fails.
+    """
+    url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
+          f"/pages/{page_url}/revisions/latest?access_token={get_access_token()}"
+    return url
+
+
+@post_response_decorator
+def revert_page_to_revision(course_id, page_url, revision_id):
+    """POST to revert a page to a prior revision. Canvas creates a NEW
+    revision whose body matches the target revision; the user's history is
+    preserved. Returns the new revision dict on success.
+    """
+    url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
+          f"/pages/{page_url}/revisions/{revision_id}?access_token={get_access_token()}"
+    return url
+
+
 @response_decorator
 def get_quizzes(course_id):
     quizzes_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
@@ -220,6 +364,18 @@ def get_quiz(course_id, quiz_id):
     quizzes_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                   f"/quizzes/{quiz_id}?access_token={get_access_token()}"
     return quizzes_url
+
+
+@put_response_decorator
+def update_quiz(course_id, quiz_id, description):
+    """PUT a new description (HTML body) to a quiz. Note: Canvas does NOT
+    expose a revision history API for quizzes — rollback for this resource
+    type relies on our locally-captured original_body. Returns the updated
+    quiz dict on success, None on failure.
+    """
+    url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
+          f"/quizzes/{quiz_id}?access_token={get_access_token()}"
+    return url, {"quiz[description]": description}
 
 
 @response_decorator
