@@ -8,12 +8,13 @@ widgets) will land in this module in subsequent steps.
 import json
 import logging
 import os
+import re
 import threading
 import time
 import warnings
 from dataclasses import dataclass
 from tkinter import filedialog
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import customtkinter as ctk
 
@@ -42,6 +43,102 @@ def _format_bytes(n):
     if n < 1024 * 1024 * 1024:
         return f"{n / (1024 * 1024):.1f} MB"
     return f"{n / (1024 * 1024 * 1024):.2f} GB"
+
+
+# Patterns mapping Canvas URL forms to (resource_type, identifier) tuples.
+# resource_type matches keys in core.replace.RESOURCE_TYPES so the parser is
+# directly reusable by the orchestrator-driven replace flows. Order matters
+# only for /modules#<id>, which is detected via the fragment, so we handle
+# it explicitly rather than as a regex.
+_SOURCE_URL_PATTERNS = [
+    (re.compile(r"/courses/[^/]+/pages/([^/?#]+)"),               "page"),
+    (re.compile(r"/courses/[^/]+/discussion_topics/(\d+)"),       "discussion"),
+    (re.compile(r"/courses/[^/]+/announcements/(\d+)"),           "discussion"),  # same endpoint as discussion_topics
+    (re.compile(r"/courses/[^/]+/assignments/(\d+)"),             "assignment"),
+    (re.compile(r"/courses/[^/]+/quizzes/(\d+)"),                 "quiz"),
+]
+
+
+def parse_canvas_source_url(url: str) -> Optional[Tuple[str, str]]:
+    """Parse a Canvas source-page URL into (resource_type, identifier).
+
+    Returns None when the URL doesn't correspond to a resource with a
+    rewritable body (modules, /files listing, course shell, malformed, etc.).
+
+    Used by:
+      - gui.content_viewer for source-row "Multi" dropdown labeling
+      - the upcoming derive_body_targets helper that builds the
+        orchestrator's body_targets list from source_page_url
+    """
+    if not isinstance(url, str) or not url:
+        return None
+    for pattern, resource_type in _SOURCE_URL_PATTERNS:
+        match = pattern.search(url)
+        if match:
+            return resource_type, match.group(1)
+    return None
+
+
+def derive_body_targets(rows) -> List[Tuple[str, str]]:
+    """Map a set of content rows to the orchestrator's body_targets list.
+
+    For each row, reads source_page_url (accepting list-or-string for
+    backward compat with older content.json files) and parses each URL
+    via parse_canvas_source_url. URLs that don't correspond to a
+    rewritable resource body (modules, /files listings, unknown shapes)
+    are dropped — the file is still replaced, but there's nothing to
+    rewrite on that side.
+
+    The final list is deduped by (resource_type, identifier) so that
+    when N files share a referencing page (common in well-organized
+    courses), the orchestrator fetches and rewrites that page once
+    rather than N times. Order is preserved (first occurrence wins).
+
+    Used by both start_single_replace ([row]) and BulkReplaceJob (every
+    row currently 'Will replace') to populate
+    ContentUpdateOrchestrator.body_targets.
+    """
+    seen = set()
+    targets: List[Tuple[str, str]] = []
+    for row in rows or []:
+        urls = row.get("source_page_url") if isinstance(row, dict) else None
+        if urls is None:
+            continue
+        if isinstance(urls, str):
+            urls = [urls]
+        elif not isinstance(urls, list):
+            continue
+        for url in urls:
+            parsed = parse_canvas_source_url(url)
+            if parsed is None:
+                continue
+            if parsed in seen:
+                continue
+            seen.add(parsed)
+            targets.append(parsed)
+    return targets
+
+
+def source_url_label(url: str) -> str:
+    """Build a short, readable label for a source-page URL.
+
+    Used in the Content Viewer's multi-source dropdown so users can tell
+    locations apart without reading raw URLs. Falls back to a truncated
+    URL when the path doesn't match a known Canvas resource shape.
+    """
+    parsed = parse_canvas_source_url(url)
+    if parsed:
+        resource_type, identifier = parsed
+        return f"{resource_type.title()}: {identifier}"
+    # Module URLs look like .../modules#<id>; show them readably too.
+    if isinstance(url, str) and "/modules" in url:
+        frag_match = re.search(r"#(\d+)", url)
+        if frag_match:
+            return f"Module: {frag_match.group(1)}"
+        return "Modules"
+    if isinstance(url, str):
+        return url if len(url) <= 60 else url[:57] + "..."
+    return str(url)
 
 
 def _course_root_folder(viewer):
@@ -259,6 +356,7 @@ def match_files_to_documents(folder, documents):
 
 
 _STAGE_LABELS = {
+    "preflight":  "Pre-flight check…",
     "fetching":   "Fetching file info…",
     "notifying":  "Notifying Canvas…",
     "uploading":  "Uploading…",
@@ -398,7 +496,15 @@ def start_single_replace(viewer, row):
         return
 
     original_title = row.get("title", "file")
-    original_ext = os.path.splitext(original_title)[1].lower()
+    # Strip the post-replace marker before extracting the extension —
+    # otherwise os.path.splitext("foo.pdf - (replaced)") returns
+    # ".pdf - (replaced)" as the "extension" (it just splits at the last
+    # dot with no validation), and the mismatch dialog fires for any
+    # already-replaced file.
+    title_for_ext = original_title
+    if title_for_ext.endswith(REPLACED_SUFFIX):
+        title_for_ext = title_for_ext[:-len(REPLACED_SUFFIX)]
+    original_ext = os.path.splitext(title_for_ext)[1].lower()
     local_ext = os.path.splitext(file_path)[1].lower()
     if original_ext and local_ext and original_ext != local_ext:
         show_dialog(
@@ -428,46 +534,86 @@ def start_single_replace(viewer, row):
     cancel_event = threading.Event()
     progress = SingleReplaceProgressDialog(parent, os.path.basename(file_path), cancel_event)
 
-    def _on_done(result):
+    def _on_done(orch):
         progress.close()
         if cancel_event.is_set():
             log.info(f"File replace cancelled by user: {original_title}")
             return
-        if result:
-            new_name = result.get("display_name", result.get("filename", os.path.basename(file_path)))
-            viewer._apply_replaced_to_ui(canvas_file_id)
-            show_dialog(parent, "File Replaced",
-                        f"Successfully replaced '{original_title}' with '{new_name}'.",
-                        dialog_type="info")
-        else:
+        if orch is None:
+            # bootstrap_auth=False is passed, so this only fires if the
+            # worker raised before/within replace_content. Defensive.
             show_dialog(parent, "Replace Failed",
                         f"Failed to replace '{original_title}'. Check the log for details.",
+                        dialog_type="error")
+            return
+
+        s = orch.summary
+        if s.get("early") == "preflight_failed":
+            # Pre-flight aborted before any modification. Build a
+            # readable failure list and tell the user nothing changed.
+            msgs = []
+            for r in s.get("preflight_failed_file_reports", []):
+                msgs.append(f"File {r.old_file_id}: {r.status} - {r.error or 'no details'}")
+            msg_block = "\n".join(msgs) or "Unknown pre-flight failure"
+            show_dialog(parent, "Pre-flight Failed",
+                        f"Cannot replace '{original_title}':\n\n{msg_block}\n\n"
+                        "No changes were made to Canvas.",
+                        dialog_type="error")
+            return
+
+        rep = orch.file_reports[0] if orch.file_reports else None
+        if rep and rep.status == "replaced":
+            viewer._apply_replaced_to_ui(canvas_file_id)
+            show_dialog(parent, "File Replaced",
+                        f"Successfully replaced '{original_title}' with "
+                        f"'{os.path.basename(file_path)}'.",
+                        dialog_type="info")
+        else:
+            detail = (rep.error or rep.status) if rep else "no report"
+            show_dialog(parent, "Replace Failed",
+                        f"Failed to replace '{original_title}': {detail}",
                         dialog_type="error")
 
     # Throttle state — touched only from the worker thread (single writer).
     throttle = {"last_emit": 0.0, "last_stage": None}
 
-    def _on_progress(stage, bytes_read, total):
-        now = time.monotonic()
-        # Always emit on stage change or on completion; otherwise gate on interval.
-        if (stage != throttle["last_stage"]
-                or stage in ("done",)
-                or now - throttle["last_emit"] >= _PROGRESS_THROTTLE_SEC):
-            throttle["last_emit"] = now
-            throttle["last_stage"] = stage
-            parent.after(0, progress.update_progress, stage, bytes_read, total)
+    def _marshal_event(stage, payload):
+        """Worker -> UI bridge. Translates orchestrator events into the
+        progress dialog's existing stage labels. Outcome handling (the
+        success/failure dialogs) lives in _on_done, which inspects the
+        orchestrator's summary + reports after run() returns.
+        """
+        if stage == "preflight_started":
+            parent.after(0, progress.update_progress, "preflight", 0, 0)
+        elif stage == "file_progress":
+            sub = payload.get("stage")
+            b = payload.get("bytes_read", 0) or 0
+            t = payload.get("total", 0) or 0
+            now = time.monotonic()
+            if (sub != throttle["last_stage"]
+                    or sub == "done"
+                    or now - throttle["last_emit"] >= _PROGRESS_THROTTLE_SEC):
+                throttle["last_emit"] = now
+                throttle["last_stage"] = sub
+                parent.after(0, progress.update_progress, sub, b, t)
+
+    body_targets = derive_body_targets([row])
 
     def _worker():
         try:
-            result = perform_replace(
-                course_id, canvas_file_id, file_path,
-                on_progress=_on_progress,
+            from core.orchestrator import replace_content
+            orch = replace_content(
+                course_id=course_id,
+                replacements=[(int(canvas_file_id), file_path)],
+                body_targets=body_targets,
+                on_event=_marshal_event,
                 cancel_event=cancel_event,
+                bootstrap_auth=False,
             )
         except Exception:
             log.exception("Unhandled error in replace worker")
-            result = None
-        parent.after(0, _on_done, result)
+            orch = None
+        parent.after(0, _on_done, orch)
 
     threading.Thread(target=_worker, daemon=True, name="canvas-replace").start()
 
@@ -808,6 +954,9 @@ class BulkReplaceDialog:
             return
 
         # Snapshot the work — only rows still marked Will replace go in.
+        # The row dict travels with each item so the worker can derive
+        # body_targets (referencing pages/discussions/etc.) from each
+        # row's source_page_url list without re-querying the table.
         items = []
         for idx in range(self._table.get_row_count()):
             row = self._table.get_row(idx)
@@ -817,7 +966,7 @@ class BulkReplaceDialog:
             local_name = row.get("local_match")
             if cid and local_name and self._folder:
                 local_path = os.path.join(self._folder, local_name)
-                items.append((cid, local_path))
+                items.append((cid, local_path, row))
         if not items:
             return
 
@@ -941,6 +1090,39 @@ class BulkReplaceDialog:
                   f"{self._job.skipped_count} skipped"),
         )
 
+    def _on_preflight_started(self, payload):
+        """Orchestrator started pre-flight before any replacement. Show
+        the validation state in the counter line — per-row state stays
+        at 'Will replace' until a real file_started event fires."""
+        total = payload.get("total_files", 0) if isinstance(payload, dict) else 0
+        self._counter_label.configure(
+            text=f"Pre-flight check: validating {total} file(s)…",
+        )
+
+    def _on_preflight_failed(self, payload):
+        """Orchestrator aborted before any replacement. Mark each failed
+        row with the reason; update the counter to make it clear NO
+        changes happened. _on_job_done fires right after and respects
+        this state (doesn't overwrite our counter)."""
+        failed_files = (payload or {}).get("failed_files", [])
+        for r in failed_files:
+            cid_int = r.old_file_id
+            cid = (self._job._cid_back.get(cid_int, cid_int)
+                   if self._job else cid_int)
+            idx = self._find_row_idx_by_canvas_file_id(cid)
+            if idx < 0:
+                continue
+            row = self._table.get_row(idx)
+            if not row:
+                continue
+            row["bulk_status"] = f"Pre-flight failed: {r.status}"
+            row["bulk_color"] = "Failed"
+            self._table.update_row(idx, row)
+        self._counter_label.configure(
+            text=(f"Pre-flight failed for {len(failed_files)} file(s). "
+                  "NO changes were made to Canvas — fix the issues and retry."),
+        )
+
     def _on_job_done(self):
         """Worker thread finished. Enter DONE state and show the summary."""
         self._state = "DONE"
@@ -950,6 +1132,12 @@ class BulkReplaceDialog:
             self._cancel_btn.configure(text="Close", state="normal")
         except Exception:
             pass
+        # Pre-flight aborts already wrote their own counter line via
+        # _on_preflight_failed; don't overwrite with the normal summary
+        # (which would show all zeros since nothing ran).
+        if (self._job and self._job.orch
+                and self._job.orch.summary.get("early") == "preflight_failed"):
+            return
         a = self._job.replaced_count if self._job else 0
         b = self._initial_counts.get("ignored", 0)
         c = self._initial_counts.get("already_replaced", 0)
@@ -1026,29 +1214,49 @@ class BulkReplaceDialog:
 
 
 class BulkReplaceJob:
-    """Owns the worker thread that runs perform_replace over a snapshot of
-    (canvas_file_id, local_path) pairs. Marshals per-file UI updates back
-    to the main thread via parent.after(0, ...).
+    """Owns the worker thread that runs ContentUpdateOrchestrator over a
+    snapshot of (canvas_file_id, local_path) pairs. The orchestrator
+    pre-flights ALL files atomically before any replacement, then runs
+    each file replace, emitting per-file events that this class marshals
+    to the dialog's row handlers.
 
-    Step 3.5: no per-file progress callback yet. Step 3.6 wires on_progress
-    into the row's Status column. Step 3.7 makes Cancel set the event and
-    surface a confirm; for now the cancel_event exists and is wired through
-    so dialog._close() can ask the worker to stop between files (skipped
-    remainders) when the dialog is dismissed mid-run.
+    Atomicity: if any file fails pre-flight (e.g. wrong canvas_file_id,
+    extension mismatch detected from Canvas metadata), the entire batch
+    aborts before any file is touched. The dialog surfaces this via
+    _on_preflight_failed.
+
+    Cancel: cancel_event is honored at orchestrator stage boundaries.
+    A cancel during an in-flight upload waits for that upload to finish
+    (Canvas's notify/upload/confirm is not abortable mid-stream); the
+    remaining files in the batch then get 'cancelled' reports, which we
+    marshal as 'Skipped' rows.
     """
 
     def __init__(self, dialog, viewer, items):
         self.dialog = dialog
         self.viewer = viewer
-        self.items = list(items)  # list[(canvas_file_id, local_path)]
+        # items: list[(canvas_file_id, local_path, row)]. The row dict
+        # travels with each item so _run can derive body_targets from
+        # source_page_url without re-querying the table from a worker
+        # thread.
+        self.items = list(items)
         self.cancel_event = threading.Event()
         self.thread = None
+        self.orch = None  # ContentUpdateOrchestrator after _run completes
         # Outcome tallies — only the worker thread mutates these, and the
         # UI thread only reads them after a marshalled callback fires, so
         # no lock is needed.
         self.replaced_count = 0
         self.failed_count = 0
         self.skipped_count = 0
+        # Per-file throttle state — keyed by int canvas_file_id (orchestrator
+        # normalizes to int). Single writer (this worker thread).
+        self._throttle = {}
+        # Reverse map for cid: orchestrator events carry int old_file_id, but
+        # dialog rows may store canvas_file_id as int or str (depending on
+        # how the scan serialized it). Round-trip via this map so the
+        # dialog's _find_row_idx_by_canvas_file_id equality check works.
+        self._cid_back = {int(cid): cid for cid, _, _ in self.items}
 
     def start(self):
         self.thread = threading.Thread(
@@ -1065,54 +1273,78 @@ class BulkReplaceJob:
     def _run(self):
         course_id = (self.viewer._current_data or {}).get("course_id")
         parent = self.viewer._parent
-        for cid, local_path in self.items:
-            if self.cancel_event.is_set():
-                self.skipped_count += 1
-                parent.after(0, self.dialog._on_file_complete, cid, "Skipped", False)
-                continue
+        replacements = [(int(cid), path) for cid, path, _ in self.items]
+        body_targets = derive_body_targets([row for _, _, row in self.items])
+        try:
+            from core.orchestrator import replace_content
+            self.orch = replace_content(
+                course_id=course_id,
+                replacements=replacements,
+                body_targets=body_targets,
+                on_event=self._marshal,
+                cancel_event=self.cancel_event,
+                bootstrap_auth=False,
+            )
+        except Exception:
+            log.exception("Unhandled error in bulk replace worker")
+        parent.after(0, self.dialog._on_job_done)
 
+    def _marshal(self, stage, payload):
+        """Worker -> UI bridge. Translates orchestrator events into the
+        dialog's existing per-row handlers and the new pre-flight ones.
+        Always runs on the worker thread; all UI updates go through
+        parent.after(0, ...).
+        """
+        parent = self.viewer._parent
+
+        if stage == "preflight_started":
+            parent.after(0, self.dialog._on_preflight_started, dict(payload))
+            return
+
+        if stage == "preflight_failed":
+            parent.after(0, self.dialog._on_preflight_failed, dict(payload))
+            return
+
+        if stage == "file_started":
+            cid = self._cid_back.get(payload["old_file_id"], payload["old_file_id"])
             parent.after(0, self.dialog._on_file_starting, cid)
+            return
 
-            # Per-file throttle state — one writer (this worker thread).
-            throttle = {"last_emit": 0.0, "last_stage": None}
+        if stage == "file_progress":
+            int_cid = payload["old_file_id"]
+            cid = self._cid_back.get(int_cid, int_cid)
+            sub = payload.get("stage")
+            b = payload.get("bytes_read", 0) or 0
+            t = payload.get("total", 0) or 0
+            tstate = self._throttle.setdefault(
+                int_cid, {"last_emit": 0.0, "last_stage": None})
+            now = time.monotonic()
+            if (sub != tstate["last_stage"]
+                    or sub == "done"
+                    or now - tstate["last_emit"] >= _PROGRESS_THROTTLE_SEC):
+                tstate["last_emit"] = now
+                tstate["last_stage"] = sub
+                parent.after(0, self.dialog._on_file_progress, cid, sub, b, t)
+            return
 
-            def _on_progress(stage, bytes_read, total, _cid=cid):
-                """Marshal stage updates to the dialog's _on_file_progress.
-                Same throttle pattern as start_single_replace: emit on stage
-                change, on 'done', or after _PROGRESS_THROTTLE_SEC."""
-                now = time.monotonic()
-                if (stage != throttle["last_stage"]
-                        or stage in ("done",)
-                        or now - throttle["last_emit"] >= _PROGRESS_THROTTLE_SEC):
-                    throttle["last_emit"] = now
-                    throttle["last_stage"] = stage
-                    parent.after(0, self.dialog._on_file_progress,
-                                 _cid, stage, bytes_read, total)
-
-            try:
-                result = perform_replace(
-                    course_id, cid, local_path,
-                    on_progress=_on_progress,
-                    cancel_event=self.cancel_event,
-                )
-            except Exception:
-                log.exception("Unhandled error in bulk replace worker")
-                result = None
-
-            if result:
+        if stage == "file_done":
+            int_cid = payload["old_file_id"]
+            cid = self._cid_back.get(int_cid, int_cid)
+            rep = payload["report"]
+            if rep.status == "replaced":
                 self.replaced_count += 1
                 parent.after(0, self.dialog._on_file_complete, cid, "Done", True)
-            elif self.cancel_event.is_set():
-                # Cancel set during this file's upload — count it as skipped,
-                # not failed (the upload may have completed but wasn't
-                # confirmed; the row title doesn't get the suffix).
+            elif rep.status == "cancelled":
                 self.skipped_count += 1
                 parent.after(0, self.dialog._on_file_complete, cid, "Skipped", False)
             else:
                 self.failed_count += 1
                 parent.after(0, self.dialog._on_file_complete, cid, "Failed", False)
+            return
 
-        parent.after(0, self.dialog._on_job_done)
+        # Other orchestrator events (mapping_built, body_*, complete) are
+        # informational for this flow — body_targets is always empty in
+        # bulk replace today. _on_job_done reads orch.summary directly.
 
 
 def start_bulk_replace(viewer):

@@ -5,6 +5,7 @@ import re
 import shutil
 import threading
 import webbrowser
+import tkinter as tk
 from tkinter import messagebox, filedialog
 import customtkinter as ctk
 
@@ -12,6 +13,7 @@ from gui.file_replace import (
     REPLACED_SUFFIX,
     mark_row_replaced,
     save_content_json,
+    source_url_label,
     start_bulk_replace,
     start_single_replace,
 )
@@ -24,12 +26,16 @@ _REVIEW_STATUSES = ["Needs Review", "Passed", "Ignore"]
 _DEFAULT_STATUS = "-"  # unreviewed — no color
 _SHOW_DETAIL_PANEL = False  # Set to True to show the diagnostic detail panel
 
-# Short display labels for hidden_reason values
+# Short display labels for hidden_reason values.
+# "varies" is emitted by core.utilities.get_visibility when an item's
+# manifest references have different visibility states (mixed visible/
+# hidden, or all-hidden-but-for-different-reasons).
 _REASON_LABELS = {
     "hidden_for_user": "Hidden",
     "hidden_from_students": "Hidden",
     "unpublished": "Unpublished",
     "locked": "Locked",
+    "varies": "Varies",
 }
 
 # Column definitions per content sub-type
@@ -750,12 +756,52 @@ class ContentViewer:
         os.startfile(save_path)
 
     def _open_source_page(self):
-        """Open the source_page_url in the default browser."""
+        """Open the source page in the default browser.
+
+        Three shapes for source_page_url:
+          - string (legacy content.json):     open it directly.
+          - list with 1 entry:                open the single URL.
+          - list with >1 entries:             post a menu listing each
+            location; clicking a menu item opens that URL.
+
+        Multi-source rows are surfaced in the "Source" column as "Multi"
+        and routed through _popup_source_menu below, so the user can
+        pick which referencing page to visit.
+        """
         if not self._selected_row:
             return
         url = self._selected_row.get("source_page_url", "")
+        if isinstance(url, list):
+            if not url:
+                return
+            if len(url) == 1:
+                webbrowser.open(url[0])
+                return
+            self._popup_source_menu(url)
+            return
         if url:
             webbrowser.open(url)
+
+    def _popup_source_menu(self, urls):
+        """Post a context menu at the Open Source Page button listing
+        each location. Each menu item opens its URL in the browser.
+
+        Menu font matches the Content Viewer table (Consolas 16) so the
+        size is consistent between the column display and the location
+        list rendered beneath the button.
+        """
+        menu = tk.Menu(
+            self._open_source_btn, tearoff=0, font=("Consolas", 16),
+        )
+        for url in urls:
+            label = source_url_label(url)
+            menu.add_command(label=label, command=lambda u=url: webbrowser.open(u))
+        try:
+            x = self._open_source_btn.winfo_rootx()
+            y = self._open_source_btn.winfo_rooty() + self._open_source_btn.winfo_height()
+            menu.tk_popup(x, y)
+        finally:
+            menu.grab_release()
 
     def _open_in_canvas(self):
         """Open the course Files page in Canvas."""
@@ -971,6 +1017,17 @@ class ContentViewer:
         inactive_count = 0
         for table_key, (category, sub_key) in mapping.items():
             rows_all = content.get(category, {}).get(sub_key, [])
+            # When a row's source_page_url list has >1 entries, override the
+            # column display to "Multi" — the original parent class name is
+            # only one of several locations and would be misleading. Stash
+            # the original under a private key for any future need; original
+            # data on disk is untouched (we mutate the in-memory copy only).
+            for row in rows_all:
+                urls = row.get("source_page_url")
+                if isinstance(urls, list) and len(urls) > 1:
+                    if "_orig_source_page_type" not in row:
+                        row["_orig_source_page_type"] = row.get("source_page_type")
+                    row["source_page_type"] = "Multi"
             for row in rows_all:
                 if not row.get("source_page_url"):
                     inactive_count += 1
@@ -1121,11 +1178,19 @@ class ContentViewer:
             state="normal" if save_path and os.path.isfile(save_path) else "disabled"
         )
 
-        # Enable Open Source Page if source_page_url exists
-        if row.get("source_page_url"):
+        # Enable Open Source Page if source_page_url exists. When the
+        # row has multiple referencing locations, hint at the dropdown
+        # via a chevron and a different button label so the user knows
+        # clicking it pops a menu rather than opening a single page.
+        source_urls = row.get("source_page_url")
+        if source_urls:
             self._open_source_btn.configure(state="normal")
+            if isinstance(source_urls, list) and len(source_urls) > 1:
+                self._open_source_btn.configure(text="Source Locations ▾")
+            else:
+                self._open_source_btn.configure(text="Open Source Page")
         else:
-            self._open_source_btn.configure(state="disabled")
+            self._open_source_btn.configure(state="disabled", text="Open Source Page")
 
         # Enable Replace File for Canvas documents only (if user has permission)
         if (self._can_replace

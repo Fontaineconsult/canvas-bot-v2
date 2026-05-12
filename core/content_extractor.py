@@ -455,8 +455,10 @@ class ContentExtractor(DownloaderMixin):
             and optionally save_path.
         """
         return {
-            "documents": [document_dict(document, file_download_directory, flatten) for document in self.get_document_objects()],
-            "document_sites": [document_site_dict(document_site) for document_site in self.get_document_site_objects()],
+            "documents": [document_dict(document, file_download_directory, flatten, self.manifest)
+                          for document in self.get_document_objects()],
+            "document_sites": [document_site_dict(document_site, self.manifest)
+                               for document_site in self.get_document_site_objects()],
         }
 
     def build_videos_dict(self, file_download_directory: str, flatten: bool,
@@ -495,11 +497,12 @@ class ContentExtractor(DownloaderMixin):
             canvas_studio_id, machine_captioned.
         """
         return {
-            "video_sites": [video_site_dict(video_site, check_video_site_caption_status)
+            "video_sites": [video_site_dict(video_site, check_video_site_caption_status, self.manifest)
                             for video_site in self.get_video_site_objects()],
-            "video_files": [video_file_dict(video_file, file_download_directory, flatten) for video_file in
-                            self.get_video_file_objects()],
-            "institution_video": [institution_video_dict(node) for node in self.get_institution_video_objects()],
+            "video_files": [video_file_dict(video_file, file_download_directory, flatten, self.manifest)
+                            for video_file in self.get_video_file_objects()],
+            "institution_video": [institution_video_dict(node, self.manifest)
+                                  for node in self.get_institution_video_objects()],
         }
 
     def build_audio_dict(self, file_download_directory: str, flatten: bool) -> dict:
@@ -527,9 +530,10 @@ class ContentExtractor(DownloaderMixin):
             - "audio_files": List of audio file dicts (downloadable audio)
         """
         return {
-            "audio_sites": [audio_site_dict(audio_site) for audio_site in self.get_audio_site_objects()],
-            "audio_files": [audio_file_dict(audio_file, file_download_directory, flatten) for audio_file in
-                            self.get_audio_file_objects()],
+            "audio_sites": [audio_site_dict(audio_site, self.manifest)
+                            for audio_site in self.get_audio_site_objects()],
+            "audio_files": [audio_file_dict(audio_file, file_download_directory, flatten, self.manifest)
+                            for audio_file in self.get_audio_file_objects()],
         }
 
     def build_images_dict(self, file_download_directory: str, flatten: bool) -> dict:
@@ -555,8 +559,8 @@ class ContentExtractor(DownloaderMixin):
             - "image_files": List of image file dicts
         """
         return {
-            "image_files": [image_file_dict(image_file, file_download_directory, flatten) for image_file in
-                            self.get_image_file_objects()],
+            "image_files": [image_file_dict(image_file, file_download_directory, flatten, self.manifest)
+                            for image_file in self.get_image_file_objects()],
         }
 
     def build_unsorted_dict(self) -> dict:
@@ -574,7 +578,8 @@ class ContentExtractor(DownloaderMixin):
             - "unsorted": List of unsorted content dicts
         """
         return {
-            "unsorted": [unsorted_dict(unsorted) for unsorted in self.get_unsorted_objects()],
+            "unsorted": [unsorted_dict(unsorted, self.manifest)
+                         for unsorted in self.get_unsorted_objects()],
         }
 
     def build_digital_textbooks_dict(self) -> dict:
@@ -588,7 +593,8 @@ class ContentExtractor(DownloaderMixin):
             - "digital_textbooks": List of digital textbook dicts
         """
         return {
-            "digital_textbooks": [digital_textbook_dict(node) for node in self.get_digital_textbook_objects()],
+            "digital_textbooks": [digital_textbook_dict(node, self.manifest)
+                                  for node in self.get_digital_textbook_objects()],
         }
 
     def build_institution_video_dict(self) -> dict:
@@ -602,7 +608,8 @@ class ContentExtractor(DownloaderMixin):
             - "institution_video": List of institution video dicts
         """
         return {
-            "institution_video": [institution_video_dict(node) for node in self.get_institution_video_objects()],
+            "institution_video": [institution_video_dict(node, self.manifest)
+                                  for node in self.get_institution_video_objects()],
         }
 
     def build_file_storage_dict(self) -> dict:
@@ -616,7 +623,8 @@ class ContentExtractor(DownloaderMixin):
             - "file_storage": List of file storage site dicts
         """
         return {
-            "file_storage": [file_storage_dict(node) for node in self.get_file_storage_site_objects()],
+            "file_storage": [file_storage_dict(node, self.manifest)
+                             for node in self.get_file_storage_site_objects()],
         }
 
     # =========================================================================
