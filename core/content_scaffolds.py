@@ -127,6 +127,7 @@ def get_all_source_page_urls(manifest, item_id) -> list:
     if manifest is None or item_id is None:
         return []
     nodes = manifest.manifest.get(item_id, [])
+    print(nodes)
     urls = []
     seen = set()
     for n in nodes:
