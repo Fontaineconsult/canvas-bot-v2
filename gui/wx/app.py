@@ -37,11 +37,72 @@ class MainFrame(wx.Frame):
         self.pattern_panel = None
         self._add_optional_panels()
 
+        self._build_menu()
+
         self.CreateStatusBar()
         self.SetStatusText("Ready")
 
         self.SetMinSize((760, 660))
         self.Centre()
+
+    def _build_menu(self):
+        """Menu bar: File (Exit) + Config + Help. Mnemonics + accelerators give
+        keyboard access; native menus are fully screen-reader accessible."""
+        bar = wx.MenuBar()
+
+        file_menu = wx.Menu()
+        exit_item = file_menu.Append(wx.ID_EXIT, "E&xit\tAlt+F4", "Quit Canvas Bot")
+        self.Bind(wx.EVT_MENU, lambda e: self.Close(), exit_item)
+        bar.Append(file_menu, "&File")
+
+        cfg_menu = wx.Menu()
+        view_cfg = cfg_menu.Append(wx.ID_ANY, "&View Config\tCtrl+Shift+V", "Show configuration status")
+        reset_api = cfg_menu.Append(wx.ID_ANY, "Reset Canvas &API Credentials", "Reconfigure token + instance URL")
+        reset_studio = cfg_menu.Append(wx.ID_ANY, "Reset Canvas &Studio Credentials", "Reconfigure Canvas Studio OAuth")
+        open_log = cfg_menu.Append(wx.ID_ANY, "Open &Log File", "Open the Canvas Bot log")
+        self.Bind(wx.EVT_MENU, lambda e: self._cli("--config_status"), view_cfg)
+        self.Bind(wx.EVT_MENU, lambda e: self._cli("--reset_canvas_params"), reset_api)
+        self.Bind(wx.EVT_MENU, lambda e: self._cli("--reset_canvas_studio_params"), reset_studio)
+        self.Bind(wx.EVT_MENU, lambda e: self._open_log(), open_log)
+        bar.Append(cfg_menu, "&Config")
+
+        help_menu = wx.Menu()
+        about_item = help_menu.Append(wx.ID_ABOUT, "&About\tF1", "About Canvas Bot")
+        welcome_item = help_menu.Append(wx.ID_ANY, "Show &Welcome", "Show the welcome guide")
+        self.Bind(wx.EVT_MENU, lambda e: self._about(), about_item)
+        self.Bind(wx.EVT_MENU, lambda e: self._welcome(force=True), welcome_item)
+        bar.Append(help_menu, "&Help")
+
+        self.SetMenuBar(bar)
+
+    def _cli(self, flag):
+        from gui.core import app_service
+        ok, msg = app_service.launch_cli(flag)
+        self.SetStatusText(msg)
+
+    def _open_log(self):
+        from gui.core import app_service
+        ok, msg = app_service.open_log_file()
+        self.SetStatusText(msg)
+
+    def _about(self):
+        from gui.wx.about import show_about
+        show_about(self)
+
+    def _welcome(self, force=False):
+        from gui.core import settings
+        from gui.wx import about
+        if force:
+            # Temporarily clear the flag so the dialog shows on demand.
+            data_first = settings.is_first_run()
+            if not data_first:
+                # show directly without toggling persisted state
+                dlg = about._text_dialog(self, "Welcome to Canvas Bot",
+                                         about._WELCOME_TEXT, close_label="&Get Started")
+                dlg.ShowModal()
+                dlg.Destroy()
+                return
+        about.show_welcome_if_first_run(self)
 
     def _add_optional_panels(self):
         try:
