@@ -374,8 +374,11 @@ Canvasbot.exe --course_id 12345 --output_as_json "C:\Reports"
         "url": "https://yourschool.instructure.com/files/123/download",
         "file_type": "pdf",
         "file_source": "Canvas",
-        "source_page_type": "Page",
-        "source_page_url": "https://yourschool.instructure.com/courses/12345/pages/welcome",
+        "source_page_type": "Multi",
+        "source_page_url": [
+          "https://yourschool.instructure.com/courses/12345/pages/welcome",
+          "https://yourschool.instructure.com/courses/12345/assignments/54321"
+        ],
         "is_hidden": false,
         "hidden_reason": "",
         "order": 1
@@ -388,6 +391,8 @@ Canvasbot.exe --course_id 12345 --output_as_json "C:\Reports"
   }
 }
 ```
+
+`source_page_url` is a list of **every** page, assignment, discussion, announcement, or quiz that references the item — so a file embedded in multiple places reports all of them. When an item appears in more than one location, `source_page_type` is reported as `"Multi"`. Module references are omitted, since Canvas automatically updates module items when a file is replaced.
 
 #### Content Tree Visualization
 

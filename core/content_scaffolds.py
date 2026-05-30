@@ -123,6 +123,14 @@ def get_all_source_page_urls(manifest, item_id) -> list:
     Order is preserved (first occurrence wins on duplicates). Returns
     an empty list if manifest is None, item_id is missing, or no source
     URL resolves for any node.
+
+    Module-item references (".../modules#<id>") are excluded when the
+    item also appears in a rewritable HTML body. A module item is a
+    ContentTag, not rich text: on file replace Canvas auto-repoints it to
+    the new file, so it is never a rewrite target and listing it would
+    overstate how many pages actually reference the item. Module URLs are
+    kept only when a module is the item's sole location, so a
+    module-only file still resolves a source page (stays "active").
     """
     if manifest is None or item_id is None:
         return []
@@ -134,7 +142,8 @@ def get_all_source_page_urls(manifest, item_id) -> list:
         if url and url not in seen:
             seen.add(url)
             urls.append(url)
-    return urls
+    body_urls = [u for u in urls if "/modules#" not in u]
+    return body_urls if body_urls else urls
 
 def return_node_of_type(node, node_type):
 

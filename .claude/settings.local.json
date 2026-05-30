@@ -20,7 +20,11 @@
       "WebFetch(domain:api.github.com)",
       "WebFetch(domain:community.instructure.com)",
       "WebFetch(domain:community.canvaslms.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(grep -avE \"Documing|^\\\\s*$\" CHANGELOG.md)",
+      "Bash(git --no-pager status --short)",
+      "Bash(git --no-pager log --oneline -6)",
+      "Bash(git --no-pager diff --stat readme.md CHANGELOG.md core/content_scaffolds.py)"
     ]
   }
 }

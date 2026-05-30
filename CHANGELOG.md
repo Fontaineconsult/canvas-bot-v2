@@ -2,6 +2,13 @@
 
 ## v1.2.3
 
+### Multi-Reference Source Tracking
+- **Every referencing location captured** — `source_page_url` in `.manifest/content.json` is now a list of *all* pages, assignments, discussions, announcements, and quizzes that embed a given file, not just the first one found. Previously the scanner deduplicated Canvas file nodes by ID at ingestion, so a file embedded on several pages recorded only one source. This is the data the link-replace flow needs to rewrite every place a file is referenced.
+- **Scoped dedup gate** — `resource_nodes/base_node.py:add_data_api_link_to_children` now records a node per occurrence for file/content nodes (`BaseContentNode` subclasses), while resource nodes (Page, Assignment, Quiz, Discussion, folders) keep the `id_exists` gate to avoid duplicate imports and traversal cycles. Download counts and summaries are unaffected — every other accessor reads one node per ID (`manifest[id][0]`) and the downloader dedupes by URL.
+- **Announcement file embeds captured** — `resource_nodes/announcements.py` now calls `add_data_api_link_to_children` on the announcement body; previously file embeds in announcements were never recorded.
+- **Module references excluded from source list** — `get_all_source_page_urls` filters out `…/modules#<id>` URLs, since a module item is a Canvas ContentTag (not rich-text HTML) that Canvas auto-repoints on file replace — it is never a link-rewrite target and would overstate how many pages reference the file. Module URLs are kept only when a module is a file's sole location, so module-only files stay "active".
+- Files changed: `resource_nodes/base_node.py`, `resource_nodes/announcements.py`, `core/content_scaffolds.py`, `readme.md`
+
 ### Content Visibility
 - **Visibility column** — replaced the boolean "Hidden" column in all Content Viewer tables with a single "Visibility" column that shows context-aware labels: **Visible**, **Hidden**, **Unpublished**, or **Locked**. Items with multiple flags show combined labels (e.g. "Unpublished, Locked").
 - **Context-aware hidden detection** — files marked `hidden_for_user` or `hidden_from_students` in Canvas but linked from a published page or module are shown as **Visible**, since students can still access them via the link. Only truly inaccessible items are labeled **Hidden**.
