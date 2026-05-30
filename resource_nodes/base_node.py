@@ -48,6 +48,7 @@ class Node:
         from core.node_factory import get_node_by_a_tag_match
         from tools.string_checking.other_tools import get_content_id_key_from_api_url
         from resource_nodes.modules import Module
+        from resource_nodes.base_content_node import BaseContentNode
 
         data_api_links = self.get_data_api_links(html)
         from sorters.sorters import canvas_file_scope_regex
@@ -64,13 +65,20 @@ class Node:
                 for api_dict in api_page:
 
                     item_id = api_dict[get_content_id_key_from_api_url(link[0])]
-                    if not self.root.manifest.id_exists(item_id):
-                        data_api_node = get_node_by_a_tag_match(link[0], api_dict) # returns class object node type
+                    data_api_node = get_node_by_a_tag_match(link[0], api_dict) # returns class object node type
 
-                        if data_api_node:
-                            if data_api_node == Module:
-                                # need to handle this differently
-                                continue
+                    if data_api_node:
+                        if data_api_node == Module:
+                            # need to handle this differently
+                            continue
+                        # Content/file nodes (BaseContentNode) are recorded per
+                        # occurrence so every source page that references the file
+                        # is captured (see get_all_source_page_urls). They don't
+                        # recurse, so duplicates are safe. Resource nodes keep the
+                        # id_exists gate — they recurse and re-importing them would
+                        # duplicate work or cause cycles.
+                        is_content = issubclass(data_api_node, BaseContentNode)
+                        if is_content or not self.root.manifest.id_exists(item_id):
                             initialized_node = data_api_node(
                                 self, self.root, api_dict,
                                 bypass_get_url=True,

@@ -38,6 +38,7 @@ class Announcement(Node):
         self.api_dict = api_dict
         self._expand_api_dict_to_class_attributes(self.api_dict)
         try:
+            self.add_data_api_link_to_children(self.message)
             self.add_content_nodes_to_children(self.message)
         except AttributeError:
             pass
