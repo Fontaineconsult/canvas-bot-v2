@@ -626,6 +626,11 @@ if __name__=='__main__':
                                             'organized folders or Excel/JSON for accessibility auditing. '
                                             'Requires a Canvas API access token (Account > Settings > New Access Token).')
 
+    # === GUI ===
+    @click.option('--gui', type=click.Choice(['wx', 'tk']), default=None,
+                  help='Launch the GUI: wx (default, accessible) or tk (legacy). '
+                       'Running with no arguments also launches the wx GUI.')
+
     # === Course Selection ===
     @click.option('--course_id', type=click.STRING,
                   help='Canvas course ID to process. Find it in the course URL: canvas.edu/courses/[COURSE_ID]')
@@ -720,6 +725,7 @@ if __name__=='__main__':
 
     @click.pass_context
     def main(ctx,
+             gui,
              course_id,
              course_id_list,
              download_folder,
@@ -751,6 +757,16 @@ if __name__=='__main__':
              patterns_reset,
              skip_confirm
              ):
+
+        # Handle --gui first: launch the chosen GUI and exit.
+        if gui:
+            if gui == "tk":
+                from gui.app import CanvasBotGUI
+                CanvasBotGUI().run()
+            else:
+                from gui.wx.app import run_wx_gui
+                run_wx_gui()
+            return
 
         # Handle --config_status first (doesn't require course_id)
         if config_status:
