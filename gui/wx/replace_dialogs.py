@@ -6,6 +6,7 @@ speaking milestones through ``a11y``. Source-page rewrite targets are derived
 from each row's ``source_page_url`` via ``gui.core.replace_helpers``.
 """
 
+import logging
 import os
 import threading
 
@@ -13,6 +14,8 @@ import wx
 
 from gui.core import replace_helpers as rh
 from gui.wx import a11y, widgets, win_style
+
+log = logging.getLogger(__name__)
 
 
 def _auth_ok():
@@ -73,15 +76,23 @@ def start_single_replace(panel, row):
 
     course_id = panel.get_course_id()
     body_targets = rh.derive_body_targets([row])
+    # Non-modal (like the tkinter flow): Show() and let the dialog own its own
+    # teardown. The worker marshals events back; on complete/error the dialog
+    # closes itself and reports. A blocking ShowModal here is fragile with a
+    # background worker and was the source of the hang.
     dlg = _ProgressDialog(panel, f"Replacing {title}")
     dlg.run(course_id, [(canvas_file_id, local_path)], body_targets,
             on_success=lambda: panel.apply_replaced(canvas_file_id))
-    dlg.ShowModal()
-    dlg.Destroy()
+    dlg.Show()
 
 
 class _ProgressDialog(wx.Dialog):
-    """Small modal showing replace progress for one or more files."""
+    """Small non-modal dialog showing replace progress for one or more files.
+
+    Closes itself on completion (showing a result) or on a worker exception
+    (showing the error). Cancel before completion signals the cancel event; the
+    orchestrator still emits ``complete`` (early=cancelled), which closes us.
+    """
 
     def __init__(self, parent, header):
         super().__init__(parent, title="Replacing", size=(440, 180),
@@ -109,12 +120,19 @@ class _ProgressDialog(wx.Dialog):
         self._step = 0
 
         def worker():
-            from core.orchestrator import replace_content
-            replace_content(
-                course_id, replacements=replace_pairs, body_targets=body_targets,
-                on_event=lambda name, **p: wx.CallAfter(self._event, name, p),
-                cancel_event=self._cancel,
-            )
+            # Any exception here would otherwise kill the thread silently, so
+            # 'complete' never fires and the dialog hangs forever. Marshal it
+            # back to close the dialog and report (matches the tkinter flow).
+            try:
+                from core.orchestrator import replace_content
+                replace_content(
+                    course_id, replacements=replace_pairs, body_targets=body_targets,
+                    on_event=lambda name, **p: wx.CallAfter(self._event, name, p),
+                    cancel_event=self._cancel,
+                )
+            except Exception as exc:
+                log.exception("Replace worker crashed")
+                wx.CallAfter(self._error, str(exc))
 
         threading.Thread(target=worker, daemon=True, name="cb-replace").start()
 
@@ -150,16 +168,19 @@ class _ProgressDialog(wx.Dialog):
             self._finish(payload.get("summary", {}))
 
     def _finish(self, summary):
+        if self._done:
+            return
         self._done = True
-        self._gauge.SetValue(100)
         early = (summary or {}).get("early")
         if early:
-            msg = f"Replace did not complete ({early})"
+            icon, title = wx.ICON_WARNING, "Replace incomplete"
+            msg = f"Replace did not complete ({early})."
         elif self._file_ok:
-            msg = "Replace complete"
+            icon, title = wx.ICON_INFORMATION, "Replace complete"
+            msg = "Replace complete."
         else:
-            msg = "Replace finished with errors"
-        self._stage.set_status(msg)
+            icon, title = wx.ICON_WARNING, "Replace failed"
+            msg = "The replace did not complete. See the log for details."
         a11y.announce(msg, interrupt=True)
         # Only mark the row replaced if a file actually succeeded.
         if self._file_ok and self._on_success:
@@ -167,11 +188,31 @@ class _ProgressDialog(wx.Dialog):
                 self._on_success()
             except Exception:
                 pass
-        self._btn.SetLabel("&Close")
+        # Close the progress dialog, then report (same order as tkinter).
+        parent = self.GetParent()
+        self._close()
+        wx.MessageBox(msg, title, wx.OK | icon, parent)
+
+    def _error(self, message):
+        if self._done:
+            return
+        self._done = True
+        parent = self.GetParent()
+        self._close()
+        wx.MessageBox(f"Replace error:\n\n{message}", "Replace error",
+                      wx.OK | wx.ICON_ERROR, parent)
+
+    def _close(self):
+        try:
+            self.Destroy()
+        except Exception:
+            pass
 
     def _on_cancel(self, _evt):
-        if self._done:
-            self.EndModal(wx.ID_OK)
+        # Cancel button / X / Escape before completion: signal cancel and wait
+        # for the orchestrator to emit 'complete' (early=cancelled), which
+        # closes us via _finish. Repeat clicks are no-ops.
+        if self._done or self._cancel.is_set():
             return
         self._cancel.set()
         self._stage.set_status("Cancelling…")
@@ -281,14 +322,27 @@ class _BulkDialog(wx.Dialog):
         body_targets = rh.derive_body_targets(rows_for_targets)
 
         def worker():
-            from core.orchestrator import replace_content
-            replace_content(
-                self._course_id, replacements=pairs, body_targets=body_targets,
-                on_event=lambda name, **p: wx.CallAfter(self._event, name, p),
-                cancel_event=self._cancel,
-            )
+            # Guard against a silent thread death leaving rows stuck on
+            # "Replacing…" — marshal any exception back to reset state + report.
+            try:
+                from core.orchestrator import replace_content
+                replace_content(
+                    self._course_id, replacements=pairs, body_targets=body_targets,
+                    on_event=lambda name, **p: wx.CallAfter(self._event, name, p),
+                    cancel_event=self._cancel,
+                )
+            except Exception as exc:
+                log.exception("Bulk replace worker crashed")
+                wx.CallAfter(self._error, str(exc))
 
         threading.Thread(target=worker, daemon=True, name="cb-bulk").start()
+
+    def _error(self, message):
+        self._running = False
+        self._counter.set_status("Bulk replace failed.")
+        self._replace_btn.Enable(True)
+        wx.MessageBox(f"Bulk replace error:\n\n{message}", "Bulk replace error",
+                      wx.OK | wx.ICON_ERROR, self)
 
     def _event(self, name, payload):
         # Stage names + payload keys match core.orchestrator's on_event contract.
