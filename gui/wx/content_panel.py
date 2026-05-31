@@ -125,13 +125,13 @@ class ContentPanel(wx.Panel):
 
         # Row 1: course choice + buttons
         top = wx.BoxSizer(wx.HORIZONTAL)
-        top.Add(wx.StaticText(self, label="&Course:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 6)
+        top.Add(wx.StaticText(self, label="Co&urse:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 6)
         self.course_choice = wx.Choice(self, choices=[])
         widgets.set_name(self.course_choice, "Course")
         self.course_choice.Bind(wx.EVT_CHOICE, self._on_course)
         top.Add(self.course_choice, 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 6)
-        top.Add(widgets.make_button(self, "Re&fresh", self._on_refresh, name="Refresh course list"), 0, wx.RIGHT, 4)
-        self.open_folder_btn = widgets.make_button(self, "&Open Folder", self._on_open_folder, name="Open course folder")
+        top.Add(widgets.make_button(self, "Refr&esh", self._on_refresh, name="Refresh course list"), 0, wx.RIGHT, 4)
+        self.open_folder_btn = widgets.make_button(self, "Open Fol&der", self._on_open_folder, name="Open course folder")
         top.Add(self.open_folder_btn, 0, wx.RIGHT, 4)
         self.canvas_btn = widgets.make_button(self, "Open in Can&vas", self._on_open_canvas, name="Open in Canvas")
         top.Add(self.canvas_btn, 0)
@@ -150,8 +150,14 @@ class ContentPanel(wx.Panel):
         self.type_choice.Bind(wx.EVT_CHOICE, self._on_type)
         row2.Add(self.type_choice, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 12)
 
+        _mark_labels = {
+            "Passed": "Mark &Passed",
+            "Needs Review": "Mark &Needs Review",
+            "Ignore": "Mark I&gnore",
+        }
         for status in _REVIEW_STATUSES:
-            b = widgets.make_button(self, f"Mark {status}", lambda e, s=status: self._on_mark(s),
+            b = widgets.make_button(self, _mark_labels.get(status, f"Mark {status}"),
+                                    lambda e, s=status: self._on_mark(s),
                                     name=f"Mark {status}")
             setattr(self, f"_mark_{status.replace(' ', '_')}", b)
             row2.Add(b, 0, wx.RIGHT, 4)
@@ -175,7 +181,7 @@ class ContentPanel(wx.Panel):
         # Row 5: action buttons
         row5 = wx.BoxSizer(wx.HORIZONTAL)
         self.open_loc_btn = widgets.make_button(self, "Open File &Location", self._on_open_location, name="Open file location")
-        self.open_file_btn = widgets.make_button(self, "Open &File", self._on_open_file, name="Open file")
+        self.open_file_btn = widgets.make_button(self, "&Open File", self._on_open_file, name="Open file")
         self.open_src_btn = widgets.make_button(self, "Open &Source Page", self._on_open_source, name="Open source page")
         self.replace_btn = widgets.make_button(self, "&Replace File", self._on_replace, name="Replace file")
         self.bulk_btn = widgets.make_button(self, "&Bulk Replace", self._on_bulk, name="Bulk replace")
@@ -393,7 +399,9 @@ class ContentPanel(wx.Panel):
         spu = (row or {}).get("source_page_url") if has else None
 
         self.open_loc_btn.Enable(bool(save_path and os.path.isdir(os.path.dirname(save_path))) or bool(url))
-        self.open_loc_btn.SetLabel("Open &Site" if (not save_path and url) else "Open File &Location")
+        # Same physical button, two modes; keep the mnemonic on 'L' in both so
+        # Alt+L is stable and never collides with Open &Source Page (s).
+        self.open_loc_btn.SetLabel("Open Site &Link" if (not save_path and url) else "Open File &Location")
         self.open_file_btn.Enable(bool(save_path and os.path.isfile(save_path)))
         self.open_src_btn.Enable(bool(spu))
         is_doc = self._table_key == "documents"

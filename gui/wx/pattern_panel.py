@@ -32,7 +32,7 @@ class PatternPanel(wx.Panel):
 
         # Left: categories
         left = wx.BoxSizer(wx.VERTICAL)
-        left.Add(wx.StaticText(self, label="&Categories:"), 0, wx.BOTTOM, 4)
+        left.Add(wx.StaticText(self, label="Categ&ories:"), 0, wx.BOTTOM, 4)
         self.cat_list = wx.ListBox(self, style=wx.LB_SINGLE)
         widgets.set_name(self.cat_list, "Pattern categories")
         self.cat_list.Bind(wx.EVT_LISTBOX, self._on_cat)

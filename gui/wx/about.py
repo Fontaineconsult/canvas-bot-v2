@@ -59,9 +59,10 @@ TABS
   Patterns  — view, add, remove, and test the URL-classification patterns.
 
 KEYBOARD
-  Every button has an Alt+letter mnemonic (shown underlined). Tab moves between
-  controls; Ctrl+Tab switches tabs. Status, progress, and results are spoken
-  through your screen reader.
+  Every button and checkbox has an Alt+letter mnemonic (shown underlined). Tab
+  moves between controls. Switch tabs with Alt+1 (Run), Alt+2 (Content), Alt+3
+  (Patterns) or Ctrl+Tab. Open menus with Alt+F (File), Alt+C (Config), Alt+H
+  (Help). Status, progress, and results are spoken through your screen reader.
 
 Licensed under CC-BY-NC-4.0. Provided as-is.
 """

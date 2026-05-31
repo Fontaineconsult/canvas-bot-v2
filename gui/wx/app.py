@@ -38,6 +38,7 @@ class MainFrame(wx.Frame):
         self._add_optional_panels()
 
         self._build_menu()
+        self._build_tab_accelerators()
 
         self.CreateStatusBar()
         self.SetStatusText("Ready")
@@ -49,6 +50,23 @@ class MainFrame(wx.Frame):
 
         self.SetMinSize((760, 660))
         self.Centre()
+
+    def _build_tab_accelerators(self):
+        """Give each tab an Alt+digit shortcut.
+
+        wx.Notebook tab labels can't carry '&' mnemonics on Windows, so we wire
+        Alt+1 / Alt+2 / Alt+3 (and Ctrl+Tab works natively) to select tabs. The
+        digit hint is appended to each tab label so it's discoverable, and the
+        accelerator table makes it work from anywhere in the window.
+        """
+        entries = []
+        for i in range(self.notebook.GetPageCount()):
+            base = self.notebook.GetPageText(i).split("  (Alt+")[0]
+            self.notebook.SetPageText(i, f"{base}  (Alt+{i + 1})")
+            ident = wx.NewIdRef()
+            self.Bind(wx.EVT_MENU, lambda e, idx=i: self.notebook.SetSelection(idx), id=ident)
+            entries.append(wx.AcceleratorEntry(wx.ACCEL_ALT, ord(str(i + 1)), ident))
+        self.SetAcceleratorTable(wx.AcceleratorTable(entries))
 
     def _apply_chrome(self):
         """Match the title bar to the theme and round corners (Win10/11)."""

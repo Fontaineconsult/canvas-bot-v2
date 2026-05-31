@@ -65,7 +65,7 @@ class RunPanel(wx.Panel):
         self.output_folder = wx.TextCtrl(self)
         widgets.set_name(self.output_folder, "Output folder")
         browse_out = widgets.make_button(
-            self, "B&rowse…", self._on_browse_output,
+            self, "Bro&wse…", self._on_browse_output,
             name="Browse for output folder",
             tooltip="Directory where downloads and content data are saved",
         )
@@ -87,9 +87,9 @@ class RunPanel(wx.Panel):
         self.cb_video = widgets.make_checkbox(self, "Download &video files", name="Download video files")
         self.cb_audio = widgets.make_checkbox(self, "Download &audio files", name="Download audio files")
         self.cb_image = widgets.make_checkbox(self, "Download i&mage files", name="Download image files")
-        self.cb_hidden = widgets.make_checkbox(self, "Include &hidden/locked", name="Include hidden or locked")
+        self.cb_hidden = widgets.make_checkbox(self, "Include hidden/loc&ked", name="Include hidden or locked")
         self.cb_inactive = widgets.make_checkbox(self, "Include &unlinked", name="Include unlinked")
-        self.cb_flatten = widgets.make_checkbox(self, "&Flatten folder structure", name="Flatten folder structure")
+        self.cb_flatten = widgets.make_checkbox(self, "Flatten folder &structure", name="Flatten folder structure")
         for cb in (self.cb_video, self.cb_audio, self.cb_image,
                    self.cb_hidden, self.cb_inactive, self.cb_flatten):
             dl_box.Add(cb, 0, wx.ALL, 4)
@@ -97,7 +97,7 @@ class RunPanel(wx.Panel):
 
         disp_box = wx.StaticBoxSizer(wx.VERTICAL, self, "Display options")
         self.cb_content_tree = widgets.make_checkbox(
-            self, "Print &content tree", name="Print content tree",
+            self, "&Print content tree", name="Print content tree",
             tooltip="Print course tree showing only resources with content (single course)",
         )
         self.cb_full_tree = widgets.make_checkbox(
