@@ -1,53 +1,74 @@
 """Screen-reader speech for the wx GUI.
 
-Wraps ``accessible_output2`` so the rest of the GUI can call ``announce(text)``
-without worrying about whether a screen reader is present. accessible_output2's
-Auto output speaks through whichever of NVDA / JAWS / System Access / SAPI5 is
-available, so this works both with a running screen reader and (via SAPI5) on a
-plain desktop.
+Speaks through a *real* screen reader (NVDA / JAWS / System Access / Dolphin /
+PC-Talker / ZDSR) when one is running, and stays SILENT otherwise.
 
-If the library is missing or no output can be constructed, every call becomes a
-silent no-op — the GUI still works, it just doesn't speak.
+Why not accessible_output2's Auto() directly: Auto() includes a SAPI5 output
+whose ``is_active()`` is always True, so on a plain desktop (no screen reader)
+the app would talk to itself through the Windows TTS voice. We deliberately
+exclude SAPI5 (and any non-screen-reader TTS) and only emit when an actual
+screen reader is present — speech is a redundant channel layered on top of the
+native MSAA accessibility, not a feature for sighted users.
 
-Native wx controls already expose their name/role/state to screen readers via
-MSAA; this module is only for *dynamic* events a screen reader can't infer from
-focus alone: scan progress, replace milestones, validation results, completion.
+If the library is missing, or no screen reader is active, every call is a
+silent no-op.
 """
 
 import logging
 
 log = logging.getLogger(__name__)
 
-_output = None
+# accessible_output2 output classes that are genuine screen readers. SAPI5
+# (Windows TTS) and any other pure-TTS engine are intentionally excluded so we
+# never speak on a machine without a screen reader.
+_SCREEN_READER_OUTPUTS = frozenset({
+    "NVDA", "Jaws", "SystemAccess", "Dolphin", "PCTalker", "ZDSR",
+    "WindowEyes", "Supernova",
+})
+
+_outputs = None        # list of candidate screen-reader output objects
 _initialized = False
 
 
 def _ensure():
-    """Lazily construct the accessible_output2 Auto output exactly once."""
-    global _output, _initialized
+    """Build the list of screen-reader outputs once (excludes SAPI/TTS)."""
+    global _outputs, _initialized
     if _initialized:
-        return _output
+        return _outputs
     _initialized = True
     try:
         import accessible_output2.outputs.auto
-        _output = accessible_output2.outputs.auto.Auto()
-        log.info("accessible_output2 initialized")
-    except Exception as exc:  # library missing, no output available, etc.
-        log.warning(f"Screen-reader output unavailable: {exc}")
-        _output = None
-    return _output
+        auto = accessible_output2.outputs.auto.Auto()
+        _outputs = [o for o in auto.outputs
+                    if type(o).__name__ in _SCREEN_READER_OUTPUTS]
+        log.info("Screen-reader outputs: %s",
+                 [type(o).__name__ for o in _outputs])
+    except Exception as exc:
+        log.warning(f"accessible_output2 unavailable: {exc}")
+        _outputs = []
+    return _outputs
+
+
+def _active_output():
+    """Return the first currently-running screen-reader output, or None."""
+    for o in _ensure():
+        try:
+            if o.is_active():
+                return o
+        except Exception:
+            continue
+    return None
 
 
 def announce(text, interrupt=False):
-    """Speak ``text`` through the active screen reader / SAPI.
+    """Speak ``text`` — ONLY if a real screen reader is currently running.
 
-    ``interrupt=True`` cuts off any in-progress speech (use for rapidly-changing
-    status so announcements don't pile up). Never raises — speech failures are
-    swallowed so a flaky TTS path can't break the UI.
+    No screen reader active -> silent no-op (never falls back to the Windows
+    TTS voice). ``interrupt=True`` cuts off in-progress speech. Never raises.
     """
     if not text:
         return
-    out = _ensure()
+    out = _active_output()
     if out is None:
         return
     try:
@@ -57,5 +78,5 @@ def announce(text, interrupt=False):
 
 
 def is_available():
-    """True when a speech output was successfully constructed."""
-    return _ensure() is not None
+    """True only when a real screen reader is currently active."""
+    return _active_output() is not None
