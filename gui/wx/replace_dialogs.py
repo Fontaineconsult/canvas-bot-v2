@@ -264,7 +264,7 @@ class _BulkDialog(wx.Dialog):
         def worker():
             from core.orchestrator import replace_content
             replace_content(
-                self._course_id, pairs, body_targets=body_targets,
+                self._course_id, replacements=pairs, body_targets=body_targets,
                 on_event=lambda name, **p: wx.CallAfter(self._event, name, p),
                 cancel_event=self._cancel,
             )
