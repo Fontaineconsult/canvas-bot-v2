@@ -6,18 +6,23 @@ large course that is *thousands* of writes in quick succession.
 
 PERFORMANCE / LOCKUP:
 The redirector must never touch wx from the worker/animation threads, and must
-never do per-write UI work — doing a wx.CallAfter per write floods the UI
-event queue and freezes the app ("Not Responding"). Instead:
+never do per-write UI work — a wx.CallAfter per write floods the UI event queue
+and freezes the app ("Not Responding"). Instead:
   * write() (any thread) only appends to an in-memory buffer under a lock —
     no wx calls at all.
   * A wx.Timer on the UI thread calls drain() ~10x/sec, which applies ALL
     buffered text in one batched, frozen update.
-  * The current-line position is tracked locally, so we never call GetValue()
-    (which would copy the whole growing log on every spinner frame).
 
-Carriage returns (\r) rewrite the current line in place (the spinner); newlines
-commit it. Colors are theme-aware, verified >=7:1 on the log background, and the
-appended text content is unchanged so screen-reader output is unaffected.
+drain() must also be cheap per call even when a backlog accumulates:
+  * Carriage-return (\r) spinner rewrites are resolved in PURE PYTHON first
+    (no wx per spinner frame).
+  * Text is applied with the minimum number of AppendText calls (one per color
+    run; newlines ride inside the text).
+  * The control is capped so AppendText on the rich buffer stays O(small) no
+    matter how long the scan runs (RICH2 AppendText slows as the buffer grows).
+
+Colors are theme-aware, verified >=7:1 on the log background, and the appended
+text content is unchanged so screen-reader output is unaffected.
 """
 
 import re
@@ -46,6 +51,9 @@ _ANSI_LIGHT = {
     "magenta": "#7A157A", "cyan": "#005C5C", "white": "#1A1A1A", "gray": "#4D4D4D",
 }
 
+# Cap the on-screen log so AppendText stays fast as a long scan streams output.
+_MAX_CHARS = 200_000
+
 
 def ansi_palette(dark):
     """Return the {key: hex} ANSI foreground palette for the given mode."""
@@ -58,7 +66,8 @@ def parse_ansi(text, start_key):
     Returns (runs, end_key) where runs is a list of (segment, key_or_None) and
     end_key is the active color key after the text (so color spans writes). A
     reset (code 0 / empty ``\x1b[m``) sets key to None (default foreground).
-    Unmapped codes are ignored, preserving the current key.
+    Unmapped codes are ignored, preserving the current key. Carriage returns and
+    newlines are left INSIDE the segments; drain() interprets them.
     """
     runs = []
     key = start_key
@@ -95,7 +104,7 @@ class LogRedirector:
         self._buf = []                    # pending raw text (worker threads append)
         self._lock = threading.Lock()
         self._line_len = 0                # chars on the current unterminated line
-        self._rewrite_current = False     # a \r needs to clear the control's tail
+        self._rewrite_current = False     # a \r requires clearing the control tail
         # Mimic a real text stream: tools/canvas_tree.py probes .encoding.
         self.encoding = getattr(original, "encoding", None) or "utf-8"
 
@@ -127,7 +136,9 @@ class LogRedirector:
     def drain(self):
         """Apply all buffered text to the control in one frozen batch.
 
-        Must run on the UI thread. Cheap when the buffer is empty.
+        Must run on the UI thread. Cheap when the buffer is empty. \r spinner
+        frames are resolved in Python first, then applied with the minimum
+        number of AppendText calls, and the control is capped so it stays fast.
         """
         if self._ctrl is None:
             return
@@ -138,36 +149,113 @@ class LogRedirector:
             self._buf.clear()
 
         runs, self._key = parse_ansi(chunk, self._key)
+        ops = self._resolve(runs)   # list of (text, key); text has no bare \r
+        if not ops:
+            return
         try:
             self._ctrl.Freeze()
             try:
-                for seg, key in runs:
-                    if not seg:
+                # A leading \r in this batch rewrote a line already on screen:
+                # clear that line's remnant before appending the new text.
+                if self._rewrite_current and self._line_len > 0:
+                    end = self._ctrl.GetLastPosition()
+                    self._ctrl.Remove(end - self._line_len, end)
+                self._rewrite_current = False
+                # Coalesce consecutive same-color ops into one AppendText —
+                # AppendText on the rich buffer is the expensive part, so cutting
+                # the call count is what matters. The engine wraps each line as
+                # "<color>text<reset>\n", which would alternate color/default and
+                # defeat merging; since a newline has no glyph, whitespace-only
+                # ops are treated as color-neutral and keep the current run going.
+                # Result: a batch of N same-color lines becomes ONE AppendText.
+                pending_key = None
+                parts = []
+                for text, key in ops:
+                    if not text:
                         continue
-                    self._set_colour(key)
-                    self._emit(seg)
+                    if not parts:
+                        pending_key = key
+                    elif text.strip() and key != pending_key:
+                        self._set_colour(pending_key)
+                        self._ctrl.AppendText("".join(parts))
+                        parts = []
+                        pending_key = key
+                    parts.append(text)
+                if parts:
+                    self._set_colour(pending_key)
+                    self._ctrl.AppendText("".join(parts))
+                self._trim()
             finally:
                 self._ctrl.Thaw()
         except Exception:
             pass
 
-    def _emit(self, seg):
-        """Append a colored segment, honoring embedded \r (rewrite) and \n."""
-        for tok in _BREAK_RE.split(seg):
-            if tok == "":
+    def _resolve(self, runs):
+        """Turn colored runs (with embedded \r/\n) into appendable (text, key)
+        ops, applying carriage-return line rewrites in Python.
+
+        Maintains self._line_len (chars on the current unterminated line) and
+        self._rewrite_current (whether a \r requires clearing the control's
+        current line tail before the first op is appended).
+        """
+        ops = []
+        for seg, key in runs:
+            if not seg:
                 continue
-            if tok in ("\n", "\r\n"):
-                self._ctrl.AppendText("\n")
-                self._line_start = self._ctrl.GetLastPosition()
-            elif tok == "\r":
-                # Carriage return: clear the current (unterminated) line so the
-                # next text overwrites it (spinner frames). Remove on a short
-                # current line is cheap — no GetValue of the whole control.
-                end = self._ctrl.GetLastPosition()
-                if end > self._line_start:
-                    self._ctrl.Remove(self._line_start, end)
+            parts = seg.split("\r")   # split on \r only; \n rides inside text
+            for pi, part in enumerate(parts):
+                if pi > 0:
+                    # A \r occurred: discard the in-progress current line. If it
+                    # was built entirely within THIS batch, drop it from ops;
+                    # otherwise flag the control's current line for clearing.
+                    if not self._drop_current_line(ops):
+                        self._rewrite_current = True
+                    self._line_len = 0
+                if part:
+                    ops.append((part, key))
+                    nl = part.rfind("\n")
+                    if nl >= 0:
+                        self._line_len = len(part) - nl - 1
+                    else:
+                        self._line_len += len(part)
+        return ops
+
+    def _drop_current_line(self, ops):
+        """Remove the current unterminated line's text from pending ops.
+
+        Returns True if the whole current line lived in ops (so nothing in the
+        control needs clearing), False if part of it was already committed.
+        """
+        remaining = self._line_len
+        while remaining > 0 and ops:
+            text, key = ops[-1]
+            nl = text.rfind("\n")
+            tail = len(text) - nl - 1
+            if tail <= remaining:
+                ops.pop()
+                remaining -= tail
+                if nl >= 0:
+                    ops.append((text[:nl + 1], key))   # keep through the newline
+                    return True
             else:
-                self._ctrl.AppendText(tok)
+                ops[-1] = (text[:len(text) - remaining], key)
+                return True
+        return remaining <= 0
+
+    def _trim(self):
+        """Cap the control length so AppendText stays fast as the log grows."""
+        end = self._ctrl.GetLastPosition()
+        if end <= _MAX_CHARS:
+            return
+        cut = end - _MAX_CHARS + _MAX_CHARS // 4   # drop oldest ~25% in one go
+        try:
+            value = self._ctrl.GetRange(0, cut)
+            nl = value.rfind("\n")
+            if nl >= 0:
+                cut = nl + 1                          # snap to a line boundary
+            self._ctrl.Remove(0, cut)
+        except Exception:
+            pass
 
     def _set_colour(self, key):
         try:
