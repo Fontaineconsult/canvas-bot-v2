@@ -87,7 +87,11 @@ class LogRedirector:
         self._palette = palette or {}
         self._default = default_colour
         self._key = None  # active ANSI color key across writes
-        self._last_spinner = 0.0  # monotonic time of last rendered spinner frame
+        # Spinner coalescing: the latest \r-frame's runs, and whether a flush
+        # is already queued. Multiple frames arriving before the flush runs
+        # collapse to the last one (clear + content within a tick -> content).
+        self._pending_spinner = None
+        self._spinner_flush_queued = False
         # Mimic a real text stream: some code (e.g. tools/canvas_tree.py) probes
         # sys.stdout.encoding to decide whether it can emit unicode.
         self.encoding = getattr(original, "encoding", None) or "utf-8"
@@ -101,60 +105,84 @@ class LogRedirector:
                 self._original.write(text)
             except Exception:
                 pass
+
+        # A chunk that carries \r but no \n is an in-place "spinner" frame
+        # (e.g. "\r<spinner> Resource [time]"). It must be handled as ONE unit:
+        # the frame is colorama-colored, so parsing it yields several runs and
+        # only the first carries the \r. Dispatching runs individually let the
+        # \r run rewrite the line while the rest appended after it — the
+        # duplicated, flickering copy. Instead, take the content after the last
+        # \r as the new line and coalesce: store it and queue a single flush.
+        # Successive frames (and the clear+content pair the engine emits each
+        # tick) collapse to the latest, so we repaint the line ~once per event
+        # loop pass instead of per write — no jitter, no duplication.
+        if "\r" in text and "\n" not in text:
+            frame = text.rsplit("\r", 1)[-1]
+            self._pending_spinner, _ = parse_ansi(frame, None)
+            if not self._spinner_flush_queued:
+                self._spinner_flush_queued = True
+                wx.CallAfter(self._flush_spinner)
+            return
+
+        # Normal text: parse with persistent color state, append each run.
+        # (Any pending spinner flush was queued earlier, so FIFO ordering means
+        # it settles the spinner line before these appends.)
         runs, self._key = parse_ansi(text, self._key)
         for segment, key in runs:
             if segment:
                 wx.CallAfter(self._append, segment, key)
+
+    def _flush_spinner(self):
+        self._spinner_flush_queued = False
+        runs = self._pending_spinner
+        self._pending_spinner = None
+        if runs is None:
+            return
+        # runs may be empty (a pure "\r   \r" clear) -> clears the line.
+        self._rewrite_line(runs)
 
     def _colour_for(self, key):
         if key and key in self._palette:
             return wx.Colour(self._palette[key])
         return self._default
 
-    def _append(self, text, key):
-        if not self._ctrl:
-            return
-        colour = self._colour_for(key)
+    def _set_colour(self, key):
         try:
+            colour = self._colour_for(key)
             if colour is not None:
                 self._ctrl.SetDefaultStyle(wx.TextAttr(colour))
         except Exception:
             pass
-        # Collapse \r spinner frames: a chunk containing \r but no \n rewrites
-        # the last visible line rather than appending. The engine emits these
-        # ~12x/sec; rendering every one reflows/scrolls the control (visible
-        # "jitter"), so throttle to a few updates per second — the dropped
-        # frames carry no information (just a rotating glyph + timer).
-        if "\r" in text and "\n" not in text:
-            import time
-            now = time.monotonic()
-            if now - self._last_spinner < 0.15:
-                return
-            self._last_spinner = now
-            self._replace_last_line(text.rsplit("\r", 1)[-1])
+
+    def _append(self, text, key):
+        if not self._ctrl:
             return
+        self._set_colour(key)
         try:
             self._ctrl.AppendText(text)
         except Exception:
             pass
 
-    def _replace_last_line(self, text):
+    def _rewrite_line(self, runs):
+        """Replace the current (last) line with the given colored runs, atomic."""
+        if not self._ctrl:
+            return
         try:
             value = self._ctrl.GetValue()
             nl = value.rfind("\n")
             start = nl + 1 if nl >= 0 else 0
-            # Freeze during the swap so the control repaints once, not mid-edit
-            # (removes the flicker of in-place spinner updates).
             self._ctrl.Freeze()
             try:
-                self._ctrl.Replace(start, self._ctrl.GetLastPosition(), text)
+                self._ctrl.Remove(start, self._ctrl.GetLastPosition())
+                for seg, key in runs:
+                    if not seg:
+                        continue
+                    self._set_colour(key)
+                    self._ctrl.AppendText(seg)
             finally:
                 self._ctrl.Thaw()
         except Exception:
-            try:
-                self._ctrl.AppendText(text)
-            except Exception:
-                pass
+            pass
 
     def flush(self):
         if self._original is not None:
