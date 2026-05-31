@@ -99,13 +99,12 @@ class RunPanel(wx.Panel):
         list_row.Add(self._browse_list, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 6)
         list_row.Add(self._clear_course_btn, 0, wx.ALIGN_CENTER_VERTICAL)
         course_box.Add(list_row, 0, wx.EXPAND | wx.ALL, 4)
-        outer.Add(course_box, 0, wx.EXPAND | wx.ALL, 8)
         self.cb_download = widgets.make_checkbox(
             self, "&Download files", name="Download files",
             tooltip="Download course documents to the output folder",
         )
-        out_box.Add(self.cb_download, 0, wx.ALL, 6)
-        outer.Add(out_box, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        course_box.Add(self.cb_download, 0, wx.ALL, 6)
+        outer.Add(course_box, 0, wx.EXPAND | wx.ALL, 8)
 
         # Options: two grouped columns
         opt_row = wx.BoxSizer(wx.HORIZONTAL)
