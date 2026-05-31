@@ -136,13 +136,19 @@ class AccessibleListCtrl(wx.ListCtrl):
         self._headings = []
         # Indices of columns to include in the spoken summary (default: all).
         self._announce_columns = announce_columns
-        self._row_data = []  # parallel list of the original row dicts (optional)
+        self._row_data = []   # parallel list of the original row dicts (optional)
+        self._rows = []       # current display rows (list of cell-string lists)
+        self._bg_for = None   # row-coloring callback, reused on re-sort
+        self._sort_col = None  # column currently sorted by
+        self._sort_asc = True  # sort direction
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self._on_select)
+        self.Bind(wx.EVT_LIST_COL_CLICK, self._on_col_click)
 
     def set_columns(self, columns):
         """columns: list of (heading, width) or (heading, width, wx.LIST_FORMAT_*)."""
         self.ClearAll()
         self._headings = []
+        self._sort_col = None  # column set changed; drop any prior sort state
         for i, col in enumerate(columns):
             heading = col[0]
             width = col[1] if len(col) > 1 else wx.LIST_AUTOSIZE
@@ -159,17 +165,75 @@ class AccessibleListCtrl(wx.ListCtrl):
         row_data: optional parallel list of dicts kept for callers (get_row_data).
         bg_for: optional callable(row_index, row_data) -> wx.Colour or None for
                 per-row background (status coloring).
+
+        Retains the data so header clicks can re-sort; if a sort column is
+        already active it is re-applied to the new data.
         """
-        self.DeleteAllItems()
+        self._rows = [list(r) for r in rows]
         self._row_data = list(row_data) if row_data is not None else [None] * len(rows)
-        for r, cells in enumerate(rows):
+        self._bg_for = bg_for
+        if self._sort_col is not None:
+            self._apply_sort()
+        self._render()
+
+    def _render(self):
+        """Paint the current self._rows/_row_data into the control."""
+        self.DeleteAllItems()
+        for r, cells in enumerate(self._rows):
             idx = self.InsertItem(r, str(cells[0]) if cells else "")
             for c in range(1, len(cells)):
                 self.SetItem(idx, c, str(cells[c]))
-            if bg_for is not None:
-                colour = bg_for(r, self._row_data[r])
+            if self._bg_for is not None:
+                colour = self._bg_for(r, self._row_data[r])
                 if colour is not None:
                     self.SetItemBackgroundColour(idx, colour)
+
+    @staticmethod
+    def _sort_key(value):
+        """Numeric-aware key: numbers sort before text, ascending naturally."""
+        s = (value or "").strip()
+        try:
+            return (0, float(s))
+        except (TypeError, ValueError):
+            return (1, s.casefold())
+
+    def _apply_sort(self):
+        """Reorder self._rows and self._row_data by the active sort column."""
+        col = self._sort_col
+        if col is None or not self._rows:
+            return
+        paired = list(zip(self._rows, self._row_data))
+        paired.sort(
+            key=lambda pr: self._sort_key(pr[0][col] if col < len(pr[0]) else ""),
+            reverse=not self._sort_asc,
+        )
+        self._rows = [p[0] for p in paired]
+        self._row_data = [p[1] for p in paired]
+
+    def _update_header_arrows(self):
+        """Show ▲/▼ on the sorted column heading, plain on the rest."""
+        for i, heading in enumerate(self._headings):
+            text = heading.upper()
+            if i == self._sort_col:
+                text += "  " + ("▲" if self._sort_asc else "▼")
+            col = self.GetColumn(i)
+            col.SetText(text)
+            self.SetColumn(i, col)
+
+    def _on_col_click(self, event):
+        col = event.GetColumn()
+        if col < 0 or col >= len(self._headings):
+            return
+        if self._sort_col == col:
+            self._sort_asc = not self._sort_asc  # toggle direction
+        else:
+            self._sort_col = col
+            self._sort_asc = True
+        self._apply_sort()
+        self._render()
+        self._update_header_arrows()
+        direction = "ascending" if self._sort_asc else "descending"
+        a11y.announce(f"Sorted by {self._headings[col]}, {direction}", interrupt=True)
 
     def get_selected_index(self):
         return self.GetFirstSelected()
