@@ -27,8 +27,6 @@ import wx
 
 # One ANSI SGR escape (e.g. "\x1b[33m").
 _SGR_RE = re.compile(r"\x1b\[([0-9;]*)m")
-# Line-break tokens, kept as delimiters when splitting a segment.
-_BREAK_RE = re.compile(r"(\r\n|\r|\n)")
 
 # ANSI foreground code -> palette key (standard 30-37 + bright 90-97).
 _CODE_TO_KEY = {
@@ -96,7 +94,8 @@ class LogRedirector:
         self._key = None                  # active ANSI color key across drains
         self._buf = []                    # pending raw text (worker threads append)
         self._lock = threading.Lock()
-        self._line_start = 0              # ctrl index where the current line begins
+        self._line_len = 0                # chars on the current unterminated line
+        self._rewrite_current = False     # a \r needs to clear the control's tail
         # Mimic a real text stream: tools/canvas_tree.py probes .encoding.
         self.encoding = getattr(original, "encoding", None) or "utf-8"
 
