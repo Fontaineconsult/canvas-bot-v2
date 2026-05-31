@@ -32,42 +32,62 @@ class RunPanel(wx.Panel):
     def _build(self):
         outer = wx.BoxSizer(wx.VERTICAL)
 
-        # Course selection: ID or list file
+        # Course selection: ID or list file (only one may be active — Run takes
+        # a single course OR a list, never both; see _sync_course_inputs).
         course_box = wx.StaticBoxSizer(wx.VERTICAL, self, "Course selection")
         id_sizer, self.course_id = widgets.labeled_text(
             self, "Course &ID:", name="Course ID",
             hint="e.g. 12345",
         )
+        # A Canvas course ID is a short number — cap length and accept digits
+        # only so a malformed ID can't be typed in the first place.
+        self.course_id.SetMaxLength(10)
+        self.course_id.Bind(wx.EVT_CHAR, self._on_course_id_char)
+        self.course_id.Bind(wx.EVT_TEXT, self._on_course_inputs_changed)
         course_box.Add(id_sizer, 0, wx.EXPAND | wx.ALL, 4)
 
         list_row = wx.BoxSizer(wx.HORIZONTAL)
         list_lbl = wx.StaticText(self, label="Course &list:")
-        self.course_list = wx.TextCtrl(self)
+        self.course_list = wx.TextCtrl(self, style=wx.TE_READONLY)
         widgets.set_name(self.course_list, "Course list file")
         try:
             self.course_list.SetHint("Path to .txt file (one ID per line)")
         except Exception:
             pass
-        browse_list = widgets.make_button(
+        self.course_list.Bind(wx.EVT_TEXT, self._on_course_inputs_changed)
+        self._browse_list = widgets.make_button(
             self, "&Browse…", self._on_browse_list,
             name="Browse for course list", tooltip="Select a .txt file of course IDs",
         )
         list_row.Add(list_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         list_row.Add(self.course_list, 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 6)
-        list_row.Add(browse_list, 0, wx.ALIGN_CENTER_VERTICAL)
+        list_row.Add(self._browse_list, 0, wx.ALIGN_CENTER_VERTICAL)
         course_box.Add(list_row, 0, wx.EXPAND | wx.ALL, 4)
+        # A "Clear" button lets a keyboard user release the active input so the
+        # other becomes editable again (since the inactive one is disabled).
+        self._clear_course_btn = widgets.make_button(
+            self, "Clear cours&e", self._on_clear_course,
+            name="Clear course selection",
+            tooltip="Clear the course ID / list so you can choose the other",
+        )
+        course_box.Add(self._clear_course_btn, 0, wx.LEFT | wx.BOTTOM, 4)
         outer.Add(course_box, 0, wx.EXPAND | wx.ALL, 8)
 
-        # Output folder
+        # Output folder — read-only, set only via Browse, so it is always an
+        # existing directory (protected from typo'd / nonexistent paths).
         out_box = wx.StaticBoxSizer(wx.VERTICAL, self, "Output")
         out_row = wx.BoxSizer(wx.HORIZONTAL)
         out_lbl = wx.StaticText(self, label="&Output folder:")
-        self.output_folder = wx.TextCtrl(self)
+        self.output_folder = wx.TextCtrl(self, style=wx.TE_READONLY)
         widgets.set_name(self.output_folder, "Output folder")
+        try:
+            self.output_folder.SetHint("Choose a folder with Browse…")
+        except Exception:
+            pass
         browse_out = widgets.make_button(
             self, "Bro&wse…", self._on_browse_output,
             name="Browse for output folder",
-            tooltip="Directory where downloads and content data are saved",
+            tooltip="Choose the folder where downloads and content data are saved",
         )
         out_row.Add(out_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         out_row.Add(self.output_folder, 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 6)
@@ -146,6 +166,12 @@ class RunPanel(wx.Panel):
         self.cb_flatten.SetValue(s["flatten"])
         self.cb_content_tree.SetValue(s["content_tree"])
         self.cb_full_tree.SetValue(s["full_tree"])
+        # A saved output folder that no longer exists must not silently persist
+        # as a "valid" entry — clear it so the user re-picks.
+        if self.output_folder.GetValue() and not os.path.isdir(self.output_folder.GetValue()):
+            self.output_folder.ChangeValue("")
+        # Reflect the loaded course inputs in the mutual-exclusion state.
+        self._sync_course_inputs()
 
     def _collect_settings(self):
         return {
@@ -165,18 +191,64 @@ class RunPanel(wx.Panel):
 
     # ── handlers ──
 
+    def _on_course_id_char(self, event):
+        """Allow only digits (plus editing/navigation keys) in the Course ID."""
+        key = event.GetKeyCode()
+        # Control chars (backspace, delete, tab, arrows...) and Ctrl-combos pass.
+        if key < 32 or key == 127 or event.ControlDown() or event.CmdDown():
+            event.Skip()
+            return
+        if 0 <= key < 256 and chr(key).isdigit():
+            event.Skip()
+        # Non-digit printable: swallow (do not Skip) so it never enters the field.
+
+    def _on_course_inputs_changed(self, _evt):
+        self._sync_course_inputs()
+
+    def _sync_course_inputs(self):
+        """Enforce single-active-input: ID xor list.
+
+        Run accepts one course OR a list, never both. Whichever field has text
+        stays editable; the other (and its Browse) is disabled until the active
+        one is cleared. Both empty -> both editable.
+        """
+        has_id = bool(self.course_id.GetValue().strip())
+        has_list = bool(self.course_list.GetValue().strip())
+        if has_id and not has_list:
+            self.course_id.Enable(True)
+            self.course_list.Enable(False)
+            self._browse_list.Enable(False)
+        elif has_list and not has_id:
+            self.course_id.Enable(False)
+            self.course_list.Enable(True)
+            self._browse_list.Enable(True)
+        else:
+            # both empty (or, defensively, both set) -> everything editable
+            self.course_id.Enable(True)
+            self.course_list.Enable(True)
+            self._browse_list.Enable(True)
+        self._clear_course_btn.Enable(has_id or has_list)
+
+    def _on_clear_course(self, _evt):
+        self.course_id.ChangeValue("")
+        self.course_list.ChangeValue("")
+        self._sync_course_inputs()
+        self.course_id.SetFocus()
+
     def _on_browse_list(self, _evt):
         with wx.FileDialog(
             self, "Select course list", wildcard="Text files (*.txt)|*.txt|All files (*.*)|*.*",
             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
         ) as dlg:
             if dlg.ShowModal() == wx.ID_OK:
-                self.course_list.SetValue(dlg.GetPath())
+                self.course_list.SetValue(dlg.GetPath())  # fires EVT_TEXT -> sync
 
     def _on_browse_output(self, _evt):
         with wx.DirDialog(self, "Select output folder", style=wx.DD_DEFAULT_STYLE) as dlg:
             if dlg.ShowModal() == wx.ID_OK:
-                self.output_folder.SetValue(dlg.GetPath())
+                # DirDialog only returns existing directories, so the read-only
+                # field always holds a valid path.
+                self.output_folder.ChangeValue(dlg.GetPath())
 
     def _on_content_tree(self, _evt):
         # Mutually exclusive with full tree (matches old behavior).
@@ -199,6 +271,22 @@ class RunPanel(wx.Panel):
         if errors:
             self.status.set_status("Status: " + errors[0])
             wx.MessageBox(errors[0], "Cannot run", wx.OK | wx.ICON_ERROR, self)
+            return
+
+        # Guard the output folder: it must exist if set, and is required when
+        # downloading (the read-only field normally guarantees validity, but a
+        # saved path could have been deleted between runs).
+        out = (opts["output_folder"] or "").strip()
+        if out and not os.path.isdir(out):
+            msg = "The output folder no longer exists. Choose it again with Browse."
+            self.output_folder.ChangeValue("")
+            self.status.set_status("Status: " + msg)
+            wx.MessageBox(msg, "Invalid output folder", wx.OK | wx.ICON_ERROR, self)
+            return
+        if opts["download"] and not out:
+            msg = "Choose an output folder before downloading files."
+            self.status.set_status("Status: " + msg)
+            wx.MessageBox(msg, "Output folder required", wx.OK | wx.ICON_ERROR, self)
             return
 
         # Prepare UI for run
