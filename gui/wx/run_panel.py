@@ -24,10 +24,17 @@ class RunPanel(wx.Panel):
         self._old_stdout = None
         self._old_stderr = None
         self._last_status = ""   # latest scan status, for the heartbeat to echo
+        self._stdout_redir = None
+        self._stderr_redir = None
         # Periodic "still importing" announcement so a screen-reader user knows
         # the scan is ongoing during the quiet stretches between status changes.
         self._heartbeat = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._on_heartbeat, self._heartbeat)
+        # Log flush timer: the engine prints thousands of lines during a scan;
+        # the redirector buffers them off-thread and this timer applies them to
+        # the TextCtrl in batches (~10x/sec) so the UI never floods/locks up.
+        self._log_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._on_log_flush, self._log_timer)
         self._build()
         self._load_settings()
         theme.apply_panel(self)
@@ -319,12 +326,16 @@ class RunPanel(wx.Panel):
         self._heartbeat.Start(10000)
 
         # Redirect stdout/stderr into the log view, rendering ANSI colors with
-        # a contrast-checked palette on the log's themed background.
+        # a contrast-checked palette on the log's themed background. The
+        # redirectors buffer off-thread; the log timer applies batches.
         palette = ansi_palette(self._theme.dark) if self._theme.active else {}
         default_colour = self._theme.color("text") if self._theme.active else None
         self._old_stdout, self._old_stderr = sys.stdout, sys.stderr
-        sys.stdout = LogRedirector(self.log, self._old_stdout, palette, default_colour)
-        sys.stderr = LogRedirector(self.log, self._old_stderr, palette, default_colour)
+        self._stdout_redir = LogRedirector(self.log, self._old_stdout, palette, default_colour)
+        self._stderr_redir = LogRedirector(self.log, self._old_stderr, palette, default_colour)
+        sys.stdout = self._stdout_redir
+        sys.stderr = self._stderr_redir
+        self._log_timer.Start(100)   # apply buffered output ~10x/sec
 
         # Surface warnings (non-fatal) into the log
         for lvl, text in messages:
@@ -334,6 +345,13 @@ class RunPanel(wx.Panel):
         threading.Thread(
             target=self._worker, args=(ids, opts), daemon=True, name="cb-scan",
         ).start()
+
+    def _on_log_flush(self, _evt):
+        """Apply buffered log output to the control (UI thread, from timer)."""
+        if self._stdout_redir is not None:
+            self._stdout_redir.drain()
+        if self._stderr_redir is not None:
+            self._stderr_redir.drain()
 
     def _worker(self, ids, opts):
         def on_status(text):
@@ -367,6 +385,14 @@ class RunPanel(wx.Panel):
         self._running = False
         if self._heartbeat.IsRunning():
             self._heartbeat.Stop()
+        # Stop the batch timer and drain any remaining buffered output so the
+        # tail of the log isn't lost.
+        if self._log_timer.IsRunning():
+            self._log_timer.Stop()
+        if self._stdout_redir is not None:
+            self._stdout_redir.drain()
+        if self._stderr_redir is not None:
+            self._stderr_redir.drain()
         self.run_btn.Enable(True)
         self.run_btn.SetLabel("&Run")
         # Speak a clear end-of-run result (the per-course status already spoke
