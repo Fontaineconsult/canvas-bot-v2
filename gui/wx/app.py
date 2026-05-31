@@ -42,8 +42,26 @@ class MainFrame(wx.Frame):
         self.CreateStatusBar()
         self.SetStatusText("Ready")
 
+        # Modern UI font across the whole tree, then Win10/11 window chrome.
+        self.theme.apply_font(self)
+        self._apply_chrome()
+        self.Bind(wx.EVT_SHOW, self._on_show)
+
         self.SetMinSize((760, 660))
         self.Centre()
+
+    def _apply_chrome(self):
+        """Match the title bar to the theme and round corners (Win10/11)."""
+        from gui.wx import win_style
+        # Under High Contrast we defer to the system, so don't force a dark bar.
+        dark = self.theme.dark and self.theme.active
+        win_style.modernize(self, dark=dark, rounded=True)
+
+    def _on_show(self, event):
+        # Some DWM attributes only "take" once the HWND is realized/shown.
+        if event.IsShown():
+            self._apply_chrome()
+        event.Skip()
 
     def _build_menu(self):
         """Menu bar: File (Exit) + Config + Help. Mnemonics + accelerators give
