@@ -121,6 +121,37 @@ class Theme:
         palette = _DARK if self.dark else _LIGHT
         self._palette = palette
         self._status_bg = _STATUS_BG["dark" if self.dark else "light"]
+        self._base_font = None
+
+    def base_font(self):
+        """The app UI font: Segoe UI Variable (Win11) / Segoe UI, ~10pt.
+
+        Win11's shell uses Segoe UI Variable; we fall back to Segoe UI, then to
+        the system default GUI font. 10pt reads a touch larger and more modern
+        than wx's default 9pt and matches Win11 spacing.
+        """
+        if self._base_font is not None:
+            return self._base_font
+        font = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        for face in ("Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI"):
+            candidate = wx.Font(font)
+            candidate.SetFaceName(face)
+            if candidate.IsOk() and candidate.GetFaceName() == face:
+                font = candidate
+                break
+        font.SetPointSize(10)
+        self._base_font = font
+        return font
+
+    def apply_font(self, win, recurse=True):
+        """Set the app font on a window (and optionally its children)."""
+        try:
+            win.SetFont(self.base_font())
+        except Exception:
+            pass
+        if recurse:
+            for child in win.GetChildren():
+                self.apply_font(child, recurse=True)
 
     def color(self, key):
         """Return a wx.Colour for a palette key (e.g. 'text', 'accent')."""

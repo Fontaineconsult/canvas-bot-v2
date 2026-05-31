@@ -80,6 +80,8 @@ def _text_dialog(parent, title, text, close_label="&Close", size=(620, 600)):
     dlg.SetSizer(s)
     btn.SetFocus()
     dlg.SetEscapeId(wx.ID_OK)
+    from gui.wx import win_style
+    win_style.polish_dialog(dlg, win_style.theme_of(parent))
     return dlg
 
 

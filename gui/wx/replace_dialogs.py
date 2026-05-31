@@ -12,7 +12,7 @@ import threading
 import wx
 
 from gui.core import replace_helpers as rh
-from gui.wx import a11y, widgets
+from gui.wx import a11y, widgets, win_style
 
 
 def _auth_ok():
@@ -100,6 +100,7 @@ class _ProgressDialog(wx.Dialog):
         s.Add(self._btn, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
         self.SetSizer(s)
         self.Bind(wx.EVT_CLOSE, lambda e: self._on_cancel(None))
+        win_style.polish_dialog(self, win_style.theme_of(parent))
 
     def run(self, course_id, replace_pairs, body_targets, on_success=None):
         self._on_success = on_success
@@ -183,6 +184,7 @@ class _BulkDialog(wx.Dialog):
         self._cancel = threading.Event()
         self._running = False
         self._build()
+        win_style.polish_dialog(self, getattr(panel, "_theme", win_style.theme_of(panel)))
 
     def _build(self):
         s = wx.BoxSizer(wx.VERTICAL)
