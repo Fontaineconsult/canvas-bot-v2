@@ -32,20 +32,50 @@ class RunPanel(wx.Panel):
     def _build(self):
         outer = wx.BoxSizer(wx.VERTICAL)
 
-        # Course selection: ID or list file (only one may be active — Run takes
-        # a single course OR a list, never both; see _sync_course_inputs).
-        course_box = wx.StaticBoxSizer(wx.VERTICAL, self, "Course selection")
-        id_sizer, self.course_id = widgets.labeled_text(
-            self, "Course &ID:", name="Course ID",
-            hint="e.g. 12345",
-        )
+        # Course selection + output, grouped together. Course ID (or a list
+        # file) selects what to scan — only one may be active (Run takes a
+        # single course OR a list, never both; see _sync_course_inputs). The
+        # output folder shares the top row with the ID to save vertical space.
+        course_box = wx.StaticBoxSizer(wx.VERTICAL, self, "Course selection & output")
+
+        # Top row: Course ID (narrow) + Output folder (expanding) + Browse.
+        top_row = wx.BoxSizer(wx.HORIZONTAL)
+        id_lbl = wx.StaticText(self, label="Course &ID:")
+        self.course_id = wx.TextCtrl(self, size=wx.Size(110, -1))
+        widgets.set_name(self.course_id, "Course ID")
+        try:
+            self.course_id.SetHint("e.g. 12345")
+        except Exception:
+            pass
         # A Canvas course ID is a short number — cap length and accept digits
-        # only so a malformed ID can't be typed in the first place.
+        # only so a malformed ID can't be typed in the first place. The narrow
+        # fixed width (proportion 0) also signals "short value expected".
         self.course_id.SetMaxLength(10)
+        self.course_id.SetMaxSize(wx.Size(110, -1))
         self.course_id.Bind(wx.EVT_CHAR, self._on_course_id_char)
         self.course_id.Bind(wx.EVT_TEXT, self._on_course_inputs_changed)
-        course_box.Add(id_sizer, 0, wx.EXPAND | wx.ALL, 4)
 
+        out_lbl = wx.StaticText(self, label="&Output folder:")
+        self.output_folder = wx.TextCtrl(self, style=wx.TE_READONLY)
+        widgets.set_name(self.output_folder, "Output folder")
+        try:
+            self.output_folder.SetHint("Choose a folder with Browse…")
+        except Exception:
+            pass
+        browse_out = widgets.make_button(
+            self, "Bro&wse…", self._on_browse_output,
+            name="Browse for output folder",
+            tooltip="Choose the folder where downloads and content data are saved",
+        )
+        top_row.Add(id_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        top_row.Add(self.course_id, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 20)
+        top_row.Add(out_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        top_row.Add(self.output_folder, 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 6)
+        top_row.Add(browse_out, 0, wx.ALIGN_CENTER_VERTICAL)
+        course_box.Add(top_row, 0, wx.EXPAND | wx.ALL, 4)
+
+        # Second row: Course list file (the alternative to a single ID) + its
+        # Browse + a Clear button to release whichever input is active.
         list_row = wx.BoxSizer(wx.HORIZONTAL)
         list_lbl = wx.StaticText(self, label="Course &list:")
         self.course_list = wx.TextCtrl(self, style=wx.TE_READONLY)
@@ -59,40 +89,17 @@ class RunPanel(wx.Panel):
             self, "&Browse…", self._on_browse_list,
             name="Browse for course list", tooltip="Select a .txt file of course IDs",
         )
-        list_row.Add(list_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        list_row.Add(self.course_list, 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 6)
-        list_row.Add(self._browse_list, 0, wx.ALIGN_CENTER_VERTICAL)
-        course_box.Add(list_row, 0, wx.EXPAND | wx.ALL, 4)
-        # A "Clear" button lets a keyboard user release the active input so the
-        # other becomes editable again (since the inactive one is disabled).
         self._clear_course_btn = widgets.make_button(
             self, "Clear cours&e", self._on_clear_course,
             name="Clear course selection",
             tooltip="Clear the course ID / list so you can choose the other",
         )
-        course_box.Add(self._clear_course_btn, 0, wx.LEFT | wx.BOTTOM, 4)
+        list_row.Add(list_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        list_row.Add(self.course_list, 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 6)
+        list_row.Add(self._browse_list, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 6)
+        list_row.Add(self._clear_course_btn, 0, wx.ALIGN_CENTER_VERTICAL)
+        course_box.Add(list_row, 0, wx.EXPAND | wx.ALL, 4)
         outer.Add(course_box, 0, wx.EXPAND | wx.ALL, 8)
-
-        # Output folder — read-only, set only via Browse, so it is always an
-        # existing directory (protected from typo'd / nonexistent paths).
-        out_box = wx.StaticBoxSizer(wx.VERTICAL, self, "Output")
-        out_row = wx.BoxSizer(wx.HORIZONTAL)
-        out_lbl = wx.StaticText(self, label="&Output folder:")
-        self.output_folder = wx.TextCtrl(self, style=wx.TE_READONLY)
-        widgets.set_name(self.output_folder, "Output folder")
-        try:
-            self.output_folder.SetHint("Choose a folder with Browse…")
-        except Exception:
-            pass
-        browse_out = widgets.make_button(
-            self, "Bro&wse…", self._on_browse_output,
-            name="Browse for output folder",
-            tooltip="Choose the folder where downloads and content data are saved",
-        )
-        out_row.Add(out_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        out_row.Add(self.output_folder, 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 6)
-        out_row.Add(browse_out, 0, wx.ALIGN_CENTER_VERTICAL)
-        out_box.Add(out_row, 0, wx.EXPAND | wx.ALL, 4)
         self.cb_download = widgets.make_checkbox(
             self, "&Download files", name="Download files",
             tooltip="Download course documents to the output folder",
