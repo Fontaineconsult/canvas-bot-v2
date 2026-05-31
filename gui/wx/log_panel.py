@@ -1,28 +1,31 @@
 """Read-only log panel + ANSI-color-aware stdout/stderr redirector (wx).
 
 The engine prints colored progress to stdout/stderr during a scan (colorama /
-ANSI SGR codes), plus an animation thread that emits a spinner ~12x/sec. On a
-large course that is *thousands* of writes in quick succession.
+ANSI SGR codes), plus a spinner thread (utils/spinner.py) that rewrites a single
+line via carriage returns ~10x/sec: it writes "\r<frame> <label> [<t>s]"
+repeatedly, then "\r<symbol> <label> [<t>s] Done\n" when the step finishes. On a
+large course that is *thousands* of writes in quick succession, from two threads.
 
 PERFORMANCE / LOCKUP:
-The redirector must never touch wx from the worker/animation threads, and must
+The redirector must never touch wx from the worker/spinner threads, and must
 never do per-write UI work — a wx.CallAfter per write floods the UI event queue
 and freezes the app ("Not Responding"). Instead:
   * write() (any thread) only appends to an in-memory buffer under a lock —
     no wx calls at all.
-  * A wx.Timer on the UI thread calls drain() ~10x/sec, which applies ALL
-    buffered text in one batched, frozen update.
+  * A wx.Timer on the UI thread calls drain() ~10x/sec, applying ALL buffered
+    text in one batched, frozen update.
 
-drain() must also be cheap per call even when a backlog accumulates:
-  * Carriage-return (\r) spinner rewrites are resolved in PURE PYTHON first
-    (no wx per spinner frame).
-  * Text is applied with the minimum number of AppendText calls (one per color
-    run; newlines ride inside the text).
-  * The control is capped so AppendText on the rich buffer stays O(small) no
-    matter how long the scan runs (RICH2 AppendText slows as the buffer grows).
+TERMINAL EMULATION (the correctness part):
+The producer always rewrites a WHOLE line after a "\r" (spinner frame or the
+final "Done" line), so we model "\r" as "discard the current unterminated line
+and start fresh", and "\n" as "commit the current line". We keep the current
+unterminated line as ``self._pending`` (a list of colored segments) that mirrors
+the control's last on-screen line; each drain removes exactly that line from the
+control and re-appends the recomputed result. This avoids stale-length bugs that
+left spinner remnants (a stray "⠼") and truncated the next line ("Done" -> "D").
 
-Colors are theme-aware, verified >=7:1 on the log background, and the appended
-text content is unchanged so screen-reader output is unaffected.
+Colors are theme-aware, verified >=7:1 on the log background; appended text
+content is unchanged so screen-reader output is unaffected.
 """
 
 import re
@@ -32,6 +35,8 @@ import wx
 
 # One ANSI SGR escape (e.g. "\x1b[33m").
 _SGR_RE = re.compile(r"\x1b\[([0-9;]*)m")
+# Line-control characters, kept as delimiters when splitting a segment.
+_BREAK_RE = re.compile(r"(\r|\n)")
 
 # ANSI foreground code -> palette key (standard 30-37 + bright 90-97).
 _CODE_TO_KEY = {
@@ -103,8 +108,9 @@ class LogRedirector:
         self._key = None                  # active ANSI color key across drains
         self._buf = []                    # pending raw text (worker threads append)
         self._lock = threading.Lock()
-        self._line_len = 0                # chars on the current unterminated line
-        self._rewrite_current = False     # a \r requires clearing the control tail
+        # The current unterminated line as colored segments [(text, key), ...],
+        # mirroring the control's last on-screen line (no '\r'/'\n' inside).
+        self._pending = []
         # Mimic a real text stream: tools/canvas_tree.py probes .encoding.
         self.encoding = getattr(original, "encoding", None) or "utf-8"
 
@@ -136,9 +142,7 @@ class LogRedirector:
     def drain(self):
         """Apply all buffered text to the control in one frozen batch.
 
-        Must run on the UI thread. Cheap when the buffer is empty. \r spinner
-        frames are resolved in Python first, then applied with the minimum
-        number of AppendText calls, and the control is capped so it stays fast.
+        Must run on the UI thread. Cheap when the buffer is empty.
         """
         if self._ctrl is None:
             return
@@ -148,102 +152,81 @@ class LogRedirector:
             chunk = "".join(self._buf)
             self._buf.clear()
 
+        # Treat a "\r\n" pair as a single newline (don't let the '\r' discard the
+        # text before it). Bare '\r' (spinner) and bare '\n' are handled below.
+        chunk = chunk.replace("\r\n", "\n")
         runs, self._key = parse_ansi(chunk, self._key)
-        ops = self._resolve(runs)   # list of (text, key); text has no bare \r
-        if not ops:
-            return
+
+        # Recompute the line state. ``committed`` are colored segments to append
+        # (including '\n' terminators); ``pending`` becomes the new unterminated
+        # line. ``pending`` starts as the existing on-screen line so text with no
+        # leading '\r' continues it, and '\r' discards it (full-line rewrite).
+        committed = []
+        pending = list(self._pending)
+        old_len = sum(len(t) for t, _ in self._pending)
+        for seg, key in runs:
+            if not seg:
+                continue
+            for tok in _BREAK_RE.split(seg):
+                if tok == "":
+                    continue
+                if tok == "\r":
+                    pending = []                 # discard current line
+                elif tok == "\n":
+                    committed.extend(pending)    # commit current line + newline
+                    committed.append(("\n", key))
+                    pending = []
+                else:
+                    pending.append((tok, key))
+
         try:
             self._ctrl.Freeze()
             try:
-                # A leading \r in this batch rewrote a line already on screen:
-                # clear that line's remnant before appending the new text.
-                if self._rewrite_current and self._line_len > 0:
+                # Remove the old on-screen unterminated line; everything we append
+                # next (committed lines + the new pending line) replaces it.
+                if old_len > 0:
                     end = self._ctrl.GetLastPosition()
-                    self._ctrl.Remove(end - self._line_len, end)
-                self._rewrite_current = False
-                # Coalesce consecutive same-color ops into one AppendText —
-                # AppendText on the rich buffer is the expensive part, so cutting
-                # the call count is what matters. The engine wraps each line as
-                # "<color>text<reset>\n", which would alternate color/default and
-                # defeat merging; since a newline has no glyph, whitespace-only
-                # ops are treated as color-neutral and keep the current run going.
-                # Result: a batch of N same-color lines becomes ONE AppendText.
-                pending_key = None
-                parts = []
-                for text, key in ops:
-                    if not text:
-                        continue
-                    if not parts:
-                        pending_key = key
-                    elif text.strip() and key != pending_key:
-                        self._set_colour(pending_key)
-                        self._ctrl.AppendText("".join(parts))
-                        parts = []
-                        pending_key = key
-                    parts.append(text)
-                if parts:
-                    self._set_colour(pending_key)
-                    self._ctrl.AppendText("".join(parts))
+                    self._ctrl.Remove(max(0, end - old_len), end)
+                self._append_ops(committed + pending)
                 self._trim()
             finally:
                 self._ctrl.Thaw()
         except Exception:
             pass
 
-    def _resolve(self, runs):
-        """Turn colored runs (with embedded \r/\n) into appendable (text, key)
-        ops, applying carriage-return line rewrites in Python.
+        self._pending = pending
 
-        Maintains self._line_len (chars on the current unterminated line) and
-        self._rewrite_current (whether a \r requires clearing the control's
-        current line tail before the first op is appended).
+    def _append_ops(self, ops):
+        """Append colored (text, key) segments with the fewest AppendText calls.
+
+        AppendText on the rich buffer is the expensive part, so consecutive ops
+        of the same color are merged into one call. A newline has no glyph, so
+        whitespace-only ops are color-neutral and keep the current run going —
+        turning a batch of same-colored lines into a single AppendText.
         """
-        ops = []
-        for seg, key in runs:
-            if not seg:
+        pending_key = None
+        parts = []
+        for text, key in ops:
+            if not text:
                 continue
-            parts = seg.split("\r")   # split on \r only; \n rides inside text
-            for pi, part in enumerate(parts):
-                if pi > 0:
-                    # A \r occurred: discard the in-progress current line. If it
-                    # was built entirely within THIS batch, drop it from ops;
-                    # otherwise flag the control's current line for clearing.
-                    if not self._drop_current_line(ops):
-                        self._rewrite_current = True
-                    self._line_len = 0
-                if part:
-                    ops.append((part, key))
-                    nl = part.rfind("\n")
-                    if nl >= 0:
-                        self._line_len = len(part) - nl - 1
-                    else:
-                        self._line_len += len(part)
-        return ops
-
-    def _drop_current_line(self, ops):
-        """Remove the current unterminated line's text from pending ops.
-
-        Returns True if the whole current line lived in ops (so nothing in the
-        control needs clearing), False if part of it was already committed.
-        """
-        remaining = self._line_len
-        while remaining > 0 and ops:
-            text, key = ops[-1]
-            nl = text.rfind("\n")
-            tail = len(text) - nl - 1
-            if tail <= remaining:
-                ops.pop()
-                remaining -= tail
-                if nl >= 0:
-                    ops.append((text[:nl + 1], key))   # keep through the newline
-                    return True
-            else:
-                ops[-1] = (text[:len(text) - remaining], key)
-                return True
-        return remaining <= 0
+            if not parts:
+                pending_key = key
+            elif text.strip() and key != pending_key:
+                self._set_colour(pending_key)
+                self._ctrl.AppendText("".join(parts))
+                parts = []
+                pending_key = key
+            parts.append(text)
+        if parts:
+            self._set_colour(pending_key)
+            self._ctrl.AppendText("".join(parts))
 
     def _trim(self):
-        """Cap the control length so AppendText stays fast as the log grows."""
+        """Cap the control length so AppendText stays fast as the log grows.
+
+        Removes from the FRONT only, so the current pending line (at the end) is
+        never disturbed.
+        """
         end = self._ctrl.GetLastPosition()
         if end <= _MAX_CHARS:
             return
