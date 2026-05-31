@@ -107,14 +107,17 @@ def make_checkbox(parent, label, name=None, tooltip=""):
 def _bind_enter_toggle(cb):
     """Let Enter toggle a checkbox, not just Space.
 
-    Native wx.CheckBox only responds to Space. Some keyboard/screen-reader users
-    expect Enter to activate the focused control, and with a default button set
-    (Run) an un-handled Enter would instead fire that button. We toggle the value
-    and post the normal EVT_CHECKBOX so any dependent handlers run, then consume
-    the key so it doesn't bubble to the default button.
+    Native wx.CheckBox only responds to Space. With a default button set (Run),
+    pressing Enter is grabbed by the top-level window for default-button
+    activation BEFORE it reaches the focused checkbox as a key-down — so binding
+    EVT_KEY_DOWN here never fires. EVT_CHAR_HOOK is delivered to the focused
+    control first (ahead of the default-button machinery), so we catch Enter
+    there, toggle the value, post the normal EVT_CHECKBOX so dependent handlers
+    run, and consume the key so it does not also fire the default button.
     """
-    def on_key(event):
-        if event.GetKeyCode() in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):
+    def on_char_hook(event):
+        if (event.GetKeyCode() in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER)
+                and not event.HasAnyModifiers()):
             cb.SetValue(not cb.GetValue())
             evt = wx.CommandEvent(wx.wxEVT_CHECKBOX, cb.GetId())
             evt.SetInt(1 if cb.GetValue() else 0)
@@ -123,7 +126,7 @@ def _bind_enter_toggle(cb):
             return  # consume Enter (do not Skip → won't trigger default button)
         event.Skip()
 
-    cb.Bind(wx.EVT_KEY_DOWN, on_key)
+    cb.Bind(wx.EVT_CHAR_HOOK, on_char_hook)
 
 
 class StatusLine(wx.StaticText):
