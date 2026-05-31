@@ -100,7 +100,30 @@ def make_checkbox(parent, label, name=None, tooltip=""):
     set_name(cb, name or label.replace("&", ""))
     if tooltip:
         cb.SetToolTip(tooltip)
+    _bind_enter_toggle(cb)
     return cb
+
+
+def _bind_enter_toggle(cb):
+    """Let Enter toggle a checkbox, not just Space.
+
+    Native wx.CheckBox only responds to Space. Some keyboard/screen-reader users
+    expect Enter to activate the focused control, and with a default button set
+    (Run) an un-handled Enter would instead fire that button. We toggle the value
+    and post the normal EVT_CHECKBOX so any dependent handlers run, then consume
+    the key so it doesn't bubble to the default button.
+    """
+    def on_key(event):
+        if event.GetKeyCode() in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):
+            cb.SetValue(not cb.GetValue())
+            evt = wx.CommandEvent(wx.wxEVT_CHECKBOX, cb.GetId())
+            evt.SetInt(1 if cb.GetValue() else 0)
+            evt.SetEventObject(cb)
+            cb.GetEventHandler().ProcessEvent(evt)
+            return  # consume Enter (do not Skip → won't trigger default button)
+        event.Skip()
+
+    cb.Bind(wx.EVT_KEY_DOWN, on_key)
 
 
 class StatusLine(wx.StaticText):
