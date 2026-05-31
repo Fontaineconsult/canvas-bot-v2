@@ -87,6 +87,7 @@ class LogRedirector:
         self._palette = palette or {}
         self._default = default_colour
         self._key = None  # active ANSI color key across writes
+        self._last_spinner = 0.0  # monotonic time of last rendered spinner frame
         # Mimic a real text stream: some code (e.g. tools/canvas_tree.py) probes
         # sys.stdout.encoding to decide whether it can emit unicode.
         self.encoding = getattr(original, "encoding", None) or "utf-8"
@@ -120,8 +121,16 @@ class LogRedirector:
         except Exception:
             pass
         # Collapse \r spinner frames: a chunk containing \r but no \n rewrites
-        # the last visible line rather than appending a new one.
+        # the last visible line rather than appending. The engine emits these
+        # ~12x/sec; rendering every one reflows/scrolls the control (visible
+        # "jitter"), so throttle to a few updates per second — the dropped
+        # frames carry no information (just a rotating glyph + timer).
         if "\r" in text and "\n" not in text:
+            import time
+            now = time.monotonic()
+            if now - self._last_spinner < 0.15:
+                return
+            self._last_spinner = now
             self._replace_last_line(text.rsplit("\r", 1)[-1])
             return
         try:
@@ -134,7 +143,13 @@ class LogRedirector:
             value = self._ctrl.GetValue()
             nl = value.rfind("\n")
             start = nl + 1 if nl >= 0 else 0
-            self._ctrl.Replace(start, self._ctrl.GetLastPosition(), text)
+            # Freeze during the swap so the control repaints once, not mid-edit
+            # (removes the flicker of in-place spinner updates).
+            self._ctrl.Freeze()
+            try:
+                self._ctrl.Replace(start, self._ctrl.GetLastPosition(), text)
+            finally:
+                self._ctrl.Thaw()
         except Exception:
             try:
                 self._ctrl.AppendText(text)

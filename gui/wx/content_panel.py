@@ -391,18 +391,36 @@ class ContentPanel(wx.Panel):
     def _on_row(self, _evt):
         self._update_actions()
 
+    def _resolve_path(self, save_path):
+        """Return the file's real on-disk path, or None if not found.
+
+        The path stored in content.json is computed at scan time and embeds a
+        date folder; the file may actually live in a different date folder if it
+        was downloaded on another day. Try the exact path first, then a glob
+        with the date segment wild-carded (same logic as the Downloaded column),
+        so Open File / Open File Location work whenever the file exists.
+        """
+        if not save_path:
+            return None
+        norm = os.path.normpath(save_path)
+        if os.path.isfile(norm):
+            return norm
+        matches = glob.glob(_DATE_FOLDER_RE.sub("*", norm, count=1))
+        return matches[0] if matches else None
+
     def _update_actions(self):
         row = self.table.get_selected_data()
         has = row is not None
         save_path = (row or {}).get("save_path", "") if has else ""
         url = (row or {}).get("url", "") if has else ""
         spu = (row or {}).get("source_page_url") if has else None
+        resolved = self._resolve_path(save_path)
 
-        self.open_loc_btn.Enable(bool(save_path and os.path.isdir(os.path.dirname(save_path))) or bool(url))
+        self.open_loc_btn.Enable(bool(resolved) or bool(url))
         # Same physical button, two modes; keep the mnemonic on 'L' in both so
         # Alt+L is stable and never collides with Open &Source Page (s).
         self.open_loc_btn.SetLabel("Open Site &Link" if (not save_path and url) else "Open File &Location")
-        self.open_file_btn.Enable(bool(save_path and os.path.isfile(save_path)))
+        self.open_file_btn.Enable(bool(resolved))
         self.open_src_btn.Enable(bool(spu))
         is_doc = self._table_key == "documents"
         can_replace_row = (self._can_replace and is_doc and has
@@ -417,9 +435,9 @@ class ContentPanel(wx.Panel):
         row = self.table.get_selected_data()
         if not row:
             return
-        save_path = row.get("save_path", "")
-        if save_path and os.path.isdir(os.path.dirname(save_path)):
-            os.startfile(os.path.dirname(save_path))  # noqa: S606
+        resolved = self._resolve_path(row.get("save_path", ""))
+        if resolved:
+            os.startfile(os.path.dirname(resolved))  # noqa: S606
         elif row.get("url"):
             webbrowser.open(row["url"])
 
@@ -427,16 +445,16 @@ class ContentPanel(wx.Panel):
         row = self.table.get_selected_data()
         if not row:
             return
-        save_path = row.get("save_path", "")
-        if not save_path or not os.path.isfile(save_path):
+        resolved = self._resolve_path(row.get("save_path", ""))
+        if not resolved:
             return
-        ext = os.path.splitext(save_path)[1].lower()
+        ext = os.path.splitext(resolved)[1].lower()
         if ext in _BLOCKED_EXT:
-            wx.MessageBox(f"Cannot open '{os.path.basename(save_path)}'.\n"
+            wx.MessageBox(f"Cannot open '{os.path.basename(resolved)}'.\n"
                           f"Files with the '{ext}' extension are blocked for security.",
                           "Blocked file type", wx.OK | wx.ICON_WARNING, self)
             return
-        os.startfile(save_path)  # noqa: S606
+        os.startfile(resolved)  # noqa: S606
 
     def _on_open_source(self, _evt):
         row = self.table.get_selected_data()
@@ -509,18 +527,33 @@ class ContentPanel(wx.Panel):
 
         def worker():
             ok = False
+            reached = False  # did we actually query Canvas (creds present)?
             try:
-                from network.api import get_course_permissions
-                perms = get_course_permissions(course_id)
-                ok = bool(perms and perms.get("manage_files_edit"))
+                # Bootstrap credentials here — the permission check can run on
+                # the first Content-tab visit, before any scan has loaded them.
+                # Without this it would silently fail and (worse) cache False,
+                # leaving Replace disabled even after a later scan loads creds.
+                from network.cred import (
+                    load_config_data_from_appdata,
+                    set_canvas_api_key_to_environment_variable,
+                )
+                load_config_data_from_appdata()
+                if set_canvas_api_key_to_environment_variable():
+                    from network.api import get_course_permissions
+                    perms = get_course_permissions(course_id)
+                    ok = bool(perms and perms.get("manage_files_edit"))
+                    reached = True
             except Exception:
-                ok = False
-            wx.CallAfter(self._apply_permission, course_id, ok)
+                ok, reached = False, False
+            wx.CallAfter(self._apply_permission, course_id, ok, reached)
 
         threading.Thread(target=worker, daemon=True, name="cb-perm").start()
 
-    def _apply_permission(self, course_id, ok):
-        self._perm_cache[course_id] = ok
+    def _apply_permission(self, course_id, ok, reached=True):
+        # Only cache a result actually obtained from Canvas; a credential-less
+        # failure is "unknown", not "no permission", so don't poison the cache.
+        if reached:
+            self._perm_cache[course_id] = ok
         # Ignore stale results if the user switched courses
         if (self._current_data or {}).get("course_id") != course_id:
             return
