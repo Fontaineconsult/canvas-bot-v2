@@ -172,3 +172,19 @@ def is_available():
     """
     _ensure_started()
     return _available and not _disabled
+
+
+def shutdown(timeout=2.0):
+    """Stop the speech thread cleanly (call once on app exit).
+
+    Lets the worker CoUninitialize and drop its COM object before the
+    interpreter tears down, avoiding shutdown-time COM races. Safe to call even
+    if the worker never started.
+    """
+    if _queue is not None:
+        try:
+            _queue.put_nowait(_STOP)
+        except Exception:
+            pass
+    if _worker is not None:
+        _worker.join(timeout=timeout)

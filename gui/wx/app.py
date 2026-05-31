@@ -241,3 +241,10 @@ def run_wx_gui():
         pass
 
     app.MainLoop()
+
+    # Stop the screen-reader speech thread cleanly so its COM object is released
+    # before the interpreter tears down.
+    try:
+        a11y.shutdown()
+    except Exception:
+        pass
