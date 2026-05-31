@@ -13,7 +13,7 @@ import wx
 
 from gui.core import app_service, settings
 from gui.wx import a11y, widgets
-from gui.wx.log_panel import LogRedirector, make_log_ctrl
+from gui.wx.log_panel import LogRedirector, ansi_palette, make_log_ctrl
 
 
 class RunPanel(wx.Panel):
@@ -125,7 +125,7 @@ class RunPanel(wx.Panel):
         # Log view
         log_lbl = wx.StaticText(self, label="Output log:")
         outer.Add(log_lbl, 0, wx.LEFT | wx.RIGHT, 8)
-        self.log = make_log_ctrl(self)
+        self.log = make_log_ctrl(self, theme=self._theme)
         outer.Add(self.log, 1, wx.EXPAND | wx.ALL, 8)
 
         self.SetSizer(outer)
@@ -208,10 +208,13 @@ class RunPanel(wx.Panel):
         self.log.SetValue("")
         self.status.set_status("Status: Initializing…")
 
-        # Redirect stdout/stderr into the log view
+        # Redirect stdout/stderr into the log view, rendering ANSI colors with
+        # a contrast-checked palette on the log's themed background.
+        palette = ansi_palette(self._theme.dark) if self._theme.active else {}
+        default_colour = self._theme.color("text") if self._theme.active else None
         self._old_stdout, self._old_stderr = sys.stdout, sys.stderr
-        sys.stdout = LogRedirector(self.log, self._old_stdout)
-        sys.stderr = LogRedirector(self.log, self._old_stderr)
+        sys.stdout = LogRedirector(self.log, self._old_stdout, palette, default_colour)
+        sys.stderr = LogRedirector(self.log, self._old_stderr, palette, default_colour)
 
         # Surface warnings (non-fatal) into the log
         for lvl, text in messages:

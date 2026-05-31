@@ -72,23 +72,23 @@ def make_button(parent, label, handler, name=None, tooltip=""):
 
 
 def make_primary_button(parent, label, handler, theme=None, name=None, tooltip=""):
-    """A native wx.Button styled as the accent/primary action.
+    """A native wx.Button marked as the default/primary action.
 
-    Still a native button (full MSAA/keyboard support) — we only set its
-    background to the theme accent and force a high-contrast foreground. No-op
-    styling under High Contrast so the user's system colors win.
+    We use SetDefault() — on Win10/11 the *default* button is drawn by the OS
+    with the system accent treatment, which is the native primary-button idiom
+    and is guaranteed to meet system contrast in every state (normal, hover,
+    pressed, focused). We deliberately do NOT set a custom background: native
+    MSW buttons render a custom bg as a washed, low-contrast fill, which is the
+    contrast problem we're avoiding. A bold label adds emphasis.
     """
     btn = make_button(parent, label, handler, name=name, tooltip=tooltip)
-    if theme is not None and getattr(theme, "active", True):
-        try:
-            accent = theme.color("accent")
-            btn.SetBackgroundColour(accent)
-            # Pick black/white text for best contrast on the accent.
-            r, g, b = accent.Red(), accent.Green(), accent.Blue()
-            luma = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
-            btn.SetForegroundColour(wx.Colour("#000000") if luma > 0.5 else wx.Colour("#FFFFFF"))
-        except Exception:
-            pass
+    try:
+        btn.SetDefault()
+        font = btn.GetFont()
+        font.SetWeight(wx.FONTWEIGHT_BOLD)
+        btn.SetFont(font)
+    except Exception:
+        pass
     return btn
 
 
