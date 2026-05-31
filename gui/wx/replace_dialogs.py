@@ -88,6 +88,7 @@ class _ProgressDialog(wx.Dialog):
                          style=wx.DEFAULT_DIALOG_STYLE)
         self._cancel = threading.Event()
         self._done = False
+        self._file_ok = False  # set when a file_done reports status 'replaced'
         s = wx.BoxSizer(wx.VERTICAL)
         self._header = wx.StaticText(self, label=header)
         self._stage = widgets.StatusLine(self, label="Starting…")
@@ -104,46 +105,64 @@ class _ProgressDialog(wx.Dialog):
 
     def run(self, course_id, replace_pairs, body_targets, on_success=None):
         self._on_success = on_success
+        self._total_steps = max(1, len(replace_pairs) + len(body_targets))
+        self._step = 0
 
         def worker():
             from core.orchestrator import replace_content
             replace_content(
-                course_id, replace_pairs, body_targets=body_targets,
+                course_id, replacements=replace_pairs, body_targets=body_targets,
                 on_event=lambda name, **p: wx.CallAfter(self._event, name, p),
                 cancel_event=self._cancel,
-                progress_callback=lambda stage, b, t: wx.CallAfter(self._progress, stage, b, t),
             )
 
         threading.Thread(target=worker, daemon=True, name="cb-replace").start()
 
-    def _progress(self, stage, b, t):
-        if t:
-            self._gauge.SetValue(min(100, int(b * 100 / t)))
-        self._stage.SetLabel(f"{stage}… {rh.format_bytes(b)} / {rh.format_bytes(t)}")
+    def _advance(self):
+        self._step = min(self._total_steps, self._step + 1)
+        self._gauge.SetValue(int(self._step * 100 / self._total_steps))
 
     def _event(self, name, payload):
+        # Stage names + payload keys match core.orchestrator's on_event contract.
         if name == "preflight_started":
-            self._stage.set_status("Pre-flight check…")
+            self._stage.set_status("Pre-flight check")
+        elif name == "preflight_failed":
+            nf = len(payload.get("failed_files", []))
+            nb = len(payload.get("failed_bodies", []))
+            self._stage.set_status(f"Pre-flight failed: {nf} file(s), {nb} page(s)")
         elif name == "file_started":
-            i, total = payload.get("index", 0) + 1, payload.get("total", 1)
-            self._stage.set_status(f"Uploading file {i} of {total}…")
-        elif name == "file_uploaded":
-            self._stage.set_status("File uploaded")
-        elif name == "file_failed":
-            self._stage.set_status(f"File failed: {payload.get('reason', '')}")
-        elif name == "body_updated":
-            self._stage.set_status(f"Rewrote {payload.get('replaced_count', 0)} link(s) "
-                                   f"in {payload.get('resource_type', '')}")
+            i = payload.get("idx", 0) + 1
+            total = payload.get("total", 1)
+            self._stage.set_status(f"Uploading file {i} of {total}")
+        elif name == "file_done":
+            report = payload.get("report")
+            if report is not None and getattr(report, "status", None) == "replaced":
+                self._file_ok = True
+            self._advance()
+        elif name == "body_started":
+            i = payload.get("idx", 0) + 1
+            total = payload.get("total", 1)
+            rt = payload.get("resource_type", "")
+            self._stage.set_status(f"Rewriting {rt} {i} of {total}")
+        elif name == "body_done":
+            self._advance()
         elif name == "complete":
             self._finish(payload.get("summary", {}))
 
     def _finish(self, summary):
         self._done = True
         self._gauge.SetValue(100)
-        msg = "Replace complete"
+        early = (summary or {}).get("early")
+        if early:
+            msg = f"Replace did not complete ({early})"
+        elif self._file_ok:
+            msg = "Replace complete"
+        else:
+            msg = "Replace finished with errors"
         self._stage.set_status(msg)
         a11y.announce(msg, interrupt=True)
-        if self._on_success:
+        # Only mark the row replaced if a file actually succeeded.
+        if self._file_ok and self._on_success:
             try:
                 self._on_success()
             except Exception:
@@ -272,20 +291,21 @@ class _BulkDialog(wx.Dialog):
         threading.Thread(target=worker, daemon=True, name="cb-bulk").start()
 
     def _event(self, name, payload):
+        # Stage names + payload keys match core.orchestrator's on_event contract.
         if name == "file_started":
-            i, total = payload.get("index", 0) + 1, payload.get("total", 1)
-            self._counter.set_status(f"Replacing {i} of {total}…")
-        elif name == "file_uploaded":
-            new_id = payload.get("new_file_id")
+            i = payload.get("idx", 0) + 1
+            total = payload.get("total", 1)
+            self._counter.set_status(f"Replacing {i} of {total}")
+        elif name == "file_done":
+            # Reflect a successful replace into the underlying viewer (adds the
+            # '(replaced)' suffix + persists). report.status == 'replaced' marks
+            # success; the report object carries the outcome.
+            report = payload.get("report")
             old_id = payload.get("old_file_id")
-            # reflect into the underlying viewer
-            for doc, _ in (self._match.matches or []):
-                if doc.get("canvas_file_id") == old_id:
-                    self._panel.apply_replaced(old_id)
-                    break
+            if report is not None and getattr(report, "status", None) == "replaced":
+                self._panel.apply_replaced(old_id)
         elif name == "complete":
             self._running = False
-            summary = payload.get("summary", {})
             msg = "Bulk replace complete"
             self._counter.set_status(msg)
             a11y.announce(msg, interrupt=True)
