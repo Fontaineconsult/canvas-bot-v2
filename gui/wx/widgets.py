@@ -127,7 +127,11 @@ class AccessibleListCtrl(wx.ListCtrl):
     """
 
     def __init__(self, parent, announce_columns=None, **kw):
-        style = kw.pop("style", wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN)
+        # LC_HRULES/LC_VRULES draw grid lines: the horizontal rule below the
+        # header cleanly separates it from the data rows, and vertical rules
+        # divide the columns — native, no custom drawing, accessibility-neutral.
+        style = kw.pop("style", wx.LC_REPORT | wx.LC_SINGLE_SEL
+                       | wx.LC_HRULES | wx.LC_VRULES | wx.BORDER_THEME)
         super().__init__(parent, style=style, **kw)
         self._headings = []
         # Indices of columns to include in the spoken summary (default: all).
@@ -143,7 +147,9 @@ class AccessibleListCtrl(wx.ListCtrl):
             heading = col[0]
             width = col[1] if len(col) > 1 else wx.LIST_AUTOSIZE
             fmt = col[2] if len(col) > 2 else wx.LIST_FORMAT_LEFT
-            self.InsertColumn(i, heading, format=fmt, width=width)
+            # Upper-case the visible heading so it reads distinctly from the
+            # title-case data rows; keep the original for the spoken summary.
+            self.InsertColumn(i, heading.upper(), format=fmt, width=width)
             self._headings.append(heading)
 
     def set_rows(self, rows, row_data=None, bg_for=None):
