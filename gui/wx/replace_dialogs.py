@@ -125,9 +125,10 @@ class _ProgressDialog(wx.Dialog):
             # back to close the dialog and report (matches the tkinter flow).
             try:
                 from core.orchestrator import replace_content
+                # orchestrator calls on_event(stage, payload_dict) positionally.
                 replace_content(
                     course_id, replacements=replace_pairs, body_targets=body_targets,
-                    on_event=lambda name, **p: wx.CallAfter(self._event, name, p),
+                    on_event=lambda name, payload: wx.CallAfter(self._event, name, payload),
                     cancel_event=self._cancel,
                 )
             except Exception as exc:
@@ -326,9 +327,10 @@ class _BulkDialog(wx.Dialog):
             # "Replacing…" — marshal any exception back to reset state + report.
             try:
                 from core.orchestrator import replace_content
+                # orchestrator calls on_event(stage, payload_dict) positionally.
                 replace_content(
                     self._course_id, replacements=pairs, body_targets=body_targets,
-                    on_event=lambda name, **p: wx.CallAfter(self._event, name, p),
+                    on_event=lambda name, payload: wx.CallAfter(self._event, name, payload),
                     cancel_event=self._cancel,
                 )
             except Exception as exc:
