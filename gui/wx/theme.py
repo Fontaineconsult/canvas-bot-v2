@@ -107,6 +107,24 @@ def is_dark():
         return False
 
 
+def _scaled_px(px):
+    """Scale a base-96-DPI pixel size by the current display scaling.
+
+    The process is per-monitor DPI aware, so at 125%/150% we must scale our
+    pixel-based font sizes ourselves (point sizes scale automatically, pixel
+    sizes do not). At 100% this returns px unchanged.
+    """
+    try:
+        hdc = ctypes.windll.user32.GetDC(0)
+        dpi = ctypes.windll.gdi32.GetDeviceCaps(hdc, 88)  # LOGPIXELSX
+        ctypes.windll.user32.ReleaseDC(0, hdc)
+        if dpi and dpi != 96:
+            return max(1, round(px * dpi / 96))
+    except Exception:
+        pass
+    return px
+
+
 class Theme:
     """Resolved palette for the current session.
 
@@ -124,23 +142,34 @@ class Theme:
         self._base_font = None
 
     def base_font(self):
-        """The app UI font: Segoe UI Variable (Win11) / Segoe UI, ~10pt.
+        """The app UI font: classic Segoe UI at an integer pixel height.
 
-        Win11's shell uses Segoe UI Variable; we fall back to Segoe UI, then to
-        the system default GUI font. 10pt reads a touch larger and more modern
-        than wx's default 9pt and matches Win11 spacing.
+        We deliberately use **"Segoe UI"** rather than "Segoe UI Variable" —
+        the variable font renders with soft/thin stems under GDI ClearType,
+        which reads as fuzzy. Classic Segoe UI is heavily hinted and renders
+        crisp. We size it via SetPixelSize (integer pixels) instead of points,
+        because a point size like 10pt = 13.33px at 96 DPI lands between pixels
+        and softens the text; an integer pixel height stays sharp.
         """
         if self._base_font is not None:
             return self._base_font
         font = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
-        for face in ("Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI"):
+        for face in ("Segoe UI", "Tahoma"):
             candidate = wx.Font(font)
             candidate.SetFaceName(face)
             if candidate.IsOk() and candidate.GetFaceName() == face:
                 font = candidate
                 break
-        font.SetPointSize(10)
+        # 14px ≈ 10.5pt: a touch larger than the 12px default, integer-aligned.
+        font.SetPixelSize(wx.Size(0, _scaled_px(14)))
         self._base_font = font
+        return font
+
+    def heading_font(self):
+        """A slightly larger, semibold font for section headings."""
+        font = wx.Font(self.base_font())
+        font.SetPixelSize(wx.Size(0, _scaled_px(17)))
+        font.SetWeight(wx.FONTWEIGHT_SEMIBOLD)
         return font
 
     def apply_font(self, win, recurse=True):

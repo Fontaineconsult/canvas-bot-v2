@@ -71,6 +71,27 @@ def make_button(parent, label, handler, name=None, tooltip=""):
     return btn
 
 
+def make_primary_button(parent, label, handler, theme=None, name=None, tooltip=""):
+    """A native wx.Button styled as the accent/primary action.
+
+    Still a native button (full MSAA/keyboard support) — we only set its
+    background to the theme accent and force a high-contrast foreground. No-op
+    styling under High Contrast so the user's system colors win.
+    """
+    btn = make_button(parent, label, handler, name=name, tooltip=tooltip)
+    if theme is not None and getattr(theme, "active", True):
+        try:
+            accent = theme.color("accent")
+            btn.SetBackgroundColour(accent)
+            # Pick black/white text for best contrast on the accent.
+            r, g, b = accent.Red(), accent.Green(), accent.Blue()
+            luma = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+            btn.SetForegroundColour(wx.Colour("#000000") if luma > 0.5 else wx.Colour("#FFFFFF"))
+        except Exception:
+            pass
+    return btn
+
+
 def make_checkbox(parent, label, name=None, tooltip=""):
     """Create a wx.CheckBox with '&' mnemonic, accessible name, tooltip."""
     cb = wx.CheckBox(parent, label=label)

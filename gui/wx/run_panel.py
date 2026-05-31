@@ -113,8 +113,8 @@ class RunPanel(wx.Panel):
 
         # Run button + status
         run_row = wx.BoxSizer(wx.HORIZONTAL)
-        self.run_btn = widgets.make_button(
-            self, "&Run", self._on_run, name="Run",
+        self.run_btn = widgets.make_primary_button(
+            self, "&Run", self._on_run, theme=self._theme, name="Run",
             tooltip="Start scanning the selected course(s)",
         )
         self.status = widgets.StatusLine(self, label="Status: Ready")
