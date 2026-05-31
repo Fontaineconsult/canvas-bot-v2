@@ -247,6 +247,12 @@ class ContentPanel(wx.Panel):
         self._check_permission_async(self._current_data.get("course_id"))
         self._repopulate()
         self._update_summary()
+        # Speak the loaded course + headline count so a screen-reader user knows
+        # the selection took effect and how much content there is.
+        summary = (self._current_data.get("summary", {}) or {}).get("content", {})
+        total = summary.get("total", self.table.GetItemCount())
+        a11y.announce(f"Loaded {self._current_data.get('course_name', 'course')}, "
+                      f"{total} items", interrupt=True)
 
     def _update_summary(self):
         d = self._current_data or {}
