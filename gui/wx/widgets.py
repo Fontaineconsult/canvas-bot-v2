@@ -87,6 +87,8 @@ def make_primary_button(parent, label, handler, theme=None, name=None, tooltip="
         font = btn.GetFont()
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         btn.SetFont(font)
+        # Opt out of the tree-wide apply_font pass so the bold weight survives.
+        btn._keep_font = True
     except Exception:
         pass
     return btn

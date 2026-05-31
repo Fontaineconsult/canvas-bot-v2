@@ -173,11 +173,17 @@ class Theme:
         return font
 
     def apply_font(self, win, recurse=True):
-        """Set the app font on a window (and optionally its children)."""
-        try:
-            win.SetFont(self.base_font())
-        except Exception:
-            pass
+        """Set the app font on a window (and optionally its children).
+
+        Controls that opt out by setting ``_keep_font = True`` are skipped, so
+        deliberately-styled widgets (e.g. the bold primary button, headings)
+        survive a tree-wide font pass.
+        """
+        if not getattr(win, "_keep_font", False):
+            try:
+                win.SetFont(self.base_font())
+            except Exception:
+                pass
         if recurse:
             for child in win.GetChildren():
                 self.apply_font(child, recurse=True)
