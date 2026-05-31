@@ -23,6 +23,11 @@ class RunPanel(wx.Panel):
         self._running = False
         self._old_stdout = None
         self._old_stderr = None
+        self._last_status = ""   # latest scan status, for the heartbeat to echo
+        # Periodic "still importing" announcement so a screen-reader user knows
+        # the scan is ongoing during the quiet stretches between status changes.
+        self._heartbeat = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._on_heartbeat, self._heartbeat)
         self._build()
         self._load_settings()
         theme.apply_panel(self)
@@ -306,7 +311,12 @@ class RunPanel(wx.Panel):
         self.run_btn.Enable(False)
         self.run_btn.SetLabel("Running…")
         self.log.SetValue("")
+        self._last_status = "Initializing"
         self.status.set_status("Status: Initializing…")
+        # Start the heartbeat: every 10s, re-announce that the scan is running
+        # (with the latest known status) so a screen-reader user isn't left in
+        # silence during long imports. Stopped in _finish_run.
+        self._heartbeat.Start(10000)
 
         # Redirect stdout/stderr into the log view, rendering ANSI colors with
         # a contrast-checked palette on the log's themed background.
@@ -327,16 +337,36 @@ class RunPanel(wx.Panel):
 
     def _worker(self, ids, opts):
         def on_status(text):
-            wx.CallAfter(self.status.set_status, f"Status: {text}")
+            wx.CallAfter(self._update_status, text)
         try:
             app_service.run_scan(ids, opts, on_status)
         finally:
             wx.CallAfter(self._finish_run)
 
+    def _update_status(self, text):
+        """Record the latest status and show+speak it (UI thread)."""
+        self._last_status = text
+        self.status.set_status(f"Status: {text}")
+
+    def _on_heartbeat(self, _evt):
+        """Re-announce that the scan is still running, with the latest status.
+
+        interrupt=False so it never cuts off a more specific status announcement
+        that just fired; it only fills the silent gaps. Speech is a no-op when
+        no screen reader is active, so this is inert on a plain desktop.
+        """
+        if not self._running:
+            return
+        from gui.wx import a11y
+        detail = self._last_status or "working"
+        a11y.announce(f"Still importing — {detail}", interrupt=False)
+
     def _finish_run(self):
         sys.stdout = self._old_stdout
         sys.stderr = self._old_stderr
         self._running = False
+        if self._heartbeat.IsRunning():
+            self._heartbeat.Stop()
         self.run_btn.Enable(True)
         self.run_btn.SetLabel("&Run")
         # Speak a clear end-of-run result (the per-course status already spoke
