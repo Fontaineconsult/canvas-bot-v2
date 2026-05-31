@@ -918,8 +918,8 @@ if __name__=='__main__':
             ctypes.windll.user32.ShowWindow(
                 ctypes.windll.kernel32.GetConsoleWindow(), 0  # SW_HIDE
             )
-            from gui.app import CanvasBotGUI
-            CanvasBotGUI().run()
+            from gui.wx.app import run_wx_gui
+            run_wx_gui()
         except Exception as exc:
             log.exception(f"Unhandled error: {type(exc).__name__}: {exc}")
             # Show console again so the error is visible
