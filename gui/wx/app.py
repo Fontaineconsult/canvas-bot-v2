@@ -10,6 +10,7 @@ import sys
 
 import wx
 
+from gui.wx import a11y
 from gui.wx import theme as theme_mod
 from gui.wx.run_panel import RunPanel
 
@@ -50,6 +51,56 @@ class MainFrame(wx.Frame):
 
         self.SetMinSize((760, 660))
         self.Centre()
+
+        # Surface configuration/token state at launch — visibly AND spoken — so
+        # a screen-reader user learns about a missing/expired token immediately
+        # instead of only when a scan fails.
+        self._validate_config_async()
+
+    def _set_status(self, text, speak=True):
+        """Update the frame status bar and (optionally) speak it.
+
+        wx's native status bar is not auto-announced by screen readers, so we
+        mirror anything important through the Run panel's spoken status line.
+        """
+        self.SetStatusText(text)
+        if speak:
+            if self.run_panel is not None:
+                self.run_panel.set_status(text, speak=True)
+            else:
+                a11y.announce(text, interrupt=True)
+
+    def _validate_config_async(self):
+        """Check config presence, then validate the token off the UI thread.
+
+        Both outcomes are reported through the spoken status line. Network I/O
+        (the /users/self call) runs on a daemon thread inside
+        app_service.validate_token_async; results marshal back via wx.CallAfter.
+        """
+        from gui.core import app_service
+        try:
+            ok, message = app_service.get_config_status()
+        except Exception as exc:
+            self._set_status(f"Configuration check failed: {exc}")
+            return
+        if not ok:
+            # e.g. "Not Configured" / "No API Token" — actionable, so speak it.
+            self._set_status(message)
+            return
+
+        self._set_status("Validating Canvas token…")
+
+        def on_result(valid, msg, info):
+            def apply():
+                if valid:
+                    name = (info or {}).get("name") or "Canvas"
+                    self._set_status(f"Ready — connected as {name}")
+                else:
+                    # Misconfiguration: expired/rejected token, wrong URL, etc.
+                    self._set_status(f"Warning — {msg}")
+            wx.CallAfter(apply)
+
+        app_service.validate_token_async(on_result)
 
     def _build_tab_accelerators(self):
         """Give each tab an Alt+digit shortcut.
@@ -114,12 +165,16 @@ class MainFrame(wx.Frame):
     def _cli(self, flag):
         from gui.core import app_service
         ok, msg = app_service.launch_cli(flag)
-        self.SetStatusText(msg)
+        self._set_status(msg)
+        # Credential resets change config/token state — re-validate (and speak
+        # the new state) shortly after the CLI window has had time to run.
+        if flag in ("--reset_canvas_params", "--reset_canvas_studio_params"):
+            self._set_status("After finishing the console window, reopen to re-check your token.")
 
     def _open_log(self):
         from gui.core import app_service
         ok, msg = app_service.open_log_file()
-        self.SetStatusText(msg)
+        self._set_status(msg)
 
     def _about(self):
         from gui.wx.about import show_about

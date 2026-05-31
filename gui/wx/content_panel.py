@@ -557,5 +557,17 @@ class ContentPanel(wx.Panel):
         # Ignore stale results if the user switched courses
         if (self._current_data or {}).get("course_id") != course_id:
             return
+        was = self._can_replace
         self._can_replace = ok
         self._update_actions()
+        # Speak the replace-availability result once it's known — it arrives
+        # asynchronously after the course loads, so focus is elsewhere; this is
+        # exactly the kind of background state a screen reader can't infer.
+        if not reached:
+            a11y.announce("Could not verify file-edit permission; "
+                          "replace is unavailable.", interrupt=False)
+        elif ok and not was:
+            a11y.announce("File replace available for this course.", interrupt=False)
+        elif not ok:
+            a11y.announce("You do not have permission to replace files in this course.",
+                          interrupt=False)

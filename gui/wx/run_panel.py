@@ -144,6 +144,7 @@ class RunPanel(wx.Panel):
             tooltip="Start scanning the selected course(s)",
         )
         self.status = widgets.StatusLine(self, label="Status: Ready")
+        widgets.set_name(self.status, "Status")
         run_row.Add(self.run_btn, 0, wx.RIGHT, 12)
         run_row.Add(self.status, 1, wx.ALIGN_CENTER_VERTICAL)
         outer.Add(run_row, 0, wx.EXPAND | wx.ALL, 8)
@@ -155,6 +156,11 @@ class RunPanel(wx.Panel):
         outer.Add(self.log, 1, wx.EXPAND | wx.ALL, 8)
 
         self.SetSizer(outer)
+
+    def set_status(self, text, speak=True):
+        """Public spoken-status setter so the frame can route launch-time
+        config/token feedback through the same visible+spoken status line."""
+        self.status.set_status(f"Status: {text}", speak=speak)
 
     # ── settings ──
 
@@ -333,6 +339,11 @@ class RunPanel(wx.Panel):
         self._running = False
         self.run_btn.Enable(True)
         self.run_btn.SetLabel("&Run")
+        # Speak a clear end-of-run result (the per-course status already spoke
+        # progress; this is the "you can act now" cue for a screen-reader user).
+        from gui.wx import a11y
+        a11y.announce("Scan finished. See the Content tab to review results.",
+                      interrupt=True)
         # Notify the main frame so the Content Viewer can refresh.
         top = self.GetTopLevelParent()
         if hasattr(top, "on_scan_complete"):
