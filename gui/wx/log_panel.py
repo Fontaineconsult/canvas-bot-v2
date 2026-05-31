@@ -31,6 +31,14 @@ class LogRedirector:
     def __init__(self, text_ctrl, original=None):
         self._ctrl = text_ctrl
         self._original = original
+        # Mimic a real text stream: some code (e.g. tools/canvas_tree.py) probes
+        # sys.stdout.encoding to decide whether it can emit unicode. Mirror the
+        # wrapped stream's encoding, defaulting to utf-8.
+        self.encoding = getattr(original, "encoding", None) or "utf-8"
+
+    # isatty/fileno are occasionally probed too; answer conservatively.
+    def isatty(self):
+        return False
 
     def write(self, text):
         if self._original is not None:
