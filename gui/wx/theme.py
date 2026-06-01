@@ -128,11 +128,10 @@ def _scaled_px(px):
 # LOGFONT.lfQuality. wxMSW serializes the LOGFONT as a ';'-joined string; field
 # 13 is lfQuality and defaults to 0 (DEFAULT_QUALITY), which lets GDI choose and
 # can leave text under-smoothed (jaggy). We force a specific quality:
-#   4 = ANTIALIASED_QUALITY (grayscale AA — smooth, no subpixel color fringe,
-#       closest to the DirectWrite-drawn window title)
-#   5 = CLEARTYPE_QUALITY  (subpixel AA — sharper but can show RGB fringing)
-# Grayscale reads cleaner next to the native title bar, so it's the default.
-_FONT_QUALITY = "4"
+#   5 = CLEARTYPE_QUALITY  (subpixel AA — sharper; the chosen look)
+#   4 = ANTIALIASED_QUALITY (grayscale AA — smoother/fringe-free but softer)
+# ClearType reads sharper here, so it's the default; swap to "4" for grayscale.
+_FONT_QUALITY = "5"
 _QUALITY_FIELD = 13
 
 
