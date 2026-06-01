@@ -125,24 +125,27 @@ def _scaled_px(px):
     return px
 
 
-# LOGFONT.lfQuality = CLEARTYPE_QUALITY. wxMSW serializes the LOGFONT as a
-# ';'-joined string; field 13 is lfQuality and defaults to 0 (DEFAULT_QUALITY),
-# which lets GDI choose and can render text — especially synthesized weights —
-# without ClearType smoothing (jaggy). Forcing 5 turns ClearType on explicitly.
-_CLEARTYPE_QUALITY = "5"
+# LOGFONT.lfQuality. wxMSW serializes the LOGFONT as a ';'-joined string; field
+# 13 is lfQuality and defaults to 0 (DEFAULT_QUALITY), which lets GDI choose and
+# can leave text under-smoothed (jaggy). We force a specific quality:
+#   4 = ANTIALIASED_QUALITY (grayscale AA — smooth, no subpixel color fringe,
+#       closest to the DirectWrite-drawn window title)
+#   5 = CLEARTYPE_QUALITY  (subpixel AA — sharper but can show RGB fringing)
+# Grayscale reads cleaner next to the native title bar, so it's the default.
+_FONT_QUALITY = "4"
 _QUALITY_FIELD = 13
 
 
-def _force_cleartype(font):
-    """Force ClearType anti-aliasing on a wx.Font (Windows, no-op elsewhere).
+def _force_font_quality(font):
+    """Force a specific text anti-aliasing quality on a wx.Font (Windows only).
 
     Rewrites only the lfQuality field of the native font-info string, so weight,
     size and face are preserved. Unexpected formats are left untouched.
     """
     try:
         parts = font.GetNativeFontInfoDesc().split(";")
-        if len(parts) > _QUALITY_FIELD and parts[_QUALITY_FIELD] != _CLEARTYPE_QUALITY:
-            parts[_QUALITY_FIELD] = _CLEARTYPE_QUALITY
+        if len(parts) > _QUALITY_FIELD and parts[_QUALITY_FIELD] != _FONT_QUALITY:
+            parts[_QUALITY_FIELD] = _FONT_QUALITY
             font.SetNativeFontInfo(";".join(parts))
     except Exception:
         pass
@@ -192,7 +195,7 @@ class Theme:
         # Real Semibold aliases too, so weight doesn't change it; we keep the 500
         # the look we want and address smoothing via the font quality flag below.
         font.SetWeight(wx.FONTWEIGHT_MEDIUM)
-        _force_cleartype(font)   # smooth ClearType edges (fixes jaggy synth weight)
+        _force_font_quality(font)   # grayscale AA — smoother, fringe-free edges
         self._base_font = font
         return font
 
@@ -201,7 +204,7 @@ class Theme:
         font = wx.Font(self.base_font())
         font.SetPixelSize(wx.Size(0, _scaled_px(17)))
         font.SetWeight(wx.FONTWEIGHT_SEMIBOLD)
-        return _force_cleartype(font)
+        return _force_font_quality(font)
 
     def apply_font(self, win, recurse=True):
         """Set the app font on a window (and optionally its children).
