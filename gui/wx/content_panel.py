@@ -102,6 +102,33 @@ _BLOCKED_EXT = frozenset({
 })
 
 
+def _force_rmtree(path):
+    """Delete a directory tree, clearing read-only files first (Windows).
+
+    Returns (True, None) on success or (False, message) on failure. Windows
+    marks many downloaded files read-only, so a plain shutil.rmtree fails on
+    them with a permission error; the error handler clears the read-only bit and
+    retries the failed unlink/rmdir. Files or the folder still held open by
+    another program (File Explorer, a PDF viewer) can't be removed and surface
+    as the returned message.
+    """
+    import stat
+
+    def _on_error(func, p, _exc):
+        # Clear read-only and retry; if that still fails, let it propagate.
+        os.chmod(p, stat.S_IWRITE)
+        func(p)
+
+    try:
+        try:
+            shutil.rmtree(path, onexc=_on_error)        # Python 3.12+
+        except TypeError:
+            shutil.rmtree(path, onerror=_on_error)      # older Python
+        return True, None
+    except OSError as exc:
+        return False, str(exc)
+
+
 class ContentPanel(wx.Panel):
     def __init__(self, parent, theme):
         super().__init__(parent)
@@ -523,12 +550,16 @@ class ContentPanel(wx.Panel):
         if not confirmed:
             return
         a11y.announce(f"Deleting {name}", interrupt=True)
-        try:
-            shutil.rmtree(folder)
-        except OSError as exc:
-            wx.MessageBox(f"Could not delete folder:\n{folder}\n\n{exc}",
-                          "Delete failed", wx.OK | wx.ICON_ERROR, self)
-            a11y.announce("Delete failed", interrupt=True)
+        ok, err = _force_rmtree(folder)
+        if not ok:
+            wx.MessageBox(
+                f"Could not delete this folder:\n{folder}\n\n{err}\n\n"
+                "Close anything from this course that may be open — including "
+                "the folder itself in File Explorer and any open files — then "
+                "try again.",
+                "Delete failed", wx.OK | wx.ICON_ERROR, self)
+            a11y.announce("Delete failed. Close any open files from this course "
+                          "and try again.", interrupt=True)
             return
         self.refresh_courses()
         a11y.announce(
