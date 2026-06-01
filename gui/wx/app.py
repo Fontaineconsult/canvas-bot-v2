@@ -154,7 +154,7 @@ class MainFrame(wx.Frame):
         bar.Append(cfg_menu, "&Config")
 
         help_menu = wx.Menu()
-        about_item = help_menu.Append(wx.ID_ABOUT, "&About\tF1", "About Canvas Bot")
+        about_item = help_menu.Append(wx.ID_ABOUT, "&Help\tF1", "Open Canvas Bot help")
         welcome_item = help_menu.Append(wx.ID_ANY, "Show &Welcome", "Show the welcome guide")
         self.Bind(wx.EVT_MENU, lambda e: self._about(), about_item)
         self.Bind(wx.EVT_MENU, lambda e: self._welcome(force=True), welcome_item)
