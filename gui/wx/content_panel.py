@@ -495,10 +495,14 @@ class ContentPanel(wx.Panel):
         can_replace_row = (self._can_replace and is_doc and has
                            and row.get("canvas_file_id") and row.get("file_source") == "Canvas")
         self.replace_btn.Enable(bool(can_replace_row))
-        # Bulk is only meaningful when at least one document is a replaceable
-        # Canvas file; when every document is an External File there is nothing
-        # to bulk-replace, so keep it disabled.
-        self.bulk_btn.Enable(bool(self._can_replace and is_doc and self._has_replaceable_docs()))
+        # Bulk acts on all course documents, so it needs at least one replaceable
+        # Canvas file in the course. It is also kept inactive while the current
+        # selection is a non-replaceable External File document, so picking such
+        # a row never offers a replace action for it.
+        selected_external = has and row.get("file_source") == "External File"
+        self.bulk_btn.Enable(bool(self._can_replace and is_doc
+                                  and self._has_replaceable_docs()
+                                  and not selected_external))
         course_url = (self._current_data or {}).get("course_url")
         self.canvas_btn.Enable(bool(course_url))
         real_course = self.course_choice.GetStringSelection() in self._course_folders
