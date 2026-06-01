@@ -455,6 +455,16 @@ class ContentPanel(wx.Panel):
         matches = glob.glob(_DATE_FOLDER_RE.sub("*", norm, count=1))
         return matches[0] if matches else None
 
+    def _has_replaceable_docs(self):
+        """True if the course has >=1 Canvas document file that can be replaced.
+
+        A document is replaceable only when it carries a canvas_file_id and is
+        sourced from Canvas (file_source == "Canvas"); External File rows are
+        links to outside resources and can't be replaced.
+        """
+        return any(r.get("canvas_file_id") and r.get("file_source") == "Canvas"
+                   for r in self.get_document_rows())
+
     def _update_actions(self):
         row = self.table.get_selected_data()
         has = row is not None
@@ -470,10 +480,25 @@ class ContentPanel(wx.Panel):
         self.open_file_btn.Enable(bool(resolved))
         self.open_src_btn.Enable(bool(spu))
         is_doc = self._table_key == "documents"
+        # Replace flows apply only to downloadable Canvas document files. Hide the
+        # Replace / Bulk Replace buttons entirely for any other content type
+        # (sites, external links, pages, non-document files) instead of leaving
+        # them visible-but-dead.
+        if self.replace_btn.IsShown() != is_doc:
+            self.replace_btn.Show(is_doc)
+            self.bulk_btn.Show(is_doc)
+            sizer = self.replace_btn.GetContainingSizer()
+            if sizer is not None:
+                sizer.Layout()
+        # A row is replaceable only if it is a real Canvas file (has a
+        # canvas_file_id and is sourced from Canvas, not an External File link).
         can_replace_row = (self._can_replace and is_doc and has
                            and row.get("canvas_file_id") and row.get("file_source") == "Canvas")
         self.replace_btn.Enable(bool(can_replace_row))
-        self.bulk_btn.Enable(bool(self._can_replace and is_doc and self._current_data))
+        # Bulk is only meaningful when at least one document is a replaceable
+        # Canvas file; when every document is an External File there is nothing
+        # to bulk-replace, so keep it disabled.
+        self.bulk_btn.Enable(bool(self._can_replace and is_doc and self._has_replaceable_docs()))
         course_url = (self._current_data or {}).get("course_url")
         self.canvas_btn.Enable(bool(course_url))
         real_course = self.course_choice.GetStringSelection() in self._course_folders
