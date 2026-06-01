@@ -13,6 +13,7 @@ mutation, and ``network.api.get_course_permissions`` (async) to gate replace.
 import glob
 import json
 import os
+import shutil
 import threading
 import webbrowser
 
@@ -134,7 +135,17 @@ class ContentPanel(wx.Panel):
         self.open_folder_btn = widgets.make_button(self, "Open Fol&der", self._on_open_folder, name="Open course folder")
         top.Add(self.open_folder_btn, 0, wx.RIGHT, 4)
         self.canvas_btn = widgets.make_button(self, "Open in Can&vas", self._on_open_canvas, name="Open in Canvas")
-        top.Add(self.canvas_btn, 0)
+        top.Add(self.canvas_btn, 0, wx.RIGHT, 4)
+        # Destructive action, set apart at the far right. Native styling (custom
+        # button colours render washed/low-contrast on MSW); the danger is
+        # conveyed by the label, tooltip, and a warning confirmation dialog.
+        self.delete_btn = widgets.make_button(
+            self, "Delete Course Dat&a", self._on_delete,
+            name="Delete course data",
+            tooltip="Permanently delete the selected course's downloaded folder "
+                    "and data on this computer (cannot be undone)",
+        )
+        top.Add(self.delete_btn, 0)
         outer.Add(top, 0, wx.EXPAND | wx.ALL, 8)
 
         # Row 2: course info + content-type choice + status buttons
@@ -218,6 +229,9 @@ class ContentPanel(wx.Panel):
             self._current_data = None
             self.table.DeleteAllItems()
             self.info.SetLabel("No scanned courses found")
+            # No course selected — disable the per-course actions (delete, open
+            # folder, open in Canvas) that would otherwise stay stale-enabled.
+            self._update_actions()
 
     def _on_refresh(self, _evt):
         self.refresh_courses()
@@ -435,7 +449,9 @@ class ContentPanel(wx.Panel):
         self.bulk_btn.Enable(bool(self._can_replace and is_doc and self._current_data))
         course_url = (self._current_data or {}).get("course_url")
         self.canvas_btn.Enable(bool(course_url))
-        self.open_folder_btn.Enable(bool(self.course_choice.GetStringSelection() in self._course_folders))
+        real_course = self.course_choice.GetStringSelection() in self._course_folders
+        self.open_folder_btn.Enable(bool(real_course))
+        self.delete_btn.Enable(bool(real_course))
 
     def _on_open_location(self, _evt):
         row = self.table.get_selected_data()
@@ -481,6 +497,43 @@ class ContentPanel(wx.Panel):
             self.Bind(wx.EVT_MENU, lambda e, u=url: webbrowser.open(u), item)
         self.PopupMenu(menu)
         menu.Destroy()
+
+    def _on_delete(self, _evt):
+        """Delete the selected course's local folder (downloads + manifest).
+
+        Mirrors the old CTk Content Viewer's Delete button. Removes only the
+        folder under the user's output directory that this app created — never
+        anything on Canvas. Gated behind a warning dialog whose default button is
+        No, so a stray Enter can't trigger it.
+        """
+        name = self.course_choice.GetStringSelection()
+        folder = self._course_folders.get(name)
+        if not folder or not os.path.isdir(folder):
+            return
+        msg = ("Permanently delete this course's downloaded folder and all its "
+               "data on this computer?\n\nThis only removes local files — it does "
+               "not affect anything on Canvas. It cannot be undone.\n\n"
+               f"{name}\n{folder}")
+        dlg = wx.MessageDialog(self, msg, "Delete Course Data",
+                               wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
+        try:
+            confirmed = dlg.ShowModal() == wx.ID_YES
+        finally:
+            dlg.Destroy()
+        if not confirmed:
+            return
+        a11y.announce(f"Deleting {name}", interrupt=True)
+        try:
+            shutil.rmtree(folder)
+        except OSError as exc:
+            wx.MessageBox(f"Could not delete folder:\n{folder}\n\n{exc}",
+                          "Delete failed", wx.OK | wx.ICON_ERROR, self)
+            a11y.announce("Delete failed", interrupt=True)
+            return
+        self.refresh_courses()
+        a11y.announce(
+            f"Deleted {name}. {len(self._course_folders)} courses remaining.",
+            interrupt=True)
 
     def _on_open_folder(self, _evt):
         folder = self._course_folders.get(self.course_choice.GetStringSelection())
