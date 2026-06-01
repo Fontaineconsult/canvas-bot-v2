@@ -162,6 +162,11 @@ class Theme:
                 break
         # 14px ≈ 10.5pt: a touch larger than the 12px default, integer-aligned.
         font.SetPixelSize(wx.Size(0, _scaled_px(14)))
+        # Medium weight (500) gives the UI text a slightly heavier, more legible
+        # stroke than Regular (400) without going full bold. Note Segoe UI has no
+        # native 500 face (it steps Regular -> Semibold), so the exact rendering
+        # depends on the platform's font mapper; step to SEMIBOLD if too subtle.
+        font.SetWeight(wx.FONTWEIGHT_MEDIUM)
         self._base_font = font
         return font
 
