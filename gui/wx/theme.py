@@ -195,7 +195,7 @@ class Theme:
         # Real Semibold aliases too, so weight doesn't change it; we keep the 500
         # the look we want and address smoothing via the font quality flag below.
         font.SetWeight(wx.FONTWEIGHT_MEDIUM)
-        _force_font_quality(font)   # grayscale AA — smoother, fringe-free edges
+        _force_font_quality(font)   # force ClearType AA (sharper edges)
         self._base_font = font
         return font
 
