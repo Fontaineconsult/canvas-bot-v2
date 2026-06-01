@@ -186,11 +186,13 @@ class Theme:
                 break
         # 14px ≈ 10.5pt: a touch larger than the 12px default, integer-aligned.
         font.SetPixelSize(wx.Size(0, _scaled_px(14)))
-        # Medium weight (500) gives the UI text a slightly heavier, more legible
-        # stroke than Regular (400) without going full bold. Note Segoe UI has no
-        # native 500 face (it steps Regular -> Semibold), so the exact rendering
-        # depends on the platform's font mapper; step to SEMIBOLD if too subtle.
-        font.SetWeight(wx.FONTWEIGHT_MEDIUM)
+        # Use SEMIBOLD (600): Segoe UI ships a REAL "Segoe UI Semibold" face, so
+        # GDI renders it from a hinted outline and it stays crisp. Medium (500)
+        # has no real face — GDI synthesizes it by thickening Regular, which
+        # renders soft/jaggy next to the DirectWrite-drawn window title. Semibold
+        # is the lightest real face above Regular, so it's crisp AND a touch
+        # heavier (the look we want) without the synthesis artifacts.
+        font.SetWeight(wx.FONTWEIGHT_SEMIBOLD)
         _force_cleartype(font)   # smooth ClearType edges (fixes jaggy synth weight)
         self._base_font = font
         return font
