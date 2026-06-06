@@ -33,10 +33,10 @@ class PatternPanel(wx.Panel):
         # Left: categories
         left = wx.BoxSizer(wx.VERTICAL)
         left.Add(wx.StaticText(self, label="Categ&ories:"), 0, wx.BOTTOM, 4)
-        self.cat_list = wx.ListBox(self, style=wx.LB_SINGLE)
+        self.cat_list = wx.ListBox(self, style=wx.LB_SINGLE | wx.BORDER_NONE)
         widgets.set_name(self.cat_list, "Pattern categories")
         self.cat_list.Bind(wx.EVT_LISTBOX, self._on_cat)
-        left.Add(self.cat_list, 1, wx.EXPAND | wx.BOTTOM, 6)
+        left.Add(widgets.card(self, self.cat_list, self._theme), 1, wx.EXPAND | wx.BOTTOM, 6)
         left.Add(widgets.make_button(self, "Reset All to D&efaults", self._on_reset,
                                      name="Reset all patterns to defaults"), 0, wx.EXPAND)
         outer.Add(left, 0, wx.EXPAND | wx.ALL, 8)
@@ -46,11 +46,11 @@ class PatternPanel(wx.Panel):
         self.cat_header = wx.StaticText(self, label="Select a category")
         right.Add(self.cat_header, 0, wx.BOTTOM, 4)
 
-        self.pat_list = widgets.AccessibleListCtrl(self, announce_columns=[1])
+        self.pat_list = widgets.AccessibleListCtrl(self, announce_columns=[1], border=False)
         self.pat_list.set_columns([("#", 50), ("Pattern", 480)])
         self.pat_list.Bind(wx.EVT_LIST_ITEM_SELECTED, lambda e: self._update_buttons())
         self.pat_list.Bind(wx.EVT_LIST_ITEM_DESELECTED, lambda e: self._update_buttons())
-        right.Add(self.pat_list, 1, wx.EXPAND | wx.BOTTOM, 6)
+        right.Add(widgets.card(self, self.pat_list, self._theme), 1, wx.EXPAND | wx.BOTTOM, 6)
 
         self.status = widgets.StatusLine(self, label="")
         right.Add(self.status, 0, wx.BOTTOM, 6)

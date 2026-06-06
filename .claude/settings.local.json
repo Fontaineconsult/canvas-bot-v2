@@ -24,7 +24,17 @@
       "Bash(grep -avE \"Documing|^\\\\s*$\" CHANGELOG.md)",
       "Bash(git --no-pager status --short)",
       "Bash(git --no-pager log --oneline -6)",
-      "Bash(git --no-pager diff --stat readme.md CHANGELOG.md core/content_scaffolds.py)"
+      "Bash(git --no-pager diff --stat readme.md CHANGELOG.md core/content_scaffolds.py)",
+      "Bash(timeout 40 python _chk.py)",
+      "Bash(echo \"RC=$?\")",
+      "Bash(python -c \"import json;print\\(json.dumps\\(json.load\\(open\\('_chk_out.json'\\)\\),indent=2\\)\\)\")",
+      "Bash(rm -f _chk.py _chk_out.json)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m 'wx GUI: maximize screen-reader feedback for config/status events *)",
+      "Bash(python3)",
+      "Bash(timeout 40 python _final.py)",
+      "Bash(python -c \"import json;print\\(json.dumps\\(json.load\\(open\\('_final_out.json'\\)\\),indent=2\\)\\)\")",
+      "Bash(rm -f _final.py _final_out.json)"
     ]
   }
 }

@@ -211,10 +211,10 @@ class ContentPanel(wx.Panel):
         outer.Add(row3, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         # Row 4: the table
-        self.table = widgets.AccessibleListCtrl(self, announce_columns=[1, 6, 4])
+        self.table = widgets.AccessibleListCtrl(self, announce_columns=[1, 6, 4], border=False)
         self.table.Bind(wx.EVT_LIST_ITEM_SELECTED, self._on_row)
         self.table.Bind(wx.EVT_LIST_ITEM_DESELECTED, lambda e: self._update_actions())
-        outer.Add(self.table, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 8)
+        outer.Add(widgets.card(self, self.table, self._theme), 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 8)
 
         # Row 5: action buttons
         row5 = wx.BoxSizer(wx.HORIZONTAL)

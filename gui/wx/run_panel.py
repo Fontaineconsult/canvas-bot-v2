@@ -97,6 +97,12 @@ class RunPanel(wx.Panel):
         except Exception:
             pass
         self.course_list.Bind(wx.EVT_TEXT, self._on_course_inputs_changed)
+        # output_folder + course_list are read-only, which Windows paints grey;
+        # force them to the white editable background so they match Course ID.
+        if getattr(self._theme, "active", True):
+            for _fld in (self.output_folder, self.course_list):
+                _fld.SetBackgroundColour(self._theme.color("window_bg"))
+                _fld.SetForegroundColour(self._theme.color("text"))
         self._browse_list = widgets.make_button(
             self, "&Browse…", self._on_browse_list,
             name="Browse for course list", tooltip="Select a .txt file of course IDs",
@@ -165,7 +171,7 @@ class RunPanel(wx.Panel):
         log_lbl = wx.StaticText(self, label="Output log:")
         outer.Add(log_lbl, 0, wx.LEFT | wx.RIGHT, 8)
         self.log = make_log_ctrl(self, theme=self._theme)
-        outer.Add(self.log, 1, wx.EXPAND | wx.ALL, 8)
+        outer.Add(widgets.card(self, self.log, self._theme), 1, wx.EXPAND | wx.ALL, 8)
 
         self.SetSizer(outer)
 

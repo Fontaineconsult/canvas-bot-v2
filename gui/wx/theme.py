@@ -23,10 +23,11 @@ log = logging.getLogger(__name__)
 # Each fg/bg pair below is >= 8:1. Verified with the WCAG relative-luminance
 # formula (see _contrast_ratio / the theme self-test).
 _DARK = {
-    "window_bg":   "#121212",  # near-black, avoids pure-black halation
-    "panel_bg":    "#1E1E1E",
+    "window_bg":   "#0C0C0C",  # deep near-black base (tables/log/notebook insets)
+    "panel_bg":    "#1A1A1A",  # panels sit a clear step above the base for depth
+    "border":      "#3A3A3A",  # card/inset outline — visible on both bg + panel
     "text":        "#F0F0F0",  # ~17:1 on window_bg
-    "muted_text":  "#B8B8B8",  # ~8.6:1 on window_bg
+    "muted_text":  "#B8B8B8",  # ~9.9:1 on window_bg
     "accent":      "#6BB4FF",  # lightened to clear >=8:1 on window_bg
     "selection_bg": "#264F78",
     "selection_text": "#FFFFFF",
@@ -36,10 +37,11 @@ _DARK = {
 }
 
 _LIGHT = {
-    "window_bg":   "#FFFFFF",
-    "panel_bg":    "#F4F4F4",
+    "window_bg":   "#FFFFFF",  # crisp white insets (tables/log/fields) pop as "cards"
+    "panel_bg":    "#E6EAF0",  # soft cool grey canvas — distinct from white for depth
+    "border":      "#C3CAD6",  # card/inset outline — visible on both white + panel
     "text":        "#1A1A1A",  # ~17:1 on white
-    "muted_text":  "#4D4D4D",  # ~8.4:1 on white
+    "muted_text":  "#404040",  # deepened so it stays >=8:1 even on the cooler panel
     "accent":      "#00407F",  # darkened so it clears >=8:1 on white
     "selection_bg": "#CCE4FF",
     "selection_text": "#1A1A1A",

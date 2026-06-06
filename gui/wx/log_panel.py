@@ -258,7 +258,9 @@ def make_log_ctrl(parent, name="Output log", theme=None):
     """
     ctrl = wx.TextCtrl(
         parent,
-        style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2 | wx.HSCROLL,
+        # BORDER_NONE: the log is wrapped by widgets.card(), whose flat outline is
+        # the only edge — a native sunken border would double up (white top-left).
+        style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2 | wx.HSCROLL | wx.BORDER_NONE,
     )
     try:
         ctrl.SetName(name)

@@ -24,6 +24,34 @@ def set_name(ctrl, name):
     return ctrl
 
 
+def card(parent, ctrl, theme, thickness=2):
+    """Wrap a control in a border-colored panel so it reads as a raised card.
+
+    Big data surfaces (the log, the content table, the pattern lists) are white/
+    near-black insets sitting on the cooler panel canvas; this outline gives them
+    a defined edge instead of bleeding into the panel. ``ctrl`` is reparented into
+    the returned holder, which should be added to the sizer in ``ctrl``'s place.
+
+    The border is the holder's background showing through even padding on every
+    side, so it is uniform on all four edges — unlike a native control border,
+    which is a 3D bevel (light top/left, dark bottom/right). For that reason the
+    wrapped controls are built with ``wx.BORDER_NONE`` so the two don't double up.
+    Under High Contrast we draw no border and defer to system colors.
+    """
+    holder = wx.Panel(parent)
+    sizer = wx.BoxSizer(wx.VERTICAL)
+    active = getattr(theme, "active", True)
+    if active:
+        try:
+            holder.SetBackgroundColour(theme.color("border"))
+        except Exception:
+            active = False
+    ctrl.Reparent(holder)
+    sizer.Add(ctrl, 1, wx.EXPAND | wx.ALL, thickness if active else 0)
+    holder.SetSizer(sizer)
+    return holder
+
+
 def labeled_text(parent, label, value="", name=None, password=False,
                  readonly=False, hint=""):
     """A horizontal (StaticText label + wx.TextCtrl) pair.
@@ -152,12 +180,17 @@ class AccessibleListCtrl(wx.ListCtrl):
     whole row, not just the first cell.
     """
 
-    def __init__(self, parent, announce_columns=None, **kw):
+    def __init__(self, parent, announce_columns=None, border=True, **kw):
         # LC_HRULES/LC_VRULES draw grid lines: the horizontal rule below the
         # header cleanly separates it from the data rows, and vertical rules
         # divide the columns — native, no custom drawing, accessibility-neutral.
+        # ``border=False`` (used when the list is wrapped by ``card()``) drops the
+        # native beveled border so it doesn't double up with the card's flat
+        # outline — the bevel's light top/left highlight otherwise reads as a
+        # white gap inside the card frame.
+        edge = wx.BORDER_THEME if border else wx.BORDER_NONE
         style = kw.pop("style", wx.LC_REPORT | wx.LC_SINGLE_SEL
-                       | wx.LC_HRULES | wx.LC_VRULES | wx.BORDER_THEME)
+                       | wx.LC_HRULES | wx.LC_VRULES | edge)
         super().__init__(parent, style=style, **kw)
         self._headings = []
         # Indices of columns to include in the spoken summary (default: all).

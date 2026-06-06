@@ -26,12 +26,15 @@ class MainFrame(wx.Frame):
         self._set_icon()
 
         self.notebook = wx.Notebook(self)
-        self.theme.apply_window(self)
-        self.theme.apply_window(self.notebook)
+        # Frame + notebook chrome use the grey panel color (not white window_bg),
+        # so the area around/behind the tab strip matches the panels instead of
+        # showing as an odd white band against the grey content.
+        self.theme.apply_panel(self)
+        self.theme.apply_panel(self.notebook)
 
         # Run tab (always present)
         self.run_panel = RunPanel(self.notebook, self.theme)
-        self.notebook.AddPage(self.run_panel, "Run")
+        self.notebook.AddPage(self._wrap_page(self.run_panel), "Run")
 
         # Content + Patterns panels are added when their modules are available.
         self.content_panel = None
@@ -46,6 +49,7 @@ class MainFrame(wx.Frame):
 
         # Modern UI font across the whole tree, then Win10/11 window chrome.
         self.theme.apply_font(self)
+        self._bold_tabs()
         self._apply_chrome()
         self.Bind(wx.EVT_SHOW, self._on_show)
 
@@ -161,6 +165,16 @@ class MainFrame(wx.Frame):
         bar.Append(help_menu, "&Help")
 
         self.SetMenuBar(bar)
+        # Best-effort: tint the menu bar to the panel grey so it doesn't sit as a
+        # white band above the (now grey) chrome. The native Win32 menu bar is
+        # OS-drawn and often ignores this — accepted; we don't owner-draw menus
+        # (that would degrade screen-reader support). No-op under High Contrast.
+        if self.theme.active:
+            try:
+                bar.SetBackgroundColour(self.theme.color("panel_bg"))
+                bar.SetForegroundColour(self.theme.color("text"))
+            except Exception:
+                pass
 
     def _cli(self, flag):
         from gui.core import app_service
@@ -199,15 +213,65 @@ class MainFrame(wx.Frame):
         try:
             from gui.wx.content_panel import ContentPanel
             self.content_panel = ContentPanel(self.notebook, self.theme)
-            self.notebook.AddPage(self.content_panel, "Content")
+            self.notebook.AddPage(self._wrap_page(self.content_panel), "Content")
         except Exception:
             pass
         try:
             from gui.wx.pattern_panel import PatternPanel
             self.pattern_panel = PatternPanel(self.notebook, self.theme)
-            self.notebook.AddPage(self.pattern_panel, "Patterns")
+            self.notebook.AddPage(self._wrap_page(self.pattern_panel), "Patterns")
         except Exception:
             pass
+
+    def _bold_tabs(self):
+        """Bold the notebook tab labels (native, accessibility-safe).
+
+        On MSW the native tab control renders its labels in the notebook's own
+        font, so a bold copy of the base font makes the tab text bold without
+        touching page contents (each child keeps the font apply_font gave it).
+        Set after the tree-wide font pass and flagged ``_keep_font`` so it isn't
+        overwritten. No-op friendly: failures are swallowed.
+        """
+        try:
+            font = wx.Font(self.theme.base_font())
+            font.SetWeight(wx.FONTWEIGHT_SEMIBOLD)  # 600 — lighter than full bold
+            theme_mod._force_font_quality(font)
+            self.notebook._keep_font = True
+            self.notebook.SetFont(font)
+            # Soften the tab label color ~25% toward neutral grey so the now-bold
+            # text reads a touch lighter. Derived from the palette so it tracks
+            # light/dark. (Native tab controls may draw their own label color and
+            # ignore this — accepted, same as the menu bar.)
+            if self.theme.active:
+                t = self.theme.color("text")
+                grey = wx.Colour(*[round(v + (128 - v) * 0.25)
+                                   for v in (t.Red(), t.Green(), t.Blue())])
+                self.notebook.SetForegroundColour(grey)
+            self.notebook.Refresh()
+        except Exception:
+            pass
+
+    def _wrap_page(self, panel):
+        """Wrap a notebook page so it gets a crisp edge under the tab strip.
+
+        The native tab control butts content straight against the tabs; a thin
+        full-width accent rule (plus a little breathing room) gives each tab a
+        defined top edge. Done here once so all panels share it without each
+        having to alter its own sizer. Skipped visually under High Contrast,
+        where we defer to system colors.
+        """
+        container = wx.Panel(self.notebook)
+        self.theme.apply_panel(container)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        rule = wx.Panel(container, size=wx.Size(-1, 2))
+        if self.theme.active:
+            rule.SetBackgroundColour(self.theme.color("accent"))
+        sizer.Add(rule, 0, wx.EXPAND)
+        sizer.AddSpacer(6)
+        panel.Reparent(container)
+        sizer.Add(panel, 1, wx.EXPAND)
+        container.SetSizer(sizer)
+        return container
 
     def _set_icon(self):
         icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "cb.ico")
