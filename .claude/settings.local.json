@@ -34,7 +34,8 @@
       "Bash(python3)",
       "Bash(timeout 40 python _final.py)",
       "Bash(python -c \"import json;print\\(json.dumps\\(json.load\\(open\\('_final_out.json'\\)\\),indent=2\\)\\)\")",
-      "Bash(rm -f _final.py _final_out.json)"
+      "Bash(rm -f _final.py _final_out.json)",
+      "PowerShell(python -m py_compile gui/wx/config_dialog.py gui/core/app_service.py gui/wx/app.py config/yaml_io.py network/files.py tools/replace_content_cli.py; echo \"compile exit: $LASTEXITCODE\")"
     ]
   }
 }

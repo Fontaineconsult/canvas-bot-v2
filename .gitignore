@@ -10,3 +10,4 @@
 /nul
 __pycache__/
 *.pyc
+/test/test_pdfs/
