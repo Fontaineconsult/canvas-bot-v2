@@ -13,7 +13,7 @@ import wx.adv
 from gui.core import settings
 from gui.wx import win_style
 
-_VERSION = "1.3.0"
+_VERSION = "1.2.3"  # keep in sync with canvas_bot.__version__
 
 # ── content model ───────────────────────────────────────────────────────────
 # Each page is a list of items rendered into a rich TextCtrl:
@@ -33,18 +33,20 @@ _ABOUT_HELP = [
           "instructional designers and accessibility specialists who audit courses "
           "at scale."),
     ("h", "Getting Started"),
-    ("p", "1.  Open the Config menu and choose “Reset Canvas API Credentials.”"),
+    ("p", "1.  Open the Config menu and choose “Configure Canvas Connection…” "
+          "(Ctrl+Shift+C)."),
     ("p", "2.  Enter your institution identifier (e.g. “sfsu” for "
-          "sfsu.instructure.com)."),
-    ("p", "3.  Paste your Canvas API access token when prompted."),
-    ("p", "4.  On the Run tab, enter a course ID, choose an output folder, and "
+          "sfsu.instructure.com), paste your Canvas API access token, and use "
+          "Test Connection to verify before saving."),
+    ("p", "3.  On the Run tab, enter a course ID, choose an output folder, and "
           "click Run."),
     ("h", "Configuration"),
     ("p", "Generate an API token in Canvas under Account › Settings › New "
-          "Access Token. Use Config › View Config to check your current setup, "
-          "and the Reset options to change your instance URL or token. Your token "
-          "is stored encrypted in the Windows Credential Vault — never in "
-          "plaintext files or logs."),
+          "Access Token. Config › Configure Canvas Connection shows your current "
+          "setup and changes the instance or token; console-based Reset options "
+          "remain for Canvas and Canvas Studio credentials. Your token is stored "
+          "encrypted in the Windows Credential Vault — never in plaintext files "
+          "or logs."),
     ("h", "Accessibility"),
     ("p", "Canvas Bot is built entirely from native controls for full screen-reader "
           "support (NVDA, JAWS, System Access, and more). Every control has an "
@@ -67,9 +69,11 @@ _RUN_HELP = [
     ("h", "Output"),
     ("p", "Select an output folder, then check “Download files” to enable downloading."),
     ("b", "Downloads are organized into subfolders by module and content type."),
-    ("b", "Scanned content is saved automatically so you can browse it on the Content tab."),
-    ("note", "Set an output folder and check “Download files” before the Run "
-             "button activates."),
+    ("b", "Scanned content is saved to the output folder so you can browse it on "
+          "the Content tab."),
+    ("note", "A scan alone needs only a course ID; downloading (and saving "
+             "content for the Content tab) requires an output folder — you'll "
+             "be prompted if one is missing."),
     ("h", "Download Options"),
     ("p", "By default only documents (PDF, DOCX, PPTX, etc.) that are visible and "
           "linked from a course page are downloaded."),
@@ -83,10 +87,10 @@ _RUN_HELP = [
     ("note", "Hidden/locked and Unlinked are independent filters — a file that is "
              "both requires both options checked to download."),
     ("h", "Display Options"),
-    ("p", "Single-course mode only:"),
     ("b", "Print content tree", "prints a tree of the resources that contain downloadable content."),
     ("b", "Print full course tree", "prints every resource, including empty modules and pages."),
-    ("note", "These two are mutually exclusive and disabled during batch processing."),
+    ("note", "These two are mutually exclusive. In batch mode the tree is "
+             "printed for each course in the list."),
     ("h", "Reading the Log"),
     ("p", "Progress streams into the colored log as each content type is imported. "
           "Status and milestones are also spoken through your screen reader, with a "
@@ -140,7 +144,9 @@ _CONTENT_HELP = [
           "has replaceable Canvas files; disabled while a non-replaceable External File "
           "row is selected."),
     ("note", "Replace and Bulk Replace appear only on the Documents view, since "
-             "replacement applies only to downloadable Canvas files."),
+             "replacement applies only to downloadable Canvas files. Replacements "
+             "upload under the original filename, so existing course links "
+             "resolve to the new file."),
 ]
 
 _PATTERNS_HELP = [
@@ -358,7 +364,8 @@ at 8:1 contrast. When Windows High Contrast is active, the app defers to your
 system colors. Color is never the sole means of conveying information.
 
 GETTING STARTED
-  1. Use the Config menu to set up your Canvas instance URL and API token.
+  1. Open Config > "Configure Canvas Connection" (Ctrl+Shift+C) to set your
+     Canvas instance and API token, with a Test Connection check.
   2. Enter a course ID, choose an output folder, and check "Download files".
   3. Click Run to start scanning.
 
