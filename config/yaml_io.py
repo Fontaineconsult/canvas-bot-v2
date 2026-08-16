@@ -80,10 +80,31 @@ def read_re(substitute=True):
     Read regex patterns from re.yaml.
     Uses user-editable copy in AppData (auto-created from bundled default if needed).
     By default, substitutes {PLACEHOLDER} patterns with environment variable values.
+
+    The user's copy is created once from the bundled default and never updated, so
+    a copy made by an older version can be missing keys that newer code expects
+    (e.g. ``canvas_file_scope_regex``). That would raise KeyError at import in
+    sorters.sorters and prevent the app from starting. To stay resilient to such
+    schema additions, any top-level key present in the bundled default but missing
+    from the user's file is backfilled here (in memory only — we never overwrite
+    the user's file, preserving their edits/formatting).
     """
     re_path = _get_user_re_path()
     with open(re_path, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
+        data = yaml.safe_load(f) or {}
+
+    bundled_path = _get_bundled_path("re.yaml")
+    if os.path.exists(bundled_path):
+        try:
+            with open(bundled_path, "r", encoding="utf-8") as f:
+                defaults = yaml.safe_load(f) or {}
+            for key, value in defaults.items():
+                if key not in data:
+                    log.warning("re.yaml missing key %r; using bundled default", key)
+                    data[key] = value
+        except Exception as exc:  # never let backfill itself break loading
+            log.warning("Could not merge bundled re.yaml defaults: %s", exc)
+
     if substitute:
         return _substitute_placeholders(data)
     return data

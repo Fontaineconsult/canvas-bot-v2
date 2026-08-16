@@ -34,7 +34,8 @@ class MainFrame(wx.Frame):
 
         # Run tab (always present)
         self.run_panel = RunPanel(self.notebook, self.theme)
-        self.notebook.AddPage(self._wrap_page(self.run_panel), "Run")
+        self.notebook.AddPage(self.run_panel, "Run")
+        self._add_top_rule(self.run_panel)
 
         # Content + Patterns panels are added when their modules are available.
         self.content_panel = None
@@ -147,11 +148,14 @@ class MainFrame(wx.Frame):
         bar.Append(file_menu, "&File")
 
         cfg_menu = wx.Menu()
-        view_cfg = cfg_menu.Append(wx.ID_ANY, "&View Config\tCtrl+Shift+V", "Show configuration status")
-        reset_api = cfg_menu.Append(wx.ID_ANY, "Reset Canvas &API Credentials", "Reconfigure token + instance URL")
-        reset_studio = cfg_menu.Append(wx.ID_ANY, "Reset Canvas &Studio Credentials", "Reconfigure Canvas Studio OAuth")
+        configure = cfg_menu.Append(
+            wx.ID_ANY, "&Configure Canvas Connection…\tCtrl+Shift+C",
+            "Set up the Canvas instance and API token in the GUI")
+        cfg_menu.AppendSeparator()
+        reset_api = cfg_menu.Append(wx.ID_ANY, "Reset Canvas &API Credentials (console)", "Reconfigure token + instance URL")
+        reset_studio = cfg_menu.Append(wx.ID_ANY, "Reset Canvas &Studio Credentials (console)", "Reconfigure Canvas Studio OAuth")
         open_log = cfg_menu.Append(wx.ID_ANY, "Open &Log File", "Open the Canvas Bot log")
-        self.Bind(wx.EVT_MENU, lambda e: self._cli("--config_status"), view_cfg)
+        self.Bind(wx.EVT_MENU, lambda e: self._configure(), configure)
         self.Bind(wx.EVT_MENU, lambda e: self._cli("--reset_canvas_params"), reset_api)
         self.Bind(wx.EVT_MENU, lambda e: self._cli("--reset_canvas_studio_params"), reset_studio)
         self.Bind(wx.EVT_MENU, lambda e: self._open_log(), open_log)
@@ -165,16 +169,10 @@ class MainFrame(wx.Frame):
         bar.Append(help_menu, "&Help")
 
         self.SetMenuBar(bar)
-        # Best-effort: tint the menu bar to the panel grey so it doesn't sit as a
-        # white band above the (now grey) chrome. The native Win32 menu bar is
-        # OS-drawn and often ignores this — accepted; we don't owner-draw menus
-        # (that would degrade screen-reader support). No-op under High Contrast.
-        if self.theme.active:
-            try:
-                bar.SetBackgroundColour(self.theme.color("panel_bg"))
-                bar.SetForegroundColour(self.theme.color("text"))
-            except Exception:
-                pass
+        # NOTE: do NOT set background/foreground colours on the menu bar. On MSW
+        # that forces the menu bar into owner-drawn mode, which breaks Alt-mnemonic
+        # handling across the whole frame (all Alt shortcuts stop working). The
+        # menu bar therefore stays the native (white) system colour by design.
 
     def _cli(self, flag):
         from gui.core import app_service
@@ -189,6 +187,11 @@ class MainFrame(wx.Frame):
         from gui.core import app_service
         ok, msg = app_service.open_log_file()
         self._set_status(msg)
+
+    def _configure(self):
+        """Open the native Canvas configuration dialog; re-check status on save."""
+        from gui.wx.config_dialog import show_config
+        show_config(self, self.theme, on_saved=self._validate_config_async)
 
     def _about(self):
         from gui.wx.about import show_about
@@ -213,13 +216,15 @@ class MainFrame(wx.Frame):
         try:
             from gui.wx.content_panel import ContentPanel
             self.content_panel = ContentPanel(self.notebook, self.theme)
-            self.notebook.AddPage(self._wrap_page(self.content_panel), "Content")
+            self.notebook.AddPage(self.content_panel, "Content")
+            self._add_top_rule(self.content_panel)
         except Exception:
             pass
         try:
             from gui.wx.pattern_panel import PatternPanel
             self.pattern_panel = PatternPanel(self.notebook, self.theme)
-            self.notebook.AddPage(self._wrap_page(self.pattern_panel), "Patterns")
+            self.notebook.AddPage(self.pattern_panel, "Patterns")
+            self._add_top_rule(self.pattern_panel)
         except Exception:
             pass
 
@@ -251,27 +256,30 @@ class MainFrame(wx.Frame):
         except Exception:
             pass
 
-    def _wrap_page(self, panel):
-        """Wrap a notebook page so it gets a crisp edge under the tab strip.
+    def _add_top_rule(self, panel):
+        """Give a notebook page a 2px accent rule under the tab strip.
 
-        The native tab control butts content straight against the tabs; a thin
-        full-width accent rule (plus a little breathing room) gives each tab a
-        defined top edge. Done here once so all panels share it without each
-        having to alter its own sizer. Skipped visually under High Contrast,
-        where we defer to system colors.
+        IMPORTANT: the panel stays the *direct* notebook page — do NOT wrap it in
+        an intermediate container. Nesting the panel one level deeper (the earlier
+        approach) silently broke Alt-letter mnemonics for the page's buttons and
+        checkboxes (Win32 mnemonic resolution doesn't survive the extra control-
+        parent level even with WS_EX_CONTROLPARENT). Instead we re-host the
+        panel's existing sizer under a vertical shell that starts with the rule,
+        so the control hierarchy — and thus mnemonic/Tab handling — is unchanged.
+        Returns the same panel. No-op (returns panel) under High Contrast.
         """
-        container = wx.Panel(self.notebook)
-        self.theme.apply_panel(container)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        rule = wx.Panel(container, size=wx.Size(-1, 2))
-        if self.theme.active:
-            rule.SetBackgroundColour(self.theme.color("accent"))
-        sizer.Add(rule, 0, wx.EXPAND)
-        sizer.AddSpacer(6)
-        panel.Reparent(container)
-        sizer.Add(panel, 1, wx.EXPAND)
-        container.SetSizer(sizer)
-        return container
+        old = panel.GetSizer()
+        if old is None or not self.theme.active:
+            return panel
+        rule = wx.Window(panel, size=wx.Size(-1, 2))   # plain Window: not a tab stop
+        rule.SetBackgroundColour(self.theme.color("accent"))
+        shell = wx.BoxSizer(wx.VERTICAL)
+        shell.Add(rule, 0, wx.EXPAND)
+        shell.AddSpacer(6)
+        shell.Add(old, 1, wx.EXPAND)   # re-host the panel's own sizer, not the panel
+        panel.SetSizer(shell, deleteOld=False)  # deleteOld=False: 'old' now lives in shell
+        panel.Layout()
+        return panel
 
     def _set_icon(self):
         icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "cb.ico")

@@ -50,6 +50,93 @@ def validate_token_async(on_result):
     threading.Thread(target=_worker, daemon=True, name="cb-token-validate").start()
 
 
+def derive_canvas_urls(domain):
+    """Compute the Canvas instance config values from an institution identifier.
+
+    Mirrors the CLI's first-run derivation (canvas_bot.py:110-118): the user
+    enters the subdomain (e.g. "sfsu") and the four instance values follow. Kept
+    here so the GUI doesn't reimplement the rule or call the interactive CLI path.
+    """
+    domain = (domain or "").strip().lower().strip("/")
+    return {
+        "CANVAS_DOMAIN": domain,
+        "CANVAS_COURSE_PAGE_ROOT": f"https://{domain}.instructure.com/courses",
+        "API_PATH": f"https://{domain}.instructure.com/api/v1",
+        "CANVAS_STUDIO_DOMAIN": f"{domain}.instructuremedia.com",
+    }
+
+
+def _mask_secret(value, show=4):
+    """Return a masked preview of a secret (first ``show`` chars + asterisks)."""
+    if not value:
+        return ""
+    if len(value) <= show:
+        return "*" * len(value)
+    return value[:show] + "*" * (len(value) - show)
+
+
+def get_canvas_config():
+    """Read current Canvas instance config + token presence for the config UI.
+
+    Returns a dict: configured, domain, course_page_root, api_path,
+    studio_domain, token_set, token_masked. Never raises — missing config yields
+    blanks so the dialog can open for first-time setup.
+    """
+    from network.cred import load_config_data_from_appdata
+    info = {
+        "configured": False, "domain": "", "course_page_root": "",
+        "api_path": "", "studio_domain": "", "token_set": False, "token_masked": "",
+    }
+    try:
+        info["configured"] = bool(load_config_data_from_appdata())
+    except Exception as exc:  # pragma: no cover - defensive
+        log.warning(f"Reading config failed: {exc}")
+    info["domain"] = os.environ.get("CANVAS_DOMAIN", "")
+    info["course_page_root"] = os.environ.get("CANVAS_COURSE_PAGE_ROOT", "")
+    info["api_path"] = os.environ.get("API_PATH", "")
+    info["studio_domain"] = os.environ.get("CANVAS_STUDIO_DOMAIN", "")
+    try:
+        import keyring
+        token = keyring.get_password("ACCESS_TOKEN", "canvas_bot")
+    except Exception:
+        token = None
+    if token:
+        info["token_set"] = True
+        info["token_masked"] = _mask_secret(token)
+    return info
+
+
+def save_canvas_config(domain=None, urls=None, token=None):
+    """Persist Canvas instance config and (optionally) the API token.
+
+    ``urls`` (a dict of the four instance keys) takes precedence; otherwise
+    ``domain`` derives them via :func:`derive_canvas_urls`. ``token`` is written
+    to the credential vault only when non-empty (blank keeps the existing token).
+    Reuses the engine's pure setters — network.set_config.save_config_data and
+    network.cred.save_canvas_api_key — then reloads config into the environment.
+    Returns (ok, message).
+    """
+    from network.set_config import save_config_data
+    from network.cred import save_canvas_api_key, load_config_data_from_appdata
+    try:
+        config = dict(urls) if urls else (derive_canvas_urls(domain) if domain else {})
+        if config:
+            if not (config.get("CANVAS_DOMAIN") or "").strip():
+                return False, "Canvas identifier is required."
+            save_config_data(config)
+        token = (token or "").strip()
+        if token:
+            save_canvas_api_key(token)
+        load_config_data_from_appdata()
+        return True, "Configuration saved"
+    except SystemExit:
+        # save_config_data calls sys.exit() on an OSError writing the file.
+        return False, "Could not write the config file (disk full or permissions)."
+    except Exception as exc:
+        log.error(f"save_canvas_config failed: {exc}")
+        return False, f"Error: {type(exc).__name__}: {exc}"
+
+
 def log_file_path():
     """Absolute path to the rotating log file under %APPDATA%/canvas bot/."""
     return os.path.join(os.environ.get("APPDATA", ""), "canvas bot", "canvas_bot.log")
