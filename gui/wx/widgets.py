@@ -294,6 +294,30 @@ class AccessibleListCtrl(wx.ListCtrl):
         direction = "ascending" if self._sort_asc else "descending"
         a11y.announce(f"Sorted by {self._headings[col]}, {direction}", interrupt=True)
 
+    def set_cell(self, row, col, text):
+        """Update one cell's text in place (display + retained row data).
+
+        Keeps ``self._rows`` in sync so a later re-sort re-renders the new
+        text instead of reverting to the original cell value.
+        """
+        if 0 <= row < len(self._rows) and 0 <= col < len(self._rows[row]):
+            self._rows[row][col] = str(text)
+            self.SetItem(row, col, str(text))
+
+    def find_row_index(self, predicate):
+        """Index of the first row whose row_data satisfies ``predicate``.
+
+        Row order follows the current (possibly sorted) display order, so the
+        returned index is valid for set_cell. Returns -1 when no row matches.
+        """
+        for i, rd in enumerate(self._row_data):
+            try:
+                if predicate(rd):
+                    return i
+            except Exception:
+                continue
+        return -1
+
     def get_selected_index(self):
         return self.GetFirstSelected()
 

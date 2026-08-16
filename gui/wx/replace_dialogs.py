@@ -9,6 +9,7 @@ from each row's ``source_page_url`` via ``gui.core.replace_helpers``.
 import logging
 import os
 import threading
+import time
 
 import wx
 
@@ -16,6 +17,29 @@ from gui.core import replace_helpers as rh
 from gui.wx import a11y, widgets, win_style
 
 log = logging.getLogger(__name__)
+
+
+def _make_event_relay(handler):
+    """Wrap a dialog's event handler for use as the orchestrator's on_event.
+
+    Runs on the worker thread. Everything is marshalled to the UI thread with
+    wx.CallAfter, but the byte-level ``file_progress`` stream (one event per
+    upload chunk) is throttled to ~10 updates/sec so a large upload can't
+    flood the UI event queue. Stage changes and the final chunk always pass.
+    """
+    state = {"last": 0.0, "stage": None}
+
+    def relay(name, payload):
+        if name == "file_progress":
+            now = time.monotonic()
+            stage = payload.get("stage")
+            final = payload.get("bytes_read") and payload.get("bytes_read") == payload.get("total")
+            if stage == state["stage"] and not final and now - state["last"] < 0.1:
+                return
+            state["last"], state["stage"] = now, stage
+        wx.CallAfter(handler, name, payload)
+
+    return relay
 
 
 def _auth_ok():
@@ -118,6 +142,8 @@ class _ProgressDialog(wx.Dialog):
         self._on_success = on_success
         self._total_steps = max(1, len(replace_pairs) + len(body_targets))
         self._step = 0
+        self._file_label = "Uploading"     # refreshed by each file_started
+        self._spoken_milestones = set()    # per-file spoken 25/50/75% marks
 
         def worker():
             # Any exception here would otherwise kill the thread silently, so
@@ -128,7 +154,7 @@ class _ProgressDialog(wx.Dialog):
                 # orchestrator calls on_event(stage, payload_dict) positionally.
                 replace_content(
                     course_id, replacements=replace_pairs, body_targets=body_targets,
-                    on_event=lambda name, payload: wx.CallAfter(self._event, name, payload),
+                    on_event=_make_event_relay(self._event),
                     cancel_event=self._cancel,
                 )
             except Exception as exc:
@@ -152,7 +178,11 @@ class _ProgressDialog(wx.Dialog):
         elif name == "file_started":
             i = payload.get("idx", 0) + 1
             total = payload.get("total", 1)
-            self._stage.set_status(f"Uploading file {i} of {total}")
+            self._file_label = f"Uploading file {i} of {total}"
+            self._spoken_milestones = set()
+            self._stage.set_status(self._file_label)
+        elif name == "file_progress":
+            self._on_file_progress(payload)
         elif name == "file_done":
             report = payload.get("report")
             if report is not None and getattr(report, "status", None) == "replaced":
@@ -167,6 +197,38 @@ class _ProgressDialog(wx.Dialog):
             self._advance()
         elif name == "complete":
             self._finish(payload.get("summary", {}))
+
+    def _on_file_progress(self, payload):
+        """Byte-level upload feedback: smooth gauge + silent status text.
+
+        Every tick updates the label with speak=False — per-chunk speech would
+        flood a screen reader — while 25/50/75% milestones are spoken once per
+        file (non-interrupting) so progress is audible without chatter.
+        """
+        stage = payload.get("stage")
+        if stage == "confirming":
+            self._stage.set_status(f"{self._file_label} — confirming…", speak=False)
+            return
+        if stage != "uploading":
+            return
+        done, total = payload.get("bytes_read") or 0, payload.get("total") or 0
+        if total <= 0:
+            return
+        pct = min(100, int(done * 100 / total))
+        self._stage.set_status(
+            f"{self._file_label} — {rh.format_bytes(done)} of "
+            f"{rh.format_bytes(total)} ({pct}%)", speak=False)
+        # Gauge: fractional progress inside the current step, so one big file
+        # moves the bar continuously instead of jumping at file_done.
+        frac = (self._step + done / total) / self._total_steps
+        self._gauge.SetValue(min(100, int(frac * 100)))
+        crossed = [m for m in (25, 50, 75)
+                   if pct >= m and m not in self._spoken_milestones]
+        if crossed:
+            # Speak only the highest new milestone — a fast upload crossing
+            # several at once shouldn't queue three announcements.
+            self._spoken_milestones.update(crossed)
+            a11y.announce(f"{crossed[-1]} percent", interrupt=False)
 
     def _finish(self, summary):
         if self._done:
@@ -322,6 +384,8 @@ class _BulkDialog(wx.Dialog):
         rows_for_targets = [doc for doc, _ in self._match.matches]
         body_targets = rh.derive_body_targets(rows_for_targets)
 
+        self._cur_file = ""  # "i of total" label of the file now uploading
+
         def worker():
             # Guard against a silent thread death leaving rows stuck on
             # "Replacing…" — marshal any exception back to reset state + report.
@@ -330,7 +394,7 @@ class _BulkDialog(wx.Dialog):
                 # orchestrator calls on_event(stage, payload_dict) positionally.
                 replace_content(
                     self._course_id, replacements=pairs, body_targets=body_targets,
-                    on_event=lambda name, payload: wx.CallAfter(self._event, name, payload),
+                    on_event=_make_event_relay(self._event),
                     cancel_event=self._cancel,
                 )
             except Exception as exc:
@@ -346,19 +410,54 @@ class _BulkDialog(wx.Dialog):
         wx.MessageBox(f"Bulk replace error:\n\n{message}", "Bulk replace error",
                       wx.OK | wx.ICON_ERROR, self)
 
+    def _row_for_file(self, old_id):
+        """Table row index for the document with this canvas_file_id, or -1.
+
+        Looked up per event (not cached) so a mid-run header re-sort can't
+        leave progress text landing on the wrong row.
+        """
+        return self._table.find_row_index(
+            lambda rd: rd and rd[0].get("canvas_file_id") == old_id)
+
     def _event(self, name, payload):
         # Stage names + payload keys match core.orchestrator's on_event contract.
         if name == "file_started":
             i = payload.get("idx", 0) + 1
             total = payload.get("total", 1)
-            self._counter.set_status(f"Replacing {i} of {total}")
+            self._cur_file = f"{i} of {total}"
+            self._counter.set_status(f"Replacing {self._cur_file}")
+            row = self._row_for_file(payload.get("old_file_id"))
+            if row >= 0:
+                self._table.set_cell(row, 2, "Uploading…")
+        elif name == "file_progress":
+            # Byte-level feedback: silent (speak=False) — per-chunk speech
+            # would flood a screen reader; milestones stay per-file spoken
+            # events (started/done).
+            if payload.get("stage") != "uploading":
+                return
+            done, total = payload.get("bytes_read") or 0, payload.get("total") or 0
+            if total <= 0:
+                return
+            pct = min(100, int(done * 100 / total))
+            self._counter.set_status(
+                f"Replacing {self._cur_file} — {rh.format_bytes(done)} of "
+                f"{rh.format_bytes(total)} ({pct}%)", speak=False)
+            row = self._row_for_file(payload.get("old_file_id"))
+            if row >= 0:
+                self._table.set_cell(row, 2, f"Uploading {pct}%")
         elif name == "file_done":
             # Reflect a successful replace into the underlying viewer (adds the
             # '(replaced)' suffix + persists). report.status == 'replaced' marks
             # success; the report object carries the outcome.
             report = payload.get("report")
             old_id = payload.get("old_file_id")
-            if report is not None and getattr(report, "status", None) == "replaced":
+            status = getattr(report, "status", None)
+            row = self._row_for_file(old_id)
+            if row >= 0:
+                # Resolve the progress text so no row is left mid-percent.
+                label = {"replaced": "Done", "cancelled": "Skipped"}.get(status, "Failed")
+                self._table.set_cell(row, 2, label)
+            if report is not None and status == "replaced":
                 self._panel.apply_replaced(old_id)
         elif name == "complete":
             self._running = False
