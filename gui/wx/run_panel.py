@@ -48,7 +48,9 @@ class RunPanel(wx.Panel):
         # file) selects what to scan — only one may be active (Run takes a
         # single course OR a list, never both; see _sync_course_inputs). The
         # output folder shares the top row with the ID to save vertical space.
-        course_box = wx.StaticBoxSizer(wx.VERTICAL, self, "Course selection & output")
+        # "&&" renders a literal ampersand — a bare "&" is a mnemonic marker
+        # and displayed as "Course selection _output".
+        course_box = wx.StaticBoxSizer(wx.VERTICAL, self, "Course selection && output")
 
         # Top row: Course ID (narrow) + Output folder (expanding) + Browse.
         top_row = wx.BoxSizer(wx.HORIZONTAL)
