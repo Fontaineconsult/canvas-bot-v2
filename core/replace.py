@@ -63,6 +63,8 @@ class FileReplaceReport:
               -> upload_failed
               -> confirm_failed
               -> cancelled
+              -> invalid_file_id   (set by orchestrator pre-flight when the
+                                    id can't coerce to int; old_file_id is -1)
     """
     course_id: str
     old_file_id: int

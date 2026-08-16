@@ -2,6 +2,13 @@
 
 ## v1.2.3
 
+### Bulk Replace Hardening (pre-ship review)
+- **External File rows can no longer crash a batch** — documents with no Canvas file behind them (scraped external links) are set aside as "External file" in the match dialog instead of producing an invalid replace pair that aborted the whole run with a TypeError. The orchestrator's pre-flight also validates every file id, turning a bad id into a clean atomic `invalid_file_id` pre-flight failure.
+- **Honest completion reporting** — the bulk dialog now reports pre-flight aborts ("nothing was replaced"), cancellations, and per-run counts (N replaced, M failed) instead of always announcing "Bulk replace complete". Partial runs re-enable Replace Matched for retry; fully successful runs stay done.
+- **Title-bar X / Escape mid-run now cancels** the job instead of destroying the dialog while the worker kept replacing files with no UI.
+- **Cancel state no longer leaks between runs** — each run gets a fresh cancel signal, so a cancelled run followed by a retry actually runs (previously it no-opped instantly).
+- Files changed: `gui/core/replace_helpers.py`, `gui/wx/replace_dialogs.py`, `core/orchestrator.py`, `core/replace.py`
+
 ### CLI Parity With the Replace Engine
 - **CLI runs write the scan manifest** — any run with `--download_folder` now saves `{course_folder}/.manifest/{course_id}.json` (the same data contract the GUI writes on every scan), before downloading so it survives an interrupted download. CLI-scanned courses now appear in the GUI Content tab and can drive `--rewrite_from_manifest`. Scan-only runs (no download folder) are unchanged.
 - **`--rewrite_from_manifest PATH`** — derives the body rewrite targets for a `--replace_pair` replacement from a course scan manifest (pass the course folder, its `.manifest` folder, or the content JSON itself), using the same derivation as the GUI's replace flows: every recorded referencing page/discussion/assignment/quiz, deduped, module refs excluded. Combines with explicit `--rewrite_target` entries; prints what it derived.

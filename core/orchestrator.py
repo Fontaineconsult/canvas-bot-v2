@@ -185,6 +185,25 @@ class ContentUpdateOrchestrator:
         for old_file_id, local_path in self.replacements:
             if self._cancelled():
                 return
+            # Validate the id before FileReplace touches it — its report
+            # coerces old_file_id with int(), so a None/garbage id (e.g. an
+            # External File row that has no Canvas file) would raise here and
+            # escape the batch as a TypeError instead of a pre-flight failure.
+            try:
+                old_file_id = int(old_file_id)
+            except (TypeError, ValueError):
+                rep = FileReplaceReport(
+                    course_id=str(self.course_id),
+                    old_file_id=-1,
+                    local_path=local_path,
+                    status="invalid_file_id",
+                    error=f"Invalid Canvas file id: {old_file_id!r}",
+                )
+                self._preflight_failed_files.append(rep)
+                self._emit("preflight_file_checked",
+                           old_file_id=-1,
+                           ok=False, status=rep.status, error=rep.error)
+                continue
             fr = FileReplace(self.course_id, old_file_id, local_path)
             try:
                 ok = fr.preflight()

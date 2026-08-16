@@ -304,9 +304,14 @@ class _BulkDialog(wx.Dialog):
         self._documents = panel.get_document_rows()
         self._course_id = panel.get_course_id()
         self._match = None
-        self._cancel = threading.Event()
+        self._cancel = threading.Event()  # replaced with a fresh Event per run
         self._running = False
         self._build()
+        # X button / Escape must not tear the dialog down mid-run: the worker
+        # would keep replacing files in Canvas with no UI while every marshalled
+        # event hit a dead window. Route them through the same cancel path as
+        # the Close button instead.
+        self.Bind(wx.EVT_CLOSE, self._on_close_evt)
         win_style.polish_dialog(self, getattr(panel, "_theme", win_style.theme_of(panel)))
 
     def _build(self):
@@ -362,6 +367,11 @@ class _BulkDialog(wx.Dialog):
         for doc in m.ambiguous:
             rows.append([doc.get("title", ""), "", "Ambiguous"])
             data.append((doc, None, "Ambiguous"))
+        for doc in m.not_replaceable:
+            # No Canvas file behind the row (External File link) — shown so
+            # the document doesn't silently vanish from the dialog.
+            rows.append([doc.get("title", ""), "", "External file"])
+            data.append((doc, None, "External file"))
 
         def bg_for(_i, rd):
             return self._panel._theme.status_bg(rd[2]) if rd else None
@@ -380,9 +390,18 @@ class _BulkDialog(wx.Dialog):
             return
         self._running = True
         self._replace_btn.Enable(False)
-        pairs = [(doc.get("canvas_file_id"), local) for doc, local in self._match.matches]
+        # Matcher guarantees matches carry a canvas_file_id; the filter is
+        # belt-and-suspenders so a bad row can never become a (None, path) pair.
+        pairs = [(doc.get("canvas_file_id"), local)
+                 for doc, local in self._match.matches if doc.get("canvas_file_id")]
         rows_for_targets = [doc for doc, _ in self._match.matches]
         body_targets = rh.derive_body_targets(rows_for_targets)
+
+        # Fresh cancel event per run: a cancelled earlier run must not leave a
+        # set flag behind that would instantly no-op the next run. The worker
+        # closure captures THIS run's event, so a later run can't cross-cancel.
+        self._cancel = threading.Event()
+        cancel_event = self._cancel
 
         self._cur_file = ""  # "i of total" label of the file now uploading
 
@@ -395,7 +414,7 @@ class _BulkDialog(wx.Dialog):
                 replace_content(
                     self._course_id, replacements=pairs, body_targets=body_targets,
                     on_event=_make_event_relay(self._event),
-                    cancel_event=self._cancel,
+                    cancel_event=cancel_event,
                 )
             except Exception as exc:
                 log.exception("Bulk replace worker crashed")
@@ -421,7 +440,13 @@ class _BulkDialog(wx.Dialog):
 
     def _event(self, name, payload):
         # Stage names + payload keys match core.orchestrator's on_event contract.
-        if name == "file_started":
+        if name == "preflight_failed":
+            nf = len(payload.get("failed_files", []))
+            nb = len(payload.get("failed_bodies", []))
+            self._counter.set_status(
+                f"Pre-flight failed — {nf} file(s), {nb} page target(s) "
+                "unreachable. Nothing was replaced.")
+        elif name == "file_started":
             i = payload.get("idx", 0) + 1
             total = payload.get("total", 1)
             self._cur_file = f"{i} of {total}"
@@ -461,13 +486,43 @@ class _BulkDialog(wx.Dialog):
                 self._panel.apply_replaced(old_id)
         elif name == "complete":
             self._running = False
-            msg = "Bulk replace complete"
-            self._counter.set_status(msg)
-            a11y.announce(msg, interrupt=True)
+            s = payload.get("summary", {}) or {}
+            replaced = s.get("files_replaced", 0)
+            failed = s.get("files_failed", 0)
+            skipped = s.get("files_cancelled", 0)
+            early = s.get("early")
+            if early == "preflight_failed":
+                msg = "Bulk replace aborted — pre-flight failed. Nothing was replaced."
+            elif early:
+                msg = f"Bulk replace cancelled — {replaced} replaced, {skipped} skipped."
+            elif failed:
+                msg = f"Bulk replace finished — {replaced} replaced, {failed} FAILED."
+            else:
+                msg = f"Bulk replace complete — {replaced} replaced."
+            self._counter.set_status(msg)  # StatusLine speaks its updates
+            # Let a partial run (cancel / failures / abort) be retried without
+            # re-picking the folder; a fully successful run stays done.
+            if self._match and replaced < len(self._match.matches):
+                self._replace_btn.Enable(True)
+
+    def _request_cancel(self):
+        """Signal the running job to stop (idempotent)."""
+        if not self._cancel.is_set():
+            self._cancel.set()
+            self._counter.set_status("Cancelling…")
+
+    def _on_close_evt(self, event):
+        # Title-bar X or Escape. Mid-run: veto the teardown and cancel instead —
+        # the run's 'complete' event reports the outcome and re-allows closing.
+        if self._running:
+            if event.CanVeto():
+                event.Veto()
+                self._request_cancel()
+                return
+        self.EndModal(wx.ID_OK)
 
     def _on_close_btn(self, _evt):
         if self._running:
-            self._cancel.set()
-            self._counter.set_status("Cancelling…")
+            self._request_cancel()
             return
         self.EndModal(wx.ID_OK)

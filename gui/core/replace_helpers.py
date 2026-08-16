@@ -14,7 +14,7 @@ import json
 import logging
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
 log = logging.getLogger(__name__)
@@ -128,6 +128,18 @@ class MatchResult:
     unmatched_canvas: list
     ambiguous: list
     already_replaced: list
+    not_replaceable: list = field(default_factory=list)  # rows with no Canvas file behind them
+
+
+def _is_replaceable_doc(doc):
+    """True when the row is a Canvas-hosted file that replace can act on.
+
+    External File rows (scraped links) have no canvas_file_id — matching one
+    would build a (None, path) replace pair and crash the batch in pre-flight.
+    A missing file_source is treated as Canvas for older manifests that predate
+    the field (external rows never carry a canvas_file_id anyway).
+    """
+    return bool(doc.get("canvas_file_id")) and doc.get("file_source", "Canvas") == "Canvas"
 
 
 def match_files_to_documents(folder, documents):
@@ -136,13 +148,18 @@ def match_files_to_documents(folder, documents):
     Case-insensitive exact basename match, extension-strict. A Canvas-side
     duplicate title is only "ambiguous" when a local file actually collides with
     it; duplicate titles with no local counterpart are just unmatched. Ported
-    from the proven gui/file_replace.py logic.
+    from the proven gui/file_replace.py logic. Rows that no Canvas file backs
+    (External File links) are set aside as not_replaceable before matching so
+    they can never produce a replace pair.
     """
     already_replaced = []
+    not_replaceable = []
     eligible_docs = []
     for doc in documents:
         title = doc.get("title", "") or ""
-        if title.endswith(REPLACED_SUFFIX):
+        if not _is_replaceable_doc(doc):
+            not_replaceable.append(doc)
+        elif title.endswith(REPLACED_SUFFIX):
             already_replaced.append(doc)
         else:
             eligible_docs.append(doc)
@@ -198,7 +215,8 @@ def match_files_to_documents(folder, documents):
         doc for doc in eligible_docs
         if id(doc) not in matched_doc_ids and id(doc) not in ambiguous_doc_ids
     ]
-    return MatchResult(matches, unmatched_local, unmatched_canvas, ambiguous, already_replaced)
+    return MatchResult(matches, unmatched_local, unmatched_canvas, ambiguous,
+                       already_replaced, not_replaceable)
 
 
 def _find_document_rows(data):
