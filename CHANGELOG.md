@@ -2,6 +2,12 @@
 
 ## v1.2.3
 
+### CLI Parity With the Replace Engine
+- **CLI runs write the scan manifest** — any run with `--download_folder` now saves `{course_folder}/.manifest/{course_id}.json` (the same data contract the GUI writes on every scan), before downloading so it survives an interrupted download. CLI-scanned courses now appear in the GUI Content tab and can drive `--rewrite_from_manifest`. Scan-only runs (no download folder) are unchanged.
+- **`--rewrite_from_manifest PATH`** — derives the body rewrite targets for a `--replace_pair` replacement from a course scan manifest (pass the course folder, its `.manifest` folder, or the content JSON itself), using the same derivation as the GUI's replace flows: every recorded referencing page/discussion/assignment/quiz, deduped, module refs excluded. Combines with explicit `--rewrite_target` entries; prints what it derived.
+- **`--replace_file` now runs the replace engine** — the legacy `--replace_file`/`--canvas_file_id` shorthand is normalized into the `--replace_pair` orchestrator path, gaining pre-flight validation, upload progress, and post-replace verification. It also accepts `--rewrite_target`/`--rewrite_from_manifest`. Exit codes now match `--replace_pair` (failure is 1, previously 3); passing both spellings at once is an error.
+- Files changed: `canvas_bot.py`, `tools/replace_content_cli.py`
+
 ### Multi-Reference Source Tracking
 - **Every referencing location captured** — `source_page_url` in `.manifest/content.json` is now a list of *all* pages, assignments, discussions, announcements, and quizzes that embed a given file, not just the first one found. Previously the scanner deduplicated Canvas file nodes by ID at ingestion, so a file embedded on several pages recorded only one source. This is the data the link-replace flow needs to rewrite every place a file is referenced.
 - **Scoped dedup gate** — `resource_nodes/base_node.py:add_data_api_link_to_children` now records a node per occurrence for file/content nodes (`BaseContentNode` subclasses), while resource nodes (Page, Assignment, Quiz, Discussion, folders) keep the `id_exists` gate to avoid duplicate imports and traversal cycles. Download counts and summaries are unaffected — every other accessor reads one node per ID (`manifest[id][0]`) and the downloader dedupes by URL.

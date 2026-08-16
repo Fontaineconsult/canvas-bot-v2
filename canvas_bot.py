@@ -690,7 +690,10 @@ if __name__=='__main__':
 
     # === File Replace ===
     @click.option('--replace_file', type=click.STRING,
-                  help='Path to local file to upload as a replacement. Requires --canvas_file_id and --course_id.')
+                  help='Path to local file to upload as a replacement. Requires --canvas_file_id and --course_id. '
+                       'Shorthand for --replace_pair; runs the same replace engine (pre-flight, '
+                       'progress, verification) and accepts the same --rewrite_target / '
+                       '--rewrite_from_manifest options.')
     @click.option('--canvas_file_id', type=click.STRING,
                   help='Canvas file ID of the file to replace. Requires --replace_file and --course_id.')
 
@@ -706,6 +709,11 @@ if __name__=='__main__':
                        'page/discussion/announcement/assignment/quiz; IDENTIFIER is the page slug '
                        'for pages, numeric id for the others. Optional — module-file replacements '
                        'need no body rewrites. Used with --replace_pair.')
+    @click.option('--rewrite_from_manifest', type=click.STRING, metavar='PATH',
+                  help='Derive rewrite targets for the replaced file from a course scan manifest. '
+                       'PATH is the course folder, its .manifest folder, or the content JSON itself '
+                       '(written by any run with --download_folder, or by the GUI). Combines with '
+                       'explicit --rewrite_target entries. Used with --replace_pair.')
 
     # === Pattern Management ===
     @click.option('--patterns-list', 'patterns_list', default=None, is_flag=False, flag_value='',
@@ -749,6 +757,7 @@ if __name__=='__main__':
              canvas_file_id,
              replace_pair,
              rewrite_target,
+             rewrite_from_manifest,
              patterns_list,
              patterns_add,
              patterns_remove,
@@ -809,33 +818,25 @@ if __name__=='__main__':
             reset_patterns(skip_confirm)
             sys.exit(0)
 
-        # Handle --replace_file (requires --canvas_file_id and --course_id)
+        # Handle --replace_file (requires --canvas_file_id and --course_id).
+        # Shorthand for --replace_pair: normalized into the same orchestrator
+        # path below so both spellings get pre-flight, progress, and verify.
         if replace_file or canvas_file_id:
             if not (replace_file and canvas_file_id and course_id):
                 click.echo("Error: --replace_file, --canvas_file_id, and --course_id are all required.")
                 sys.exit(1)
-            if not os.path.isfile(replace_file):
-                click.echo(f"Error: File not found: {replace_file}")
+            if replace_pair:
+                click.echo("Error: use either --replace_file/--canvas_file_id or --replace_pair, not both.")
                 sys.exit(1)
-            load_json_config_file_from_appdata()
-            check_if_api_key_exists()
-            from network.api import replace_file as api_replace_file
-            print(f"Replacing Canvas file {canvas_file_id} with {os.path.basename(replace_file)}...")
-            result = api_replace_file(course_id, canvas_file_id, replace_file)
-            if result:
-                new_name = result.get("display_name", result.get("filename", os.path.basename(replace_file)))
-                print(f"[OK] File replaced successfully: {new_name}")
-                sys.exit(0)
-            else:
-                print("[ERROR] File replace failed. Check the log for details.")
-                sys.exit(3)
+            replace_pair = (canvas_file_id, replace_file)
 
         # Handle --replace_pair (orchestrator path: file replace + optional body rewrites)
         if replace_pair:
             load_json_config_file_from_appdata()
             check_if_api_key_exists()
             from tools.replace_content_cli import run as run_replace_content
-            sys.exit(run_replace_content(course_id, replace_pair, rewrite_target))
+            sys.exit(run_replace_content(course_id, replace_pair, rewrite_target,
+                                         rewrite_from_manifest=rewrite_from_manifest))
 
         params = {
             "download_folder": download_folder,
@@ -886,6 +887,22 @@ if __name__=='__main__':
             else:
                 print("No course ID provided. Exiting")
                 sys.exit()
+
+            # Persist the scan into the course folder's .manifest/ — the same
+            # data contract the GUI writes on every scan. Makes CLI-scanned
+            # courses browsable in the GUI Content tab and usable with
+            # --rewrite_from_manifest. Written before downloading so the
+            # manifest survives an interrupted download. Requires a course
+            # folder, so scan-only runs (no --download_folder) skip it.
+            if ctx.params.get('download_folder') and getattr(bot, "exists", False):
+                from tools.string_checking.url_cleaning import sanitize_windows_filename
+                from config.yaml_io import create_download_manifest
+                course_folder = os.path.join(
+                    os.path.normpath(download_folder),
+                    f"{sanitize_windows_filename(bot.course_name)} - {bot.course_id}",
+                )
+                manifest_dir = create_download_manifest(course_folder)
+                bot.save_content_as_json(manifest_dir, course_folder, **params)
 
             if print_content_tree:
                 bot.print_content_tree()

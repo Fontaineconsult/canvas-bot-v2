@@ -165,13 +165,74 @@ def _make_event_formatter():
     return _emit
 
 
-def run(course_id, replace_pair, rewrite_target):
+def _resolve_manifest_json(path):
+    """Resolve a user-supplied manifest path to the content JSON file.
+
+    Accepts, in order of specificity: the JSON file itself, a ``.manifest``
+    directory, or a course folder containing one. Returns the JSON path or
+    None. review_status.json is never the content manifest.
+    """
+    if os.path.isfile(path):
+        return path
+    if os.path.isdir(path):
+        manifest_dir = path
+        if os.path.basename(os.path.normpath(path)) != ".manifest":
+            manifest_dir = os.path.join(path, ".manifest")
+        if os.path.isdir(manifest_dir):
+            jsons = sorted(f for f in os.listdir(manifest_dir)
+                           if f.endswith(".json") and f != "review_status.json")
+            if jsons:
+                return os.path.join(manifest_dir, jsons[0])
+    return None
+
+
+def derive_targets_from_manifest(path, old_file_id):
+    """Derive (resource_type, identifier) rewrite targets for one file from a
+    scan manifest — the same derivation the GUI's replace flows use.
+
+    ``path`` may be the content JSON, a ``.manifest`` dir, or a course folder.
+    Returns (targets, error): targets is a deduped list for the rows whose
+    canvas_file_id matches ``old_file_id``; error is a message string or None.
+    """
+    import json
+
+    from gui.core.replace_helpers import derive_body_targets
+
+    json_path = _resolve_manifest_json(path)
+    if not json_path:
+        return [], f"No scan manifest JSON found at: {path}"
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError) as exc:
+        return [], f"Could not read manifest {json_path}: {exc}"
+
+    rows = []
+
+    def walk(obj):
+        if isinstance(obj, dict):
+            if obj.get("canvas_file_id") == old_file_id and "source_page_url" in obj:
+                rows.append(obj)
+            for value in obj.values():
+                walk(value)
+        elif isinstance(obj, list):
+            for value in obj:
+                walk(value)
+
+    walk(data)
+    return derive_body_targets(rows), None
+
+
+def run(course_id, replace_pair, rewrite_target, rewrite_from_manifest=None):
     """Run the orchestrator path. Caller must have already done auth bootstrap.
 
     Args:
         course_id: Canvas course id (string).
         replace_pair: 2-tuple (OLD_FILE_ID_STR, LOCAL_PATH) from Click.
         rewrite_target: tuple of 2-tuples (RESOURCE_TYPE, IDENTIFIER), possibly empty.
+        rewrite_from_manifest: optional path (course folder / .manifest dir /
+            content JSON) to derive additional targets from; unioned with the
+            explicit rewrite_target entries (explicit first, deduped).
 
     Returns:
         Exit code (int). See module docstring.
@@ -191,10 +252,26 @@ def run(course_id, replace_pair, rewrite_target):
         click.echo(f"Error: File not found: {local_path}")
         return 1
 
+    body_targets = list(rewrite_target)
+    if rewrite_from_manifest:
+        derived, error = derive_targets_from_manifest(rewrite_from_manifest, old_file_id)
+        if error:
+            click.echo(f"Error: {error}")
+            return 1
+        fresh = [t for t in derived if t not in body_targets]
+        body_targets.extend(fresh)
+        if derived:
+            listing = ", ".join(f"{rt}/{ident}" for rt, ident in derived)
+            click.echo(f"Manifest: {len(derived)} rewrite target(s) for file "
+                       f"{old_file_id}: {listing}")
+        else:
+            click.echo(f"Manifest: no referencing bodies recorded for file "
+                       f"{old_file_id} (module-only or unreferenced).")
+
     orch = replace_content(
         course_id=course_id,
         replacements=[(old_file_id, local_path)],
-        body_targets=list(rewrite_target),
+        body_targets=body_targets,
         on_event=_make_event_formatter(),
         bootstrap_auth=False,
     )
