@@ -322,8 +322,9 @@ class _BulkDialog(wx.Dialog):
         self._folder = wx.TextCtrl(self, style=wx.TE_READONLY)
         widgets.set_name(self._folder, "Source folder")
         folder_row.Add(self._folder, 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 6)
-        folder_row.Add(widgets.make_button(self, "&Pick a File…", self._on_pick,
-                                           name="Pick a file in the replacement folder"), 0)
+        self._pick_btn = widgets.make_button(self, "&Pick a File…", self._on_pick,
+                                             name="Pick a file in the replacement folder")
+        folder_row.Add(self._pick_btn, 0)
         s.Add(folder_row, 0, wx.EXPAND | wx.ALL, 8)
 
         self._counter = widgets.StatusLine(self, label="Pick any file in your replacement folder to start matching.")
@@ -343,6 +344,8 @@ class _BulkDialog(wx.Dialog):
         self.SetSizer(s)
 
     def _on_pick(self, _evt):
+        if self._running:
+            return  # repopulating the table under an in-flight run corrupts progress
         with wx.FileDialog(self, "Pick any file in your replacement folder",
                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as dlg:
             if dlg.ShowModal() != wx.ID_OK:
@@ -378,7 +381,12 @@ class _BulkDialog(wx.Dialog):
 
         self._table.set_rows(rows, row_data=data, bg_for=bg_for)
         n = len(m.matches)
-        self._counter.set_status(f"{n} of {len(self._documents)} documents will be replaced.")
+        msg = f"{n} of {len(self._documents)} documents will be replaced."
+        if m.unmatched_local:
+            # Local files that matched no document (incl. duplicates the
+            # matcher skips) would otherwise vanish without a trace.
+            msg += f" {len(m.unmatched_local)} local file(s) match no document."
+        self._counter.set_status(msg)
         self._replace_btn.Enable(n > 0)
 
     def _on_replace(self, _evt):
@@ -390,6 +398,7 @@ class _BulkDialog(wx.Dialog):
             return
         self._running = True
         self._replace_btn.Enable(False)
+        self._pick_btn.Enable(False)
         # Matcher guarantees matches carry a canvas_file_id; the filter is
         # belt-and-suspenders so a bad row can never become a (None, path) pair.
         pairs = [(doc.get("canvas_file_id"), local)
@@ -426,6 +435,7 @@ class _BulkDialog(wx.Dialog):
         self._running = False
         self._counter.set_status("Bulk replace failed.")
         self._replace_btn.Enable(True)
+        self._pick_btn.Enable(True)
         wx.MessageBox(f"Bulk replace error:\n\n{message}", "Bulk replace error",
                       wx.OK | wx.ICON_ERROR, self)
 
@@ -500,6 +510,7 @@ class _BulkDialog(wx.Dialog):
             else:
                 msg = f"Bulk replace complete — {replaced} replaced."
             self._counter.set_status(msg)  # StatusLine speaks its updates
+            self._pick_btn.Enable(True)
             # Let a partial run (cancel / failures / abort) be retried without
             # re-picking the folder; a fully successful run stays done.
             if self._match and replaced < len(self._match.matches):

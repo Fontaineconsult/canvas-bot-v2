@@ -7,6 +7,8 @@
 - **Honest completion reporting** — the bulk dialog now reports pre-flight aborts ("nothing was replaced"), cancellations, and per-run counts (N replaced, M failed) instead of always announcing "Bulk replace complete". Partial runs re-enable Replace Matched for retry; fully successful runs stay done.
 - **Title-bar X / Escape mid-run now cancels** the job instead of destroying the dialog while the worker kept replacing files with no UI.
 - **Cancel state no longer leaks between runs** — each run gets a fresh cancel signal, so a cancelled run followed by a retry actually runs (previously it no-opped instantly).
+- **Unmatched local files surfaced** — the match counter now notes how many local files matched no document (including same-name duplicates the matcher skips) instead of dropping them silently.
+- **Folder picking locked during a run** — Pick a File is disabled (and ignored) while a replace is in flight, so re-matching can no longer repaint the table under live progress.
 - Files changed: `gui/core/replace_helpers.py`, `gui/wx/replace_dialogs.py`, `core/orchestrator.py`, `core/replace.py`
 
 ### CLI Parity With the Replace Engine
