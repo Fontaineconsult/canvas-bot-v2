@@ -2,6 +2,25 @@
 
 ## v1.2.3
 
+### Accessible wxPython GUI (new default)
+- **Complete GUI rewrite in native wxPython** (`gui/wx/`), now the default: launched by running with no arguments or `--gui wx`. The legacy CustomTkinter GUI remains available via `--gui tk`. Four areas: Run tab, Content tab (viewer, review marks, replace flows), Patterns tab, and a tabbed Help view (F1) with a first-run Welcome.
+- **Screen-reader-first design** — speech goes only through real screen readers (JAWS, NVDA, etc. via `accessible_output2`), never the SAPI/TTS voice, and all screen-reader/COM work runs on a dedicated speech thread (fixes a JAWS crash/lockup when speaking from the UI thread). Spoken milestones throughout: course loaded with item count, a repeating "still importing" heartbeat during scans, replace availability, sort direction, and full row summaries on table selection (`AccessibleListCtrl`).
+- **Full keyboard access** — Alt-mnemonic audit across every control, Enter toggles checkboxes (not just Space), Escape/dialog conventions, accessible names on all inputs. Two hard-won rules are documented in code: notebook pages must stay direct children (wrapping them breaks Alt mnemonics) and the menu bar must keep native colours (custom colours force owner-draw and kill Alt shortcuts).
+- **Native Windows 10/11 chrome** — dark title bar, rounded corners, Segoe UI with ClearType, themed panels and status-coloured table rows; High Contrast mode defers entirely to system colors.
+- **Responsive under load** — log output is timer-batched (fixes the import lockup), ANSI colour codes render in the log, spinner lines no longer flicker, and tables sort by clicking column headers.
+- **Configure Canvas Connection dialog** (Config menu, Ctrl+Shift+C) — set the Canvas instance and API token natively with a Test Connection check; the console reset flows remain as fallback. `read_re()` also backfills missing `re.yaml` keys from bundled defaults so a user copy from an older version can't crash startup.
+- **Packaging** — the PyInstaller spec bundles wxPython and the `accessible_output2` screen-reader client libraries.
+- Files: `gui/wx/` (new package), `gui/core/` (framework-agnostic services), `config/yaml_io.py`, `canvas_bot.py`, `canvas_bot.spec`
+
+### Content Update Engine (file replace + link rewrite)
+- **`core/replace.py`** — `FileReplace` (Canvas 3-step upload: notify → bytes → confirm, with byte-level progress and cooperative cancel) plus `UpdateBody` resource classes for every rewritable body type: Page, Discussion, Announcement, Assignment, Quiz. Each body update stale-checks against concurrent edits, verifies after push, and rolls back on verification failure (pages via Canvas-native revision revert).
+- **`core/orchestrator.py`** — `ContentUpdateOrchestrator` / `replace_content()` composes them: an **atomic pre-flight** validates every file and body target before anything is modified, then file replacements run, an `{old_id: new_id}` mapping is built, and body rewrites follow — all reported through a single event stream that the GUI dialogs and CLI formatter consume.
+- **Automatic rewrite-target derivation** — the GUI replace flows derive the bodies to rewrite from the scan manifest's `source_page_url` lists (every recorded referencing page/discussion/assignment/quiz, deduped; module items excluded since Canvas repoints them itself).
+- **CLI: `--replace_pair OLD_FILE_ID LOCAL_PATH` + repeatable `--rewrite_target TYPE ID`** — the same engine from the command line, with `[OK]`/`[!]` output, throttled upload progress, and meaningful exit codes.
+- **Byte-level upload feedback in the wx dialogs** — smooth gauge, silent per-tick status text (per-chunk speech would flood a screen reader), and 25/50/75% spoken milestones per file.
+- **Behavior note:** for same-name overwrites Canvas maintains a *replacement chain* — the old file id resolves to the new file and body HTML is served with links already updated — so body rewrites frequently report `skipped`. That is the success outcome ("nothing left to rewrite"), not an error.
+- Files: `core/replace.py` (new), `core/orchestrator.py` (new), `core/updatebody.py` (new), `network/files.py` (new), `network/api.py`, `gui/wx/replace_dialogs.py`, `gui/core/replace_helpers.py`, `tools/replace_content_cli.py` (new), `canvas_bot.py`
+
 ### Bulk Replace Hardening (pre-ship review)
 - **External File rows can no longer crash a batch** — documents with no Canvas file behind them (scraped external links) are set aside as "External file" in the match dialog instead of producing an invalid replace pair that aborted the whole run with a TypeError. The orchestrator's pre-flight also validates every file id, turning a bad id into a clean atomic `invalid_file_id` pre-flight failure.
 - **Honest completion reporting** — the bulk dialog now reports pre-flight aborts ("nothing was replaced"), cancellations, and per-run counts (N replaced, M failed) instead of always announcing "Bulk replace complete". Partial runs re-enable Replace Matched for retry; fully successful runs stay done.
@@ -59,12 +78,12 @@
 - **CONTENT SUMMARY tree printout uses Manifest** — `tools/canvas_tree.py` `_print_statistics` now consumes `manifest.content_summary()` and `manifest.resource_summary()` instead of its own `_stats` dict. Dead `_stats` accumulation in `add_node` and the unused `get_statistics()` method removed.
 - Files changed: `core/manifest.py`, `core/content_extractor.py`, `gui/content_viewer.py`, `tools/canvas_tree.py`, `resource_nodes/modules.py`, `resource_nodes/pages.py`, `resource_nodes/assignments.py`, `resource_nodes/quizzes.py`, `resource_nodes/discussions.py`, `resource_nodes/announcements.py`, `resource_nodes/canvasfiles.py`, `resource_nodes/media_objects.py`, `resource_nodes/canvas_studio.py`
 
-### GUI Responsiveness
+### GUI Responsiveness (legacy Tk GUI)
 - **Async replace-permission check** — `ContentViewer._check_replace_permission` no longer blocks the main thread on Canvas's `/permissions` endpoint. Course selection spawns a daemon thread that posts the result back via `after(0, ...)`; cached results stay synchronous. Stale results from rapid course switching are guarded so the wrong course's permission can't enable the Replace File button.
 - **HTTP request timeout** — `network/api.py` `response_handler` now passes `timeout=10` to `requests.get`, preventing zombie threads when Canvas is unresponsive.
 - Files changed: `gui/content_viewer.py`, `network/api.py`
 
-### GUI Tweaks
+### GUI Tweaks (legacy Tk GUI)
 - **Smaller checkbox indicators** — all 11 `CTkCheckBox` widgets (Run tab options + Content Viewer filter) reduced from the default 24×24 to 19×19 (~21% smaller). Label text size unchanged.
 - **Clearer Download Options labels** — the media-type checkboxes now read "Download video files" / "Download audio files" / "Download image files" instead of "Include …", reflecting that they affect the download step only (all types are scanned regardless). "Include hidden content" → "Include hidden/locked" to cover all four Canvas flags (`hidden_for_user`, `published=False`, `hide_from_students`, `locked`). "Include inactive content" → "Include unlinked" to match how the filter actually works.
 - **About dialog Download Options section updated** — the Run tab in the About dialog uses the new label terminology and adds a note clarifying that Hidden/locked and Unlinked are independent filters — a file that is both hidden and unlinked requires both options checked to download.
@@ -77,7 +96,7 @@
 - **`_mark_row_replaced(canvas_file_id)` helper** — finds the matching document row in `_current_data`, appends the suffix (guarded against double-appending), writes back, and re-renders the document table.
 - Files changed: `core/content_extractor.py`, `gui/content_viewer.py`
 
-### Streaming Replace + Progress Dialog
+### Streaming Replace + Progress Dialog (legacy Tk GUI — superseded in wx by the Content Update Engine)
 - **`gui/network.py` (new)** — GUI-side network module. `replace_file_with_progress(course_id, file_id, local_path, on_progress=None, cancel_event=None)` mirrors `network/api.replace_file`'s 3-step Canvas flow (notify → upload → confirm) but streams the upload via `requests_toolbelt.MultipartEncoderMonitor` so bytes flow from disk to socket without buffering the whole file in memory. Adds tuple timeouts per stage (notify `(10, 30)`, upload `(10, 600)`, confirm `(10, 30)`), byte-level progress callbacks, and cooperative cancel between stages. The CLI `--replace_file` path keeps using the original `network/api.replace_file()`.
 - **`requests-toolbelt~=1.0.0`** — new dependency for the streaming multipart encoder.
 - **`gui/file_replace.py` (new)** — orchestration module for the GUI replace flow. `start_single_replace(viewer, row)` is the entry point, replacing the inline `_replace_file()` method on the viewer. Pre-flight UI (file picker, type-mismatch dialog, confirm dialog, auth check) runs on the UI thread; the upload runs on a daemon worker thread (`name="canvas-replace"`) so the main window stays responsive. Pure helpers `perform_replace`, `mark_row_replaced`, `save_content_json`, plus the `REPLACED_SUFFIX = " - (replaced)"` constant, were lifted out of `content_viewer.py`.
@@ -86,7 +105,7 @@
 - **`_apply_replaced_to_ui(canvas_file_id)` on the viewer** — small UI-side helper that calls `mark_row_replaced` on the data, syncs `_selected_row`, persists via `save_content_json`, and refreshes the table. Replaces the previous `_mark_row_replaced` method by separating the pure data mutation (now in `gui/file_replace.py`) from the UI side-effects (kept in the viewer).
 - Files changed: `gui/network.py` (new), `gui/file_replace.py` (new), `gui/content_viewer.py`, `requirements.txt`
 
-### Bulk Replace
+### Bulk Replace (legacy Tk GUI — superseded in wx by the Content Update Engine)
 - **Bulk Replace button** — new amber button (Alt+B, `fg_color="#8a6d00"`) in the Content Viewer's action row, packed immediately after Replace File on the Documents sub-table only. Same `pack`/`pack_forget` show/hide rules as Replace File; same `_can_replace AND _current_data` enable rule, plus a guard against opening a second dialog while one is already open. Disables itself while a dialog is active.
 - **`BulkReplaceDialog`** — new `CTkToplevel` (720×560, modal, Escape-bound) in `gui/file_replace.py`. Three columns: Title (250 stretch), Local Match (220 stretch), Status (240 anchor center). Header shows `Bulk Replace — {course_name} (ID: {course_id})`. Source-folder bar with **Pick a File…** button (a workaround — Tk's `askdirectory` shows the legacy XP-style tree with no files visible; `askopenfilename` + `os.path.dirname` derivation gets you the modern Windows shell file picker so you can confirm the folder by selecting any file inside it). Counter line and three action buttons (Replace Matched, Ignore, Cancel) round out the layout.
 - **Match logic** — case-insensitive exact basename match, **extension-strict**. Documents iterated via `match_files_to_documents(folder, documents)` (new pure helper in `gui/file_replace.py`) bucket into five lists in a `MatchResult` dataclass: `matches`, `unmatched_local`, `unmatched_canvas`, `ambiguous`, `already_replaced`. Local files with non-document extensions (per `re.yaml` `document_content_regex`) are filtered out via the new `is_document_file()` + lazy-cached `get_document_extensions()` helpers. Two local files with the same casefold name → keep the first, log a warning, mark the rest as unmatched. Two Canvas docs with the same casefold title → only flagged as `Ambiguous` when a local file actually collides with that name; otherwise bucketed as `unmatched_canvas` so we don't over-flag.

@@ -35,8 +35,9 @@ CanvasBot is a Windows application designed for accessible media coordinators an
 - **Categorize** embedded content by type using configurable regex patterns
 - **Export** content inventories to Excel or JSON for accessibility auditing
 - **Track** download progress to avoid re-downloading files
+- **Replace** course files (singly or in bulk) with remediated local copies, updating the pages that link to them
 
-CanvasBot operates in **read-only mode** by default — it reads course content via the Canvas API but never creates, modifies, or deletes any content, grades, enrollments, or settings in Canvas. The only exception is the **Replace File** feature, which explicitly uploads a replacement file to Canvas when initiated by the user.
+CanvasBot operates in **read-only mode** by default — it reads course content via the Canvas API but never creates, modifies, or deletes any content, grades, enrollments, or settings in Canvas. The only exception is the **file replace** feature, which uploads replacement files (and, when requested, updates the linking pages) only when explicitly initiated by the user.
 
 CanvasBot can be used through a graphical user interface (GUI) or the command line (CLI). Double-click the executable or run without arguments to launch the GUI; pass command-line flags for scripted/automated workflows.
 
@@ -57,7 +58,7 @@ Biology 101 - 12345/
 │   ├── Module 1 - Introduction/
 │   │   ├── Week 1 Assignment/
 │   │   │   └── Documents/
-│   │   │       ├── Content Location.lnk  ← shortcut to Canvas page
+│   │   │       ├── Content Location.url  ← shortcut to Canvas page
 │   │   │       └── syllabus.pdf
 │   │   └── VideoFiles/
 │   │       └── welcome_video.mp4
@@ -240,14 +241,14 @@ To verify your download, right-click the `.exe` → Properties → **Digital Sig
 
 ### First Run Setup
 
-On first run, you'll be prompted for:
+On first run, CanvasBot needs two things (the CLI prompts for them; in the GUI use **Config → Configure Canvas Connection…**, `Ctrl+Shift+C`):
 
 1. **Canvas identifier** - Your institution's subdomain (e.g., `sfsu` for `https://sfsu.instructure.com`). All URLs are auto-generated from this.
 2. **API Access Token** - Generated from Canvas settings (see [Obtaining a Canvas API Access Token](#obtaining-a-canvas-api-access-token))
 
 ### GUI Mode
 
-Double-click the executable or run `python canvas_bot.py` with no arguments to launch the graphical interface. The GUI is organized into three tabs. All settings are saved between sessions. Click **About** for a built-in guide, or use **View Config** / **Reset Config** in the title bar to manage credentials.
+Double-click the executable or run `python canvas_bot.py` with no arguments to launch the graphical interface — a native, screen-reader-accessible Windows app organized into three tabs. All settings are saved between sessions. Press **F1** (Help menu) for a built-in guide, and use **Config → Configure Canvas Connection…** (`Ctrl+Shift+C`) to set your Canvas instance and API token with a Test Connection check. (The previous CustomTkinter interface remains available via `--gui tk`.)
 
 #### Run
 
@@ -325,7 +326,7 @@ CanvasBot tracks downloaded files in `download_manifest.yaml` to prevent re-down
 
 #### Shortcuts for Failed Downloads
 
-If a file cannot be downloaded (authentication required, unavailable, etc.), CanvasBot creates a Windows shortcut (.lnk) to the URL for manual investigation.
+If a file cannot be downloaded (authentication required, unavailable, etc.), CanvasBot creates a Windows Internet Shortcut (.url) to the URL for manual investigation. (The .url format supports extended-length paths, so deeply nested course structures no longer hit the Windows 260-character limit.)
 
 ### Exporting Data
 
@@ -408,23 +409,25 @@ Canvasbot.exe --course_id 12345 --print_full_course
 
 ### Replacing Files
 
-CanvasBot can upload local files back into Canvas to overwrite existing course documents — useful when you've revised a syllabus, fixed a broken PDF, or need to update assignment handouts in bulk. Replacement uses Canvas's standard 3-step upload (notify → upload → confirm) with `on_duplicate=overwrite`, so the Canvas file ID is preserved (links elsewhere in the course don't break).
+CanvasBot can upload local files back into Canvas to overwrite existing course documents — useful when you've revised a syllabus, fixed a broken PDF, or need to update assignment handouts in bulk. Replacement uses Canvas's standard 3-step upload (notify → upload → confirm) with `on_duplicate=overwrite` under the original filename, then verifies the result.
+
+**What happens to links:** Canvas issues a *new* file ID for the replacement and maintains a replacement chain — requests for the old ID resolve to the new file, so existing links keep working. In addition, CanvasBot knows (from the scan manifest) every page, assignment, discussion, announcement, and quiz that embeds each file, and passes those as rewrite targets so linking bodies can be updated to the new ID. An **atomic pre-flight** validates every file and every rewrite target before anything is modified — if any check fails, nothing is touched. Body rewrites that find nothing left to update report "skipped"; that is the normal success outcome, since Canvas usually serves the updated links itself.
 
 **Requirements**: your Canvas API token must have `manage_files_edit` permission on the course. CanvasBot checks this automatically when you select a course in the Content tab and disables the Replace buttons if you can't edit course files.
 
 #### Single File Replace (Alt+R)
 
-In the Content tab's Documents sub-table, select a row and click **Replace File** (or press `Alt+R`). A file picker opens at the document's downloaded folder when available; pick the local replacement. CanvasBot validates the extension matches the original, asks you to confirm, then streams the upload while showing live byte progress (`Uploading 12.4 MB / 47 MB · 26%`) in a small modal. The dialog has a Cancel button that aborts cleanly between Canvas's stages — a cancel during the upload itself waits for the current upload to finish (the multipart encoder doesn't expose a clean mid-stream abort).
+In the Content tab's documents table, select a row and click **Replace File** (or press `Alt+R`). A file picker opens at the document's downloaded folder when available; pick the local replacement. CanvasBot warns if the extension doesn't match the original, asks you to confirm, then runs the replace with a progress dialog: a smooth gauge, live byte progress (`Uploading file 1 of 1 — 12.4 MB of 47.0 MB (26%)`), and — for screen reader users — spoken milestones at 25/50/75%. Rewrite targets for every page that embeds the file are derived automatically from the scan. Cancel takes effect at the next stage boundary.
 
-After a successful replace, the row's title gets a `(replaced)` suffix as a "rescan me" reminder. Canvas issues a new file ID on overwrite, so the same row's `canvas_file_id` becomes stale and a second replace from the same content.json would 404. Re-scan the course to refresh the manifest before replacing the same file again.
+After a successful replace, the row's title gets a `(replaced)` suffix as a "rescan me" reminder. Re-scanning refreshes the manifest with the new file ID and current references. (Replacing the same row again before a re-scan still works — Canvas resolves the old ID through its replacement chain — but a fresh scan keeps the manifest exact.)
 
 #### Bulk Replace (Alt+B)
 
-When you have many revised documents in a single folder, use **Bulk Replace** instead of replacing one at a time. From the Documents sub-table click **Bulk Replace** (or press `Alt+B`).
+When you have many revised documents in a single folder, use **Bulk Replace** instead of replacing one at a time. From the documents table click **Bulk Replace** (or press `Alt+B`).
 
-The dialog shows every Canvas-hosted document in the course alongside three columns: Title, Local Match, and Status. Click **Pick a File…**, then select any file inside your replacement folder — CanvasBot uses that file's parent directory as the source folder. (Why a file picker instead of a folder picker? Tk's folder picker on Windows uses the legacy "Browse for Folder" dialog with no files visible; the file picker shows the folder's contents so you can confirm you're in the right place before committing.)
+The dialog lists the course's documents with three columns: Title, Local Match, and Status. Click **Pick a File…**, then select any file inside your replacement folder — CanvasBot uses that file's parent directory as the source folder. (A file picker is used instead of a folder picker so you can see the folder's contents and confirm you're in the right place before committing.)
 
-CanvasBot then matches files by **case-insensitive exact basename, extension-strict** — `Foo.pdf` in your folder matches `foo.pdf` in Canvas, but `Foo.docx` does not match `foo.pdf`. Each row's status updates:
+CanvasBot then matches files by **case-insensitive exact basename, extension-strict** — `Foo.pdf` in your folder matches `foo.pdf` in Canvas, but `Foo.docx` does not match `foo.pdf`. Each row shows its status:
 
 | Status | Meaning |
 |---|---|
@@ -432,13 +435,28 @@ CanvasBot then matches files by **case-insensitive exact basename, extension-str
 | **No match** (gray) | Canvas document with no corresponding local file |
 | **Already replaced** (gray) | Title ends with `(replaced)` from a prior run; skipped until re-scan |
 | **Ambiguous** (gray) | Two Canvas documents share the same title AND a local file matches; skipped to avoid guessing |
-| **User File** / **Group File** (gray) | File lives in personal/group storage, not the course's. Canvas's course /files endpoint can't replace these, so they're surfaced for visibility but never queued |
+| **External file** (gray) | A link to an outside resource with no Canvas file behind it — shown for visibility, never queued |
 
-Select any "Will replace" row and click **Ignore** to exclude it from the run; the button label flips to "Don't ignore" so you can easily revert. The counter line at the top shows `{will_replace} of {matched} matched will be replaced ({total} documents total)` and updates as you toggle.
+The counter line reports how many documents will be replaced and how many local files matched nothing. Click **Replace Matched**, confirm the count, and CanvasBot pre-flights the whole batch, then uploads each file sequentially — each row ticks through `Uploading N% → Done` (or `Failed`), and referencing pages shared by several files are each updated once, not once per file. You can cancel mid-batch (the Close button, the title-bar X, and Escape all route to a clean cancel): the current file finishes, remaining rows are marked Skipped, and the final counter reports exactly what happened — replaced, failed, or skipped counts. Partial runs can be retried without re-picking the folder.
 
-When you're ready, click **Replace Matched (N)**, confirm the count, and CanvasBot uploads each file sequentially. Each row tickets through `Notifying… → Uploading X / Y MB (Z%) → Confirming… → Done`. Failed rows show the error in red; the batch continues. You can cancel mid-batch — the current upload finishes, remaining files are marked Skipped, and the dialog stays open in DONE state with a final summary line.
+#### Replacing Files from the CLI
 
-If you close the main app window while a bulk replace is running, CanvasBot prompts to confirm the cancel and waits up to 30 seconds for the current upload to finish before exiting.
+The same engine is available for scripted workflows:
+
+```bash
+# Replace one file, updating two referencing bodies explicitly
+Canvasbot.exe --course_id 12345 --replace_pair 67890 "C:\fixed\syllabus.pdf" ^
+    --rewrite_target page course-syllabus --rewrite_target assignment 4321
+
+# Derive the rewrite targets automatically from a course scan manifest
+Canvasbot.exe --course_id 12345 --replace_pair 67890 "C:\fixed\syllabus.pdf" ^
+    --rewrite_from_manifest "C:\Downloads\Biology 101 - 12345"
+
+# Shorthand spelling (same engine)
+Canvasbot.exe --course_id 12345 --replace_file "C:\fixed\syllabus.pdf" --canvas_file_id 67890
+```
+
+`--rewrite_from_manifest` accepts the course folder, its `.manifest` folder, or the content JSON itself — any run with `--download_folder` (or any GUI scan) writes this manifest. Exit code 0 means the file replaced and every body rewrite succeeded or was legitimately skipped.
 
 ### Pattern Management
 
@@ -515,7 +533,7 @@ Credentials are stored securely in Windows Credential Vault:
 
 ### Reset Configuration
 
-From the GUI, use the **View Config** and **Reset Config** buttons in the title bar.
+From the GUI, use **Config → Configure Canvas Connection…** (`Ctrl+Shift+C`) to change the Canvas instance or API token; the Config menu also offers console-based reset flows for Canvas API and Canvas Studio credentials.
 
 From the CLI:
 
@@ -588,28 +606,29 @@ For IT administrators evaluating Canvas Bot, a detailed security summary is avai
 
 ## Accessibility
 
-The GUI is built with CustomTkinter, which has inherent limitations with screen reader support. Within those constraints, Canvas Bot implements the following accessibility features:
+The default GUI is built with native wxPython and designed screen-reader-first — it was developed and verified with JAWS.
 
-### What Works Well
+### Screen Reader Support
 
-- **Full keyboard access** — every interactive element is reachable via Tab/Shift+Tab and activatable with Enter. Tab selector buttons support Left/Right arrow navigation. Pattern categories support Up/Down arrows.
-- **Keyboard shortcuts** — Alt+key shortcuts are provided for all buttons across all tabs, with underlined mnemonic characters. Tab switching via Alt+U/N/P and Ctrl+1/2/3. All shortcuts require a modifier key (no single-character shortcuts).
-- **Visible focus indicators** — all buttons, entries, checkboxes, and dynamically created controls display a 2px blue focus ring in both light and dark modes.
-- **Color is never the sole indicator** — review status rows use background color (green/yellow/gray) but always include a text label in the Status column. The status bar uses a "WARNING" text prefix alongside orange color. Pattern test results include "MATCH:" / "No matches" prefixes alongside color.
-- **Error identification** — validation errors in the Add Pattern dialog display descriptive text and return focus to the input field. Status bar errors include text prefixes.
-- **Logical focus and reading order** — tab order matches the visual layout. Dialogs set initial focus on the primary action. Escape closes all dialogs.
-- **Tooltips** — all controls have descriptive tooltips that appear on hover and keyboard focus, showing the associated shortcut key.
+- **Native widgets expose name, role, and value** to Windows UI Automation/MSAA, so NVDA, JAWS, and Narrator read every control correctly. All inputs carry explicit accessible names.
+- **Speech through your screen reader** — background state changes are spoken through the running screen reader (JAWS, NVDA, System Access, Dolphin, and others), never through a separate SAPI/TTS voice, and stay silent when no screen reader is running. All screen-reader interaction happens on a dedicated thread so a slow or hung screen reader can never freeze the app.
+- **Spoken milestones** — course loaded with item count, a periodic "still importing" heartbeat during long scans, replace availability per course, upload progress milestones (25/50/75%), sort direction on header clicks, and full row summaries (column: value pairs) when selecting table rows.
+- **Live status lines** — status text controls speak their updates, substituting for ARIA live regions.
 
-### Known Limitations (CustomTkinter Framework)
+### Keyboard Access
 
-These cannot be resolved without migrating to a different GUI framework:
+- **Everything is reachable and operable from the keyboard** — Tab/Shift+Tab order matches the visual layout; every button, checkbox, and menu item has an Alt+letter mnemonic (audited across the whole app); checkboxes toggle with Enter as well as Space; Escape closes dialogs; F1 opens Help.
+- **Sortable tables** — column-header sorting is announced ("Sorted by Title, ascending").
+- **Cancel is always reachable** — long operations (scans, replaces) expose a cancel that also catches the title-bar X and Escape.
 
-- **No screen reader support** — CustomTkinter widgets do not expose name, role, or value to Windows UI Automation or MSAA. Screen readers (NVDA, JAWS, Narrator) have severely limited support.
-- **No live region announcements** — status bar changes and console output cannot be pushed to assistive technology.
-- **No semantic structure** — no heading levels, landmark regions, or programmatic language declaration.
-- **No user text spacing control** — font rendering is fixed by the Tk engine.
+### Visual
 
-A detailed WCAG 2.1 conformance report is available at [`claude/WCAG_VPAT.md`](claude/WCAG_VPAT.md).
+- **High Contrast mode** defers entirely to system colors; otherwise the app uses a consistent theme with status colors that are always paired with text labels (color is never the sole indicator).
+- Native Windows 10/11 chrome with ClearType text rendering.
+
+### Legacy GUI
+
+The previous CustomTkinter interface (available via `--gui tk`) does not expose accessibility information to screen readers and is kept only for continuity. A WCAG 2.1 conformance report for that legacy interface is available at [`claude/WCAG_VPAT.md`](claude/WCAG_VPAT.md).
 
 ## Pipeline Testing
 
@@ -648,6 +667,12 @@ python -m test.pipeline_testing compare --raw raw.json --processed processed.jso
 | `side-by-side` | Visual comparison output |
 
 ## Program Flags Reference
+
+### GUI
+
+| Flag | Description |
+|------|-------------|
+| `--gui [wx\|tk]` | Launch the GUI: `wx` (default, accessible) or `tk` (legacy). Running with no arguments also launches the wx GUI |
 
 ### Course Selection
 
@@ -694,8 +719,11 @@ python -m test.pipeline_testing compare --raw raw.json --processed processed.jso
 
 | Flag | Description |
 |------|-------------|
-| `--replace_file TEXT` | Path to local file to upload as replacement (requires `--canvas_file_id` and `--course_id`) |
-| `--canvas_file_id TEXT` | Canvas file ID of the file to replace (requires `--replace_file` and `--course_id`) |
+| `--replace_pair OLD_FILE_ID LOCAL_PATH` | Replace one Canvas file with a local file (pre-flight validation, upload progress, post-replace verification). Requires `--course_id` |
+| `--rewrite_target RESOURCE_TYPE IDENTIFIER` | Body to rewrite to the new file ID (repeatable). Types: page / discussion / announcement / assignment / quiz |
+| `--rewrite_from_manifest PATH` | Derive rewrite targets from a course scan manifest (course folder, `.manifest` folder, or content JSON). Combines with explicit `--rewrite_target` entries |
+| `--replace_file TEXT` | Shorthand for `--replace_pair`; same engine (requires `--canvas_file_id` and `--course_id`) |
+| `--canvas_file_id TEXT` | Canvas file ID of the file to replace (used with `--replace_file`) |
 
 ### Configuration
 
@@ -718,7 +746,7 @@ The token is stored encrypted in Windows Credential Vault.
 
 ### Permission Requirements
 
-CanvasBot only requires **read access** to courses.
+CanvasBot only requires **read access** to courses for scanning, downloading, and exporting. The optional file-replace feature additionally requires file-edit permission (`manage_files_edit`) on the course — CanvasBot checks this per course and disables the Replace buttons without it.
 
 ### Institutional / Service Account Deployment
 
@@ -747,6 +775,17 @@ Contact: fontaine@sfsu.edu
 For bug reports and feature requests: [GitHub Issues](https://github.com/Fontaineconsult/canvas-bot-v2/issues)
 
 ## Version History
+
+### 1.2.3
+
+- **Accessible wxPython GUI (new default)** — complete rewrite of the desktop interface in native wxPython, built screen-reader-first (JAWS/NVDA speech, full Alt-mnemonic keyboard access, native Win10/11 chrome, High Contrast support). The legacy CustomTkinter GUI remains available via `--gui tk`.
+- **Content update engine** — file replace rebuilt on an orchestrator with atomic pre-flight, byte-level upload progress, post-replace verification, and automatic link rewriting: referencing pages, assignments, discussions, announcements, and quizzes are derived from the scan manifest and updated to the new file ID.
+- **Native Canvas connection dialog** — configure instance + API token in the GUI (`Ctrl+Shift+C`) with a Test Connection check.
+- **Multi-reference tracking** — `source_page_url` now records *every* location that embeds a file, feeding the replace flows.
+- **CLI parity** — CLI downloads write the same scan manifest the GUI uses; `--replace_pair`/`--rewrite_target`/`--rewrite_from_manifest` expose the replace engine; `--replace_file` upgraded to the same engine.
+- **Visibility & file-source columns**, token validation diagnostics, course permission summary, long-path-safe `.url` shortcuts, and bulk-replace hardening from a pre-ship review.
+
+See [CHANGELOG.md](CHANGELOG.md) for the full list.
 
 ### 1.2.2
 
@@ -863,8 +902,8 @@ For bug reports and feature requests: [GitHub Issues](https://github.com/Fontain
 
 ## Known Issues
 
-- Long directory paths may cause issues on Windows (260 character limit)
-- Some shortcut creation may fail depending on path characters
+- The legacy Tk GUI (`--gui tk`) has no screen reader support and no longer receives feature updates — use the default wx GUI
+- Files stored in user or group Canvas storage (rather than the course's own Files area) cannot be replaced through the course endpoint; a bulk batch that matches one will stop at pre-flight with nothing modified
 
 ## License
 
