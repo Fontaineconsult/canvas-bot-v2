@@ -15,6 +15,7 @@ class BaseContentNode:
                  url=None,
                  title=None,
                  captioned=False,
+                 file_scope=None,
                  **kwargs):
         self.api_dict = api_dict
         self.is_canvas_file = False
@@ -29,6 +30,8 @@ class BaseContentNode:
         self.root = root
         self.children = list()
         self.is_content = True
+        # 'courses' | 'users' | 'groups' | None (no scope detected; treat as course)
+        self.file_scope = file_scope
         self.item_id = self.derive_id()
         self._expand_api_dict_to_class_attributes()
         self.add_node_to_tree()
@@ -78,8 +81,7 @@ class BaseContentNode:
 
 
     def __str__(self):
-        from core.content_scaffolds import is_hidden
-
+        from core.utilities import is_hidden
         return f"{Style.BRIGHT}{Fore.LIGHTWHITE_EX}( {self.__class__.__name__}{Style.RESET_ALL}{Fore.LIGHTWHITE_EX} {'hidden' if is_hidden(self) else 'visible'} {self.url if self.url else self.title} ){Style.RESET_ALL}"
 
     def __repr__(self):

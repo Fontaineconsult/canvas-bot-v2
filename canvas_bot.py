@@ -12,7 +12,7 @@ from network.set_config import save_config_data
 from network.studio_api import authorize_studio_token, refresh_studio_token
 from tools.canvas_studio_caption_upload import add_caption_to_canvas_studio_video
 
-__version__ = "1.2.2"
+__version__ = "1.2.3"
 version = __version__
 log = logging.getLogger(__name__)
 
@@ -61,6 +61,14 @@ def check_if_api_key_exists():
             save_canvas_api_key(api_key)
             set_canvas_api_key_to_environment_variable()
             print("[OK] Access token saved securely.\n")
+
+            from network.cred import validate_api_token
+            ok, message, info = validate_api_token()
+            if ok:
+                name = (info or {}).get("name") or "Canvas"
+                print(f"[OK] Token validated. Connected as {name}.\n")
+            else:
+                print(f"[WARN] Token saved but Canvas check failed: {message}\n")
         else:
             print("[ERROR] No token provided. Exiting.")
             sys.exit(1)
@@ -258,7 +266,7 @@ def show_config_status():
     import keyring
 
     print("\n" + "=" * 60)
-    print("Canvas Bot Configuration Status")
+    print(f"Canvas Bot v{__version__} Configuration Status")
     print("=" * 60)
 
     # Get config file path
@@ -366,6 +374,25 @@ def show_config_status():
         print(f"  {'Studio Refresh Token:':<25} {mask_value(studio_refresh)}")
     except Exception:
         print(f"  {'Studio Refresh Token:':<25} [error reading]")
+
+    # Live token validation — actually call Canvas to confirm the token works
+    print("\n" + "-" * 60)
+    print("Connection Diagnostics")
+    print("-" * 60)
+    try:
+        from network.cred import validate_api_token
+        ok, message, info = validate_api_token()
+        marker = "[OK]" if ok else "[WARN]"
+        print(f"  {'Token validity:':<25} {marker} {message}")
+        if info:
+            print(f"  {'Connected as:':<25} {info.get('name') or '[unknown]'}")
+            print(f"  {'User ID:':<25} {info.get('id') or '[unknown]'}")
+            print(f"  {'Canvas API URL:':<25} {info.get('api_path') or '[unknown]'}")
+            locale = info.get('locale')
+            if locale:
+                print(f"  {'Effective locale:':<25} {locale}")
+    except Exception as e:
+        print(f"  {'Token validity:':<25} [ERROR] {e}")
 
     print("\n" + "=" * 60)
     print("Use --reset_canvas_params to reconfigure Canvas settings")
@@ -593,11 +620,12 @@ class CanvasBot(CanvasCourseRoot):
 if __name__=='__main__':
 
     @click.command()
-    @click.help_option('-h', '--help', help='Canvas Bot - A tool for downloading and auditing Canvas LMS course content. '
-                                            'Discovers all content in a course (modules, pages, assignments, quizzes, files), '
-                                            'categorizes embedded links (documents, videos, audio, images), and exports to '
-                                            'organized folders or Excel/JSON for accessibility auditing. '
-                                            'Requires a Canvas API access token (Account > Settings > New Access Token).')
+    @click.help_option('-h', '--help')
+
+    # === GUI ===
+    @click.option('--gui', type=click.Choice(['wx', 'tk']), default=None,
+                  help='Launch the GUI: wx (default, accessible) or tk (legacy). '
+                       'Running with no arguments also launches the wx GUI.')
 
     # === Course Selection ===
     @click.option('--course_id', type=click.STRING,
@@ -608,7 +636,9 @@ if __name__=='__main__':
     # === Output Options ===
     @click.option('--download_folder', type=click.STRING,
                   help='Directory to download files to. By default downloads documents only (PDF, DOCX, PPTX, etc). '
-                       'Files are organized into subfolders matching the course module structure.')
+                       'Files are organized into subfolders matching the course module structure. '
+                       'Also saves the scan manifest to <course folder>/.manifest/, which feeds '
+                       'the GUI Content tab and --rewrite_from_manifest.')
     @click.option('--output_as_json', type=click.STRING,
                   help='Directory to save JSON export. Creates a structured inventory of all course content '
                        'with metadata (URLs, titles, source pages, content types).')
@@ -644,7 +674,8 @@ if __name__=='__main__':
     @click.option('--config_status', is_flag=True,
                   help='Display current configuration status. Shows all settings with sensitive values masked.')
     @click.option('--reset_canvas_params', is_flag=True,
-                  help='Clear and reconfigure Canvas API token and instance URL (stored in Windows Credential Vault).')
+                  help='Clear and reconfigure the Canvas API token (stored in the Windows Credential Vault) '
+                       'and instance URLs (stored in the AppData config).')
     @click.option('--reset_canvas_studio_params', is_flag=True,
                   help='Clear and reconfigure Canvas Studio OAuth credentials (client ID, secret, tokens).')
 
@@ -655,6 +686,34 @@ if __name__=='__main__':
     @click.option('--canvas_studio_media_id', type=click.STRING,
                   help='Canvas Studio media ID for caption upload target. '
                        'Requires --caption_file_location.')
+
+    # === File Replace ===
+    @click.option('--replace_file', type=click.STRING,
+                  help='Path to local file to upload as a replacement. Requires --canvas_file_id and --course_id. '
+                       'Shorthand for --replace_pair; runs the same replace engine (pre-flight, '
+                       'progress, verification) and accepts the same --rewrite_target / '
+                       '--rewrite_from_manifest options.')
+    @click.option('--canvas_file_id', type=click.STRING,
+                  help='Canvas file ID of the file to replace. Requires --replace_file and --course_id.')
+
+    # === Replace Content (orchestrator path: file replace + optional body rewrites) ===
+    @click.option('--replace_pair', nargs=2, default=None,
+                  metavar='OLD_FILE_ID LOCAL_PATH',
+                  help='Replace one Canvas file with a local file, with pre-flight validation, '
+                       'upload progress, and post-replace verification. Single file per '
+                       'invocation. Use --rewrite_target or --rewrite_from_manifest to also '
+                       'rewrite body link references. Requires --course_id.')
+    @click.option('--rewrite_target', nargs=2, multiple=True,
+                  metavar='RESOURCE_TYPE IDENTIFIER',
+                  help='Body to rewrite (repeatable). RESOURCE_TYPE is one of '
+                       'page/discussion/announcement/assignment/quiz; IDENTIFIER is the page slug '
+                       'for pages, numeric id for the others. Optional — module-file replacements '
+                       'need no body rewrites. Used with --replace_pair or --replace_file.')
+    @click.option('--rewrite_from_manifest', type=click.STRING, metavar='PATH',
+                  help='Derive rewrite targets for the replaced file from a course scan manifest. '
+                       'PATH is the course folder, its .manifest folder, or the content JSON itself '
+                       '(written by any run with --download_folder, or by the GUI). Combines with '
+                       'explicit --rewrite_target entries. Used with --replace_pair or --replace_file.')
 
     # === Pattern Management ===
     @click.option('--patterns-list', 'patterns_list', default=None, is_flag=False, flag_value='',
@@ -674,6 +733,7 @@ if __name__=='__main__':
 
     @click.pass_context
     def main(ctx,
+             gui,
              course_id,
              course_id_list,
              download_folder,
@@ -693,6 +753,11 @@ if __name__=='__main__':
              reset_canvas_studio_params,
              caption_file_location,
              canvas_studio_media_id,
+             replace_file,
+             canvas_file_id,
+             replace_pair,
+             rewrite_target,
+             rewrite_from_manifest,
              patterns_list,
              patterns_add,
              patterns_remove,
@@ -701,6 +766,26 @@ if __name__=='__main__':
              patterns_reset,
              skip_confirm
              ):
+        """Canvas Bot - download, audit, and maintain Canvas LMS course content.
+
+        Discovers all content in a course (modules, pages, assignments,
+        quizzes, files), categorizes embedded links (documents, videos, audio,
+        images), and exports to organized folders or Excel/JSON for
+        accessibility auditing. Can also replace course files in place and
+        rewrite the pages that reference them. Requires a Canvas API access
+        token (Account > Settings > New Access Token). Running with no
+        arguments launches the GUI.
+        """
+
+        # Handle --gui first: launch the chosen GUI and exit.
+        if gui:
+            if gui == "tk":
+                from gui.app import CanvasBotGUI
+                CanvasBotGUI().run()
+            else:
+                from gui.wx.app import run_wx_gui
+                run_wx_gui()
+            return
 
         # Handle --config_status first (doesn't require course_id)
         if config_status:
@@ -742,6 +827,26 @@ if __name__=='__main__':
         if patterns_reset:
             reset_patterns(skip_confirm)
             sys.exit(0)
+
+        # Handle --replace_file (requires --canvas_file_id and --course_id).
+        # Shorthand for --replace_pair: normalized into the same orchestrator
+        # path below so both spellings get pre-flight, progress, and verify.
+        if replace_file or canvas_file_id:
+            if not (replace_file and canvas_file_id and course_id):
+                click.echo("Error: --replace_file, --canvas_file_id, and --course_id are all required.")
+                sys.exit(1)
+            if replace_pair:
+                click.echo("Error: use either --replace_file/--canvas_file_id or --replace_pair, not both.")
+                sys.exit(1)
+            replace_pair = (canvas_file_id, replace_file)
+
+        # Handle --replace_pair (orchestrator path: file replace + optional body rewrites)
+        if replace_pair:
+            load_json_config_file_from_appdata()
+            check_if_api_key_exists()
+            from tools.replace_content_cli import run as run_replace_content
+            sys.exit(run_replace_content(course_id, replace_pair, rewrite_target,
+                                         rewrite_from_manifest=rewrite_from_manifest))
 
         params = {
             "download_folder": download_folder,
@@ -793,6 +898,22 @@ if __name__=='__main__':
                 print("No course ID provided. Exiting")
                 sys.exit()
 
+            # Persist the scan into the course folder's .manifest/ — the same
+            # data contract the GUI writes on every scan. Makes CLI-scanned
+            # courses browsable in the GUI Content tab and usable with
+            # --rewrite_from_manifest. Written before downloading so the
+            # manifest survives an interrupted download. Requires a course
+            # folder, so scan-only runs (no --download_folder) skip it.
+            if ctx.params.get('download_folder') and getattr(bot, "exists", False):
+                from tools.string_checking.url_cleaning import sanitize_windows_filename
+                from config.yaml_io import create_download_manifest
+                course_folder = os.path.join(
+                    os.path.normpath(download_folder),
+                    f"{sanitize_windows_filename(bot.course_name)} - {bot.course_id}",
+                )
+                manifest_dir = create_download_manifest(course_folder)
+                bot.save_content_as_json(manifest_dir, course_folder, **params)
+
             if print_content_tree:
                 bot.print_content_tree()
 
@@ -840,8 +961,8 @@ if __name__=='__main__':
             ctypes.windll.user32.ShowWindow(
                 ctypes.windll.kernel32.GetConsoleWindow(), 0  # SW_HIDE
             )
-            from gui.app import CanvasBotGUI
-            CanvasBotGUI().run()
+            from gui.wx.app import run_wx_gui
+            run_wx_gui()
         except Exception as exc:
             log.exception(f"Unhandled error: {type(exc).__name__}: {exc}")
             # Show console again so the error is visible

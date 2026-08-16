@@ -15,10 +15,12 @@ cpage = [
 # for course in range(35000,40000):
 
 
-bot = CanvasBot(str(67627))
+bot = CanvasBot(str(21016))
 bot.start()
-bot.print_content_tree()
-
+bot.print_full_course()
+print(bot.manifest.print_manifest())
+print(bot.manifest.resource_summary())
+print(bot.manifest.content_summary())
 
 # bot.save_content_as_excel(excel_directory=r"C:\Users\Fonta\PycharmProjects\canvas-bot-v2\test_data\dl")
 # bot.clear_folder_contents(directory=r"C:\Users\Fonta\PycharmProjects\canvas-bot-v2\test_data\dl")

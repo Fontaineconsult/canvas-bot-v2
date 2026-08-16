@@ -3,12 +3,22 @@ import json
 import os
 import re
 import shutil
+import threading
 import webbrowser
-from tkinter import messagebox
+import tkinter as tk
+from tkinter import messagebox, filedialog
 import customtkinter as ctk
 
+from gui.file_replace import (
+    REPLACED_SUFFIX,
+    mark_row_replaced,
+    save_content_json,
+    source_url_label,
+    start_bulk_replace,
+    start_single_replace,
+)
 from gui.table_widget import ContentTable
-from gui.widgets import _add_focus_ring, _underline_char, Tooltip
+from gui.widgets import _add_focus_ring, _underline_char, Tooltip, show_dialog
 
 
 # Review status options (add new values here to expand)
@@ -16,16 +26,29 @@ _REVIEW_STATUSES = ["Needs Review", "Passed", "Ignore"]
 _DEFAULT_STATUS = "-"  # unreviewed — no color
 _SHOW_DETAIL_PANEL = False  # Set to True to show the diagnostic detail panel
 
+# Short display labels for hidden_reason values.
+# "varies" is emitted by core.utilities.get_visibility when an item's
+# manifest references have different visibility states (mixed visible/
+# hidden, or all-hidden-but-for-different-reasons).
+_REASON_LABELS = {
+    "hidden_for_user": "Hidden",
+    "hidden_from_students": "Hidden",
+    "unpublished": "Unpublished",
+    "locked": "Locked",
+    "varies": "Varies",
+}
+
 # Column definitions per content sub-type
 _ORDER_COL = {"id": "order", "heading": "Order", "width": 65}
 
 _COLUMNS = {
     "documents": [
         _ORDER_COL,
-        {"id": "title", "heading": "Title", "width": 150, "stretch": True, "max_chars": 60},
+        {"id": "title", "heading": "Title", "width": 130, "stretch": True, "max_chars": 70},
         {"id": "file_type", "heading": "Type", "width": 100},
+        {"id": "file_source", "heading": "File Source", "width": 120},
         {"id": "source_page_type", "heading": "Source", "width": 150},
-        {"id": "is_hidden", "heading": "Hidden", "width": 100},
+        {"id": "visibility", "heading": "Visibility", "width": 150},
         {"id": "downloaded", "heading": "Downloaded", "width": 130},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
@@ -34,7 +57,7 @@ _COLUMNS = {
         {"id": "title", "heading": "Title", "width": 165, "stretch": True},
         {"id": "url", "heading": "URL", "width": 235, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 140},
-        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "video_sites": [
@@ -42,14 +65,14 @@ _COLUMNS = {
         {"id": "title", "heading": "Title", "width": 165, "stretch": True},
         {"id": "url", "heading": "URL", "width": 235, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 140},
-        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "video_files": [
         _ORDER_COL,
         {"id": "title", "heading": "Title", "width": 175, "stretch": True, "max_chars": 60},
         {"id": "file_type", "heading": "Type", "width": 80},
-        {"id": "is_hidden", "heading": "Hidden", "width": 80},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "source_page_type", "heading": "Source", "width": 130},
         {"id": "downloaded", "heading": "Downloaded", "width": 110},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
@@ -59,7 +82,7 @@ _COLUMNS = {
         {"id": "title", "heading": "Title", "width": 175, "stretch": True, "max_chars": 60},
         {"id": "file_type", "heading": "Type", "width": 80},
         {"id": "source_page_type", "heading": "Source", "width": 130},
-        {"id": "is_hidden", "heading": "Hidden", "width": 80},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "downloaded", "heading": "Downloaded", "width": 110},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
@@ -68,16 +91,16 @@ _COLUMNS = {
         {"id": "title", "heading": "Title", "width": 165, "stretch": True},
         {"id": "url", "heading": "URL", "width": 235, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 140},
-        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "image_files": [
         _ORDER_COL,
-        {"id": "title", "heading": "Title", "width": 175, "stretch": True, "max_chars": 60},
+        {"id": "title", "heading": "Title", "width": 120, "stretch": True, "max_chars": 60},
         {"id": "file_type", "heading": "Type", "width": 80},
         {"id": "source_page_type", "heading": "Source", "width": 130},
-        {"id": "is_hidden", "heading": "Hidden", "width": 80},
-        {"id": "downloaded", "heading": "Downloaded", "width": 110},
+        {"id": "visibility", "heading": "Visibility", "width": 140},
+        {"id": "downloaded", "heading": "Downloaded", "width": 140},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "institution_video": [
@@ -85,7 +108,7 @@ _COLUMNS = {
         {"id": "title", "heading": "Title", "width": 165, "stretch": True},
         {"id": "url", "heading": "URL", "width": 235, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 140},
-        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "digital_textbooks": [
@@ -93,7 +116,7 @@ _COLUMNS = {
         {"id": "title", "heading": "Title", "width": 165, "stretch": True},
         {"id": "url", "heading": "URL", "width": 235, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 140},
-        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "file_storage": [
@@ -101,7 +124,7 @@ _COLUMNS = {
         {"id": "title", "heading": "Title", "width": 165, "stretch": True},
         {"id": "url", "heading": "URL", "width": 235, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 140},
-        {"id": "is_hidden", "heading": "Hidden", "width": 90},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
     "unsorted": [
@@ -109,7 +132,7 @@ _COLUMNS = {
         {"id": "title", "heading": "Title", "width": 175, "stretch": True},
         {"id": "url", "heading": "URL", "width": 250, "stretch": True},
         {"id": "source_page_type", "heading": "Source", "width": 130},
-        {"id": "is_hidden", "heading": "Hidden", "width": 80},
+        {"id": "visibility", "heading": "Visibility", "width": 120},
         {"id": "status", "heading": "Status", "width": 160, "minwidth": 160, "anchor": "center"},
     ],
 }
@@ -134,6 +157,11 @@ class ContentViewer:
         self._current_data = None  # raw JSON data for re-filtering
         self._review_statuses = {}  # url -> {"status": "Passed"|"Needs Review"|...}
         self._manifest_dir = None   # current course's .manifest/ path
+        self._content_json_path = None  # full path to current course's content.json
+        self._can_replace = False   # whether current course allows file replace
+        self._replace_perms_cache = {}  # course_id -> bool
+        self._pending_perm_course = None  # course_id of in-flight permission check
+        self._bulk_dialog = None    # active BulkReplaceDialog instance, if any
 
         # Placeholder shown when no data is available
         self._placeholder = ctk.CTkLabel(
@@ -344,10 +372,17 @@ class ContentViewer:
             filter_bar, text="Show Inactive Content",
             variable=self._show_inactive_var,
             command=self._on_filter_changed,
+            checkbox_width=19, checkbox_height=19,
         )
         cb_inactive.pack(side="left", padx=(0, 10))
         _add_focus_ring(cb_inactive)
         Tooltip(cb_inactive, "Show content not linked from any active Canvas page")
+
+        self._scan_date_label = ctk.CTkLabel(
+            filter_bar, text="", font=ctk.CTkFont(size=12),
+            text_color="gray", anchor="e",
+        )
+        self._scan_date_label.pack(side="right", padx=(0, 4))
 
         # ── Row 4: table frame (holds all 8 tables, one visible at a time) ──
         self._table_frame = ctk.CTkFrame(self._container, fg_color="transparent")
@@ -413,10 +448,31 @@ class ContentViewer:
             btn_row, text="Open Source Page", width=140,
             command=self._open_source_page, state="disabled",
         )
-        self._open_source_btn.pack(side="left")
+        self._open_source_btn.pack(side="left", padx=(0, 5))
         _add_focus_ring(self._open_source_btn)
         _underline_char(self._open_source_btn, 5)  # S in "Source" → Alt+S
         Tooltip(self._open_source_btn, "Open the Canvas page where this content was found (Alt+S)")
+
+        self._replace_file_btn = ctk.CTkButton(
+            btn_row, text="Replace File", width=120,
+            command=lambda: start_single_replace(self, self._selected_row),
+            state="disabled",
+        )
+        self._replace_file_btn.pack(side="left")
+        _add_focus_ring(self._replace_file_btn)
+        _underline_char(self._replace_file_btn, 0)  # R in "Replace" → Alt+R
+        Tooltip(self._replace_file_btn, "Replace this file in Canvas with a new file (Alt+R)")
+
+        self._bulk_replace_btn = ctk.CTkButton(
+            btn_row, text="Bulk Replace", width=130,
+            fg_color="#8a6d00", hover_color="#6d5500",
+            command=lambda: start_bulk_replace(self),
+            state="disabled",
+        )
+        self._bulk_replace_btn.pack(side="left", padx=(5, 0))
+        _add_focus_ring(self._bulk_replace_btn)
+        _underline_char(self._bulk_replace_btn, 0)  # B in "Bulk" → Alt+B
+        Tooltip(self._bulk_replace_btn, "Replace many Canvas files from a local folder (Alt+B)")
 
         self._open_canvas_btn = ctk.CTkButton(
             btn_row, text="Open Canvas Files", width=150,
@@ -487,11 +543,14 @@ class ContentViewer:
         self._selected_table_key = None
         self._course_label.configure(text="")
         self._stats_label.configure(text="")
+        self._scan_date_label.configure(text="")
         self._open_folder_btn.configure(state="disabled")
         self._delete_btn.configure(state="disabled")
         self._open_file_btn.configure(state="disabled")
         self._open_direct_btn.configure(state="disabled")
         self._open_source_btn.configure(state="disabled")
+        self._replace_file_btn.configure(state="disabled")
+        self._bulk_replace_btn.configure(state="disabled")
         self._open_canvas_btn.configure(state="disabled")
         for btn in self._status_buttons.values():
             btn.configure(state="disabled")
@@ -540,6 +599,13 @@ class ContentViewer:
             self._open_direct_btn.pack_forget()
         else:
             self._open_direct_btn.pack(side="left", padx=(0, 5), after=self._open_file_btn)
+        # Show "Replace File" + "Bulk Replace" only for documents table
+        if key == "documents":
+            self._replace_file_btn.pack(side="left", after=self._open_source_btn)
+            self._bulk_replace_btn.pack(side="left", padx=(5, 0), after=self._replace_file_btn)
+        else:
+            self._replace_file_btn.pack_forget()
+            self._bulk_replace_btn.pack_forget()
 
     def _setup_selector_keyboard_nav(self):
         """Wire arrow keys on category and sub-category buttons, Enter/Escape for table focus."""
@@ -690,12 +756,52 @@ class ContentViewer:
         os.startfile(save_path)
 
     def _open_source_page(self):
-        """Open the source_page_url in the default browser."""
+        """Open the source page in the default browser.
+
+        Three shapes for source_page_url:
+          - string (legacy content.json):     open it directly.
+          - list with 1 entry:                open the single URL.
+          - list with >1 entries:             post a menu listing each
+            location; clicking a menu item opens that URL.
+
+        Multi-source rows are surfaced in the "Source" column as "Multi"
+        and routed through _popup_source_menu below, so the user can
+        pick which referencing page to visit.
+        """
         if not self._selected_row:
             return
         url = self._selected_row.get("source_page_url", "")
+        if isinstance(url, list):
+            if not url:
+                return
+            if len(url) == 1:
+                webbrowser.open(url[0])
+                return
+            self._popup_source_menu(url)
+            return
         if url:
             webbrowser.open(url)
+
+    def _popup_source_menu(self, urls):
+        """Post a context menu at the Open Source Page button listing
+        each location. Each menu item opens its URL in the browser.
+
+        Menu font matches the Content Viewer table (Consolas 16) so the
+        size is consistent between the column display and the location
+        list rendered beneath the button.
+        """
+        menu = tk.Menu(
+            self._open_source_btn, tearoff=0, font=("Consolas", 16),
+        )
+        for url in urls:
+            label = source_url_label(url)
+            menu.add_command(label=label, command=lambda u=url: webbrowser.open(u))
+        try:
+            x = self._open_source_btn.winfo_rootx()
+            y = self._open_source_btn.winfo_rooty() + self._open_source_btn.winfo_height()
+            menu.tk_popup(x, y)
+        finally:
+            menu.grab_release()
 
     def _open_in_canvas(self):
         """Open the course Files page in Canvas."""
@@ -704,6 +810,86 @@ class ContentViewer:
         course_url = self._current_data.get("course_url", "")
         if course_url:
             webbrowser.open(f"{course_url}/files")
+
+    def _check_replace_permission_async(self, course_id):
+        """Kick off a permission check; updates self._can_replace when the result arrives.
+
+        Fast path: if the course is already cached, apply the result synchronously.
+        Otherwise default to False and spawn a worker thread that posts back via after().
+        """
+        if not course_id:
+            self._can_replace = False
+            self._pending_perm_course = None
+            return
+
+        if course_id in self._replace_perms_cache:
+            self._can_replace = self._replace_perms_cache[course_id]
+            self._pending_perm_course = None
+            return
+
+        self._can_replace = False
+        self._pending_perm_course = course_id
+
+        thread = threading.Thread(
+            target=self._perm_worker,
+            args=(course_id,),
+            daemon=True,
+        )
+        thread.start()
+
+    def _perm_worker(self, course_id):
+        """Background thread: fetch course permissions and post result to main thread."""
+        try:
+            from network.cred import set_canvas_api_key_to_environment_variable, load_config_data_from_appdata
+            load_config_data_from_appdata()
+            if not set_canvas_api_key_to_environment_variable():
+                can_manage = False
+            else:
+                from network.api import get_course_permissions
+                perms = get_course_permissions(course_id)
+                can_manage = bool(perms and perms.get("manage_files_edit"))
+        except Exception:
+            can_manage = False
+
+        try:
+            self._parent.after(0, self._on_perms_ready, course_id, can_manage)
+        except Exception:
+            pass
+
+    def _on_perms_ready(self, course_id, can_manage):
+        """Main thread: apply the async permission result, ignoring stale selections."""
+        self._replace_perms_cache[course_id] = can_manage
+
+        current = self._current_data.get("course_id") if self._current_data else None
+        if course_id != current:
+            return
+
+        self._can_replace = can_manage
+        self._pending_perm_course = None
+
+        self._update_bulk_replace_btn_state()
+        if self._selected_row is not None:
+            self._on_row_select(self._selected_row)
+
+    def _update_bulk_replace_btn_state(self):
+        """Bulk Replace is independent of the selected row — gate on permission + data
+        and disable while a BulkReplaceDialog is already open for this viewer."""
+        active = getattr(self, "_bulk_dialog", None) is not None
+        if self._can_replace and self._current_data is not None and not active:
+            self._bulk_replace_btn.configure(state="normal")
+        else:
+            self._bulk_replace_btn.configure(state="disabled")
+
+    def _apply_replaced_to_ui(self, canvas_file_id):
+        """Mark the row in current_data, sync the selection, persist, and refresh the table."""
+        if not mark_row_replaced(self._current_data, canvas_file_id):
+            return
+        if self._selected_row and self._selected_row.get("canvas_file_id") == canvas_file_id:
+            sel_title = self._selected_row.get("title", "") or ""
+            if not sel_title.endswith(REPLACED_SUFFIX):
+                self._selected_row["title"] = sel_title + REPLACED_SUFFIX
+        save_content_json(self._content_json_path, self._current_data)
+        self._populate_from_data(self._current_data)
 
     def _load_review_statuses(self, manifest_dir):
         """Load review_status.json from the manifest directory."""
@@ -767,8 +953,10 @@ class ContentViewer:
             return
 
         self._manifest_dir = manifest_dir
+        self._content_json_path = json_path
         self._review_statuses = self._load_review_statuses(manifest_dir)
         self._current_data = data
+        self._check_replace_permission_async(data.get("course_id"))
         self._populate_from_data(data)
 
     def _on_filter_changed(self):
@@ -825,8 +1013,27 @@ class ContentViewer:
         show_inactive = self._show_inactive_var.get()
 
         counts = {}
+        hidden_fallback = 0
+        inactive_count = 0
         for table_key, (category, sub_key) in mapping.items():
-            rows = content.get(category, {}).get(sub_key, [])
+            rows_all = content.get(category, {}).get(sub_key, [])
+            # When a row's source_page_url list has >1 entries, override the
+            # column display to "Multi" — the original parent class name is
+            # only one of several locations and would be misleading. Stash
+            # the original under a private key for any future need; original
+            # data on disk is untouched (we mutate the in-memory copy only).
+            for row in rows_all:
+                urls = row.get("source_page_url")
+                if isinstance(urls, list) and len(urls) > 1:
+                    if "_orig_source_page_type" not in row:
+                        row["_orig_source_page_type"] = row.get("source_page_type")
+                    row["source_page_type"] = "Multi"
+            for row in rows_all:
+                if not row.get("source_page_url"):
+                    inactive_count += 1
+                if row.get("is_hidden"):
+                    hidden_fallback += 1
+            rows = rows_all
             if not show_inactive:
                 rows = [r for r in rows if r.get("source_page_url") and not r.get("is_hidden")]
             if table_key in downloadable:
@@ -838,6 +1045,22 @@ class ContentViewer:
             for row in rows:
                 url = row.get("url", "")
                 row["status"] = self._review_statuses.get(url, {}).get("status", _DEFAULT_STATUS)
+                # Build visibility column from hidden_reason + source_page_url
+                reason = row.get("hidden_reason", "")
+                has_source = bool(row.get("source_page_url"))
+                if reason:
+                    labels = []
+                    for part in reason.split(", "):
+                        label = _REASON_LABELS.get(part, part)
+                        # Hidden items linked from a page are visible to students
+                        if label == "Hidden" and has_source:
+                            continue
+                        labels.append(label)
+                    seen = set()
+                    unique = [l for l in labels if not (l in seen or seen.add(l))]
+                    row["visibility"] = ", ".join(unique) if unique else "Visible"
+                else:
+                    row["visibility"] = "Visible"
             self._tables[table_key].populate(rows)
             counts[table_key] = len(rows)
 
@@ -845,17 +1068,17 @@ class ContentViewer:
         course_name = data.get("course_name", "")
         self._course_label.configure(text=course_name or "Untitled Course")
 
-        # Count hidden and inactive across all unfiltered content
-        hidden_count = 0
-        inactive_count = 0
-        for table_key, (category, sub_key) in mapping.items():
-            for row in content.get(category, {}).get(sub_key, []):
-                if row.get("is_hidden"):
-                    hidden_count += 1
-                if not row.get("source_page_url"):
-                    inactive_count += 1
+        scanned = data.get("scanned_date", "")
+        self._scan_date_label.configure(
+            text=f"Last scanned: {scanned}" if scanned else ""
+        )
 
-        total = sum(counts.values())
+        # Prefer the manifest's authoritative counts; fall back to live counts for pre-summary manifests
+        summary = data.get("summary", {}).get("content", {})
+        total = summary.get("total", sum(counts.values()))
+        hidden_count = summary.get("hidden", hidden_fallback)
+        by_class = summary.get("by_class")
+
         # Line 1: total, hidden, inactive
         line1_parts = [f"{total} items"]
         if hidden_count:
@@ -864,25 +1087,41 @@ class ContentViewer:
             line1_parts.append(f"Inactive: {inactive_count}")
 
         # Line 2+: content type counts (max 3 per line)
-        type_parts = []
-        doc_count = counts["documents"] + counts["document_sites"]
-        if doc_count:
-            type_parts.append(f"Docs: {doc_count}")
-        vid_count = counts["video_sites"] + counts["video_files"]
-        if vid_count:
-            type_parts.append(f"Video: {vid_count}")
-        if counts.get("institution_video", 0):
-            type_parts.append(f"Inst. Video: {counts['institution_video']}")
-        aud_count = counts["audio_files"] + counts["audio_sites"]
-        if aud_count:
-            type_parts.append(f"Audio: {aud_count}")
-        if counts["image_files"]:
-            type_parts.append(f"Images: {counts['image_files']}")
-        other_count = counts.get("digital_textbooks", 0) + counts.get("file_storage", 0)
-        if other_count:
-            type_parts.append(f"Other: {other_count}")
-        if counts["unsorted"]:
-            type_parts.append(f"Unsorted: {counts['unsorted']}")
+        if by_class is not None:
+            type_groups = [
+                ("Docs",        ("Document", "DocumentSite")),
+                ("Video",       ("VideoFile", "VideoSite", "CanvasMediaEmbed", "CanvasStudioEmbed")),
+                ("Inst. Video", ("InstitutionVideo",)),
+                ("Audio",       ("AudioFile", "AudioSite")),
+                ("Images",      ("ImageFile",)),
+                ("Other",       ("DigitalTextbook", "FileStorageSite", "BoxPage")),
+                ("Unsorted",    ("Unsorted",)),
+            ]
+            type_parts = []
+            for label, classes in type_groups:
+                n = sum(by_class.get(c, 0) for c in classes)
+                if n:
+                    type_parts.append(f"{label}: {n}")
+        else:
+            type_parts = []
+            doc_count = counts["documents"] + counts["document_sites"]
+            if doc_count:
+                type_parts.append(f"Docs: {doc_count}")
+            vid_count = counts["video_sites"] + counts["video_files"]
+            if vid_count:
+                type_parts.append(f"Video: {vid_count}")
+            if counts.get("institution_video", 0):
+                type_parts.append(f"Inst. Video: {counts['institution_video']}")
+            aud_count = counts["audio_files"] + counts["audio_sites"]
+            if aud_count:
+                type_parts.append(f"Audio: {aud_count}")
+            if counts["image_files"]:
+                type_parts.append(f"Images: {counts['image_files']}")
+            other_count = counts.get("digital_textbooks", 0) + counts.get("file_storage", 0)
+            if other_count:
+                type_parts.append(f"Other: {other_count}")
+            if counts["unsorted"]:
+                type_parts.append(f"Unsorted: {counts['unsorted']}")
 
         lines = ["  |  ".join(line1_parts)]
         for i in range(0, len(type_parts), 3):
@@ -894,11 +1133,13 @@ class ContentViewer:
         self._open_canvas_btn.configure(
             state="normal" if data.get("course_url") else "disabled"
         )
+        self._update_bulk_replace_btn_state()
         self._selected_row = None
         self._selected_table_key = None
         self._open_file_btn.configure(state="disabled")
         self._open_direct_btn.configure(state="disabled")
         self._open_source_btn.configure(state="disabled")
+        self._replace_file_btn.configure(state="disabled")
         for btn in self._status_buttons.values():
             btn.configure(state="disabled")
         self._set_detail("")
@@ -937,11 +1178,28 @@ class ContentViewer:
             state="normal" if save_path and os.path.isfile(save_path) else "disabled"
         )
 
-        # Enable Open Source Page if source_page_url exists
-        if row.get("source_page_url"):
+        # Enable Open Source Page if source_page_url exists. When the
+        # row has multiple referencing locations, hint at the dropdown
+        # via a chevron and a different button label so the user knows
+        # clicking it pops a menu rather than opening a single page.
+        source_urls = row.get("source_page_url")
+        if source_urls:
             self._open_source_btn.configure(state="normal")
+            if isinstance(source_urls, list) and len(source_urls) > 1:
+                self._open_source_btn.configure(text="Source Locations ▾")
+            else:
+                self._open_source_btn.configure(text="Open Source Page")
         else:
-            self._open_source_btn.configure(state="disabled")
+            self._open_source_btn.configure(state="disabled", text="Open Source Page")
+
+        # Enable Replace File for Canvas documents only (if user has permission)
+        if (self._can_replace
+                and self._selected_table_key == "documents"
+                and row.get("canvas_file_id")
+                and row.get("file_source") == "Canvas"):
+            self._replace_file_btn.configure(state="normal")
+        else:
+            self._replace_file_btn.configure(state="disabled")
 
         # Populate detail panel
         lines = []

@@ -11,6 +11,8 @@ class CanvasMediaObjects(Node):
     This class is a container for all media objects in a course. In Canvas Media Objects are usually videos
     """
 
+    is_container = True
+
     def __init__(self, course_id, parent):
 
         super().__init__(parent, parent)

@@ -228,11 +228,36 @@ class GUIController:
             from network.cred import check_config_status
             ok, message = check_config_status()
             if ok:
-                self.view.status_label.configure(text=f"Status: {message}", text_color=("gray10", "gray90"))
+                self.view.status_label.configure(
+                    text=f"Status: {message} — validating token...",
+                    text_color=("gray10", "gray90"),
+                )
+                threading.Thread(target=self._validate_token_worker, daemon=True).start()
             else:
                 self.view.status_label.configure(text=f"Status: WARNING — {message}", text_color=("#B45309", "#F59E0B"))
         except Exception:
             self.view.status_label.configure(text="Status: WARNING — Configuration check failed", text_color=("#B45309", "#F59E0B"))
+
+    def _validate_token_worker(self):
+        """Background thread: ask Canvas if the stored token is still valid."""
+        try:
+            from network.cred import validate_api_token
+            ok, message, info = validate_api_token()
+        except Exception:
+            ok, message, info = False, "Validation error", None
+        try:
+            self.view.root.after(0, self._apply_token_validation, ok, message, info)
+        except Exception:
+            pass
+
+    def _apply_token_validation(self, ok, message, info):
+        """Main thread: apply the async token-validation result to the status label."""
+        if ok:
+            name = (info or {}).get("name")
+            text = f"Status: {message} ({name})" if name else f"Status: {message}"
+            self.view.status_label.configure(text=text, text_color=("gray10", "gray90"))
+        else:
+            self.view.status_label.configure(text=f"Status: WARNING — {message}", text_color=("#B45309", "#F59E0B"))
 
     def launch_cli(self, flag):
         import subprocess
@@ -622,7 +647,7 @@ class GUIController:
         about_scroll.pack(fill="both", expand=True)
 
         ctk.CTkLabel(about_scroll, text="Canvas Bot", font=ctk.CTkFont(size=20, weight="bold"), anchor="w").pack(fill="x")
-        ctk.CTkLabel(about_scroll, text="v1.2.2  |  CC-BY-NC-4.0", font=ctk.CTkFont(size=13), text_color="gray", anchor="w").pack(fill="x")
+        ctk.CTkLabel(about_scroll, text="v1.2.3  |  CC-BY-NC-4.0", font=ctk.CTkFont(size=13), text_color="gray", anchor="w").pack(fill="x")
 
         _heading(about_scroll, "What is Canvas Bot?")
         _body(about_scroll,
@@ -674,11 +699,12 @@ class GUIController:
         _note(run_scroll, "You must set an output folder and check \"Download files\" before the Run button activates.")
 
         _heading(run_scroll, "Download Options")
-        _body(run_scroll, "By default only documents (PDF, DOCX, PPTX, etc.) are downloaded.")
-        _bullet(run_scroll, "Include video / audio / image files", "\u2014 adds those media types to the download.")
-        _bullet(run_scroll, "Include hidden content", "\u2014 downloads unpublished items not visible to students.")
-        _bullet(run_scroll, "Include inactive content", "\u2014 downloads files that exist in the course but aren't linked from any active page.")
+        _body(run_scroll, "By default only documents (PDF, DOCX, PPTX, etc.) that are visible and linked from a course page are downloaded.")
+        _bullet(run_scroll, "Download video / audio / image files", "\u2014 adds those media types alongside documents.")
+        _bullet(run_scroll, "Include hidden/locked", "\u2014 also includes items flagged hidden, unpublished, locked, or hidden from students.")
+        _bullet(run_scroll, "Include unlinked", "\u2014 also includes files that exist in the course but aren't linked from any active page.")
         _bullet(run_scroll, "Flatten folder structure", "\u2014 saves all files into a single directory instead of preserving the module hierarchy.")
+        _note(run_scroll, "Hidden/locked and Unlinked are independent filters \u2014 a file that is both hidden and unlinked requires both options checked to download.")
 
         _heading(run_scroll, "Display Options")
         _body(run_scroll, "Available in single-course mode only.")
@@ -730,6 +756,8 @@ class GUIController:
         _bullet(content_scroll, "Open File", "\u2014 opens the downloaded file in its default application. Hidden for site-type categories.")
         _bullet(content_scroll, "Open Source Page", "\u2014 opens the Canvas page where the content was found.")
         _bullet(content_scroll, "Open Canvas Files", "\u2014 opens the course's Files page in Canvas.")
+        _bullet(content_scroll, "Replace File (Alt+R)", "\u2014 uploads a local file to overwrite the selected Canvas document. Available only for Canvas-hosted documents when your token has file-edit permission. After a successful replace, the row's title is suffixed with \"(replaced)\" until the next scan refreshes the manifest.")
+        _bullet(content_scroll, "Bulk Replace (Alt+B)", "\u2014 opens a dialog to replace many Canvas documents at once from a local folder. Pick any file in the folder; matching files (case-insensitive basename, extension-strict) are queued as \"Will replace\" while non-matches and already-replaced docs stay greyed. User-owned and group-owned files are surfaced as \"User File\" / \"Group File\" since the course /files endpoint can't replace those. Use the per-row Ignore button to exclude individual matches before running. Available only on the Documents sub-table when your token has file-edit permission.")
 
         _heading(content_scroll, "Filters")
         _bullet(content_scroll, "Show Inactive Content", "\u2014 includes items not linked from any active Canvas page or marked as hidden. Off by default.")

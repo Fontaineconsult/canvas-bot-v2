@@ -47,6 +47,8 @@ file_name_extractor = re_combiner([document_content_regex.pattern + "|" +
                                    video_file_content_regex.pattern + "|" +
                                    audio_file_content_regex.pattern])
 
+canvas_file_scope_regex = re_combiner(expressions['canvas_file_scope_regex'])
+
 
 def reload_patterns():
     """Recompile all patterns with current os.environ values (for placeholder substitution)."""
@@ -54,7 +56,7 @@ def reload_patterns():
     global web_video_content_regex, video_file_content_regex, web_audio_content_regex
     global audio_file_content_regex, web_document_applications_regex, canvas_studio_embed
     global canvas_file_embed, canvas_media_embed, file_storage_regex, digital_textbook_regex
-    global institution_video_regex, ignore_list_regex, force_to_shortcut, file_name_extractor
+    global institution_video_regex, ignore_list_regex, force_to_shortcut, file_name_extractor, canvas_file_scope_regex
 
     expressions = read_re()
 
@@ -78,4 +80,6 @@ def reload_patterns():
                                        image_content_regex.pattern + "|" +
                                        video_file_content_regex.pattern + "|" +
                                        audio_file_content_regex.pattern])
+    canvas_file_scope_regex = re_combiner(expressions["canvas_file_scope_regex"])
+
 

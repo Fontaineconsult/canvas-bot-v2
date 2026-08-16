@@ -15,6 +15,8 @@ instructure_perspectives_url = config['source_url_configs']['instructure_perspec
 
 class CanvasStudio(Node):
 
+    is_container = True
+
     def __init__(self, course_id, parent):
 
         super().__init__(parent, parent)

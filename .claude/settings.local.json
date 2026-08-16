@@ -14,7 +14,28 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:www.tcl-lang.org)",
       "Bash(cd:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "WebFetch(domain:developerdocs.instructure.com)",
+      "Bash(gh api *)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:community.instructure.com)",
+      "WebFetch(domain:community.canvaslms.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(grep -avE \"Documing|^\\\\s*$\" CHANGELOG.md)",
+      "Bash(git --no-pager status --short)",
+      "Bash(git --no-pager log --oneline -6)",
+      "Bash(git --no-pager diff --stat readme.md CHANGELOG.md core/content_scaffolds.py)",
+      "Bash(timeout 40 python _chk.py)",
+      "Bash(echo \"RC=$?\")",
+      "Bash(python -c \"import json;print\\(json.dumps\\(json.load\\(open\\('_chk_out.json'\\)\\),indent=2\\)\\)\")",
+      "Bash(rm -f _chk.py _chk_out.json)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m 'wx GUI: maximize screen-reader feedback for config/status events *)",
+      "Bash(python3)",
+      "Bash(timeout 40 python _final.py)",
+      "Bash(python -c \"import json;print\\(json.dumps\\(json.load\\(open\\('_final_out.json'\\)\\),indent=2\\)\\)\")",
+      "Bash(rm -f _final.py _final_out.json)",
+      "PowerShell(python -m py_compile gui/wx/config_dialog.py gui/core/app_service.py gui/wx/app.py config/yaml_io.py network/files.py tools/replace_content_cli.py; echo \"compile exit: $LASTEXITCODE\")"
     ]
   }
 }

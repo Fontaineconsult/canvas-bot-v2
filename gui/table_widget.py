@@ -29,17 +29,43 @@ _THEMES = {
     },
 }
 
-# Row background colors keyed by review status
+# Row background colors keyed by status (review or bulk-replace).
+# Bulk-replace status values are name-spaced enough that they don't collide
+# with the existing review statuses (Passed / Needs Review / Ignore).
 _STATUS_COLORS = {
     "dark": {
         "Passed": "#1a3a1a",
         "Needs Review": "#3a2a0a",
         "Ignore": "#2a2a2a",
+        # Bulk replace dialog statuses
+        "Will replace":     "#1a3a1a",  # green
+        "Replacing…":       "#3a2a0a",  # amber (in flight)
+        "Done":             "#1a3a1a",  # green
+        "Failed":           "#4a1a1a",  # red
+        "Skipped":          "#2a2a2a",  # gray
+        "No match":         "#2a2a2a",  # gray
+        "Already replaced": "#2a2a2a",  # gray
+        "Ambiguous":        "#2a2a2a",  # gray
+        "Ignored":          "#2a2a2a",  # gray (matches existing Ignore swatch)
+        "User File":        "#2a2a2a",  # gray (lives in user storage — can't be replaced via course endpoint)
+        "Group File":       "#2a2a2a",  # gray (lives in group storage — can't be replaced via course endpoint)
     },
     "light": {
         "Passed": "#d4edda",
         "Needs Review": "#fff3cd",
         "Ignore": "#e2e3e5",
+        # Bulk replace dialog statuses
+        "Will replace":     "#d4edda",  # green
+        "Replacing…":       "#fff3cd",  # amber (in flight)
+        "Done":             "#d4edda",  # green
+        "Failed":           "#f8d7da",  # red
+        "Skipped":          "#e2e3e5",  # gray
+        "No match":         "#e2e3e5",  # gray
+        "Already replaced": "#e2e3e5",  # gray
+        "Ambiguous":        "#e2e3e5",  # gray
+        "Ignored":          "#e2e3e5",  # gray
+        "User File":        "#e2e3e5",  # gray
+        "Group File":       "#e2e3e5",  # gray
     },
 }
 
@@ -57,7 +83,7 @@ class ContentTable(ctk.CTkFrame):
         Called with the selected row dict when a row is clicked.
     """
 
-    def __init__(self, parent, columns, on_select=None, placeholder="", status_key=None, **kwargs):
+    def __init__(self, parent, columns, on_select=None, placeholder="", status_key=None, color_key=None, **kwargs):
         super().__init__(parent, fg_color="transparent", **kwargs)
 
         self._columns = columns
@@ -65,7 +91,10 @@ class ContentTable(ctk.CTkFrame):
         self._sort_col = None
         self._sort_asc = True
         self._rows = []  # mirrors treeview content as list[dict]
-        self._status_key = status_key  # row field used for status-based row coloring
+        self._status_key = status_key  # row field shown in a column AND used for color
+        self._color_key = color_key    # optional separate field used ONLY for color
+                                        # (lets display text vary per-row while the
+                                        # tag stays stable, e.g. live upload progress)
 
         # Placeholder shown when table is empty
         self._placeholder = ctk.CTkLabel(
@@ -129,9 +158,14 @@ class ContentTable(ctk.CTkFrame):
     # ── Public API ──
 
     def populate(self, rows):
-        """Clear the table and insert *rows* (list of dicts keyed by column id)."""
+        """Clear the table and insert *rows* (list of dicts keyed by column id).
+
+        Preserves the active sort column + direction so user-applied sorts survive
+        data refreshes (filter toggles, replace operations, course reload).
+        """
         self.clear()
         self._rows = list(rows)
+        self._sort_rows_in_place()
         if not self._rows and self._placeholder.cget("text"):
             self._tree.grid_remove()
             self._vsb.grid_remove()
@@ -172,6 +206,12 @@ class ContentTable(ctk.CTkFrame):
         """Return the number of rows currently displayed."""
         return len(self._rows)
 
+    def get_row(self, idx):
+        """Return the row dict at idx, or None if out of range."""
+        if 0 <= idx < len(self._rows):
+            return self._rows[idx]
+        return None
+
     def update_row(self, idx, row):
         """Update a single row's data and displayed values in place."""
         if 0 <= idx < len(self._rows):
@@ -203,6 +243,25 @@ class ContentTable(ctk.CTkFrame):
 
     # ── Sorting ──
 
+    def _sort_rows_in_place(self):
+        """Sort self._rows by the current sort column/direction (numeric-aware).
+
+        No-op when no column has been clicked yet. Used by both heading-click
+        and populate() so the active sort survives data refreshes.
+        """
+        if not self._sort_col:
+            return
+        col_id = self._sort_col
+
+        def _sort_key(r):
+            val = r.get(col_id, "")
+            s = str(val)
+            if s.isdigit():
+                return (0, int(s), "")
+            return (1, 0, s.lower())
+
+        self._rows.sort(key=_sort_key, reverse=not self._sort_asc)
+
     def _on_heading_click(self, col_id):
         if self._sort_col == col_id:
             self._sort_asc = not self._sort_asc
@@ -217,16 +276,8 @@ class ContentTable(ctk.CTkFrame):
                 suffix = " \u25b2" if self._sort_asc else " \u25bc"
             self._tree.heading(col["id"], text=col["heading"] + suffix)
 
-        # Sort rows (numeric-aware: pure digit values sort numerically)
-        def _sort_key(r):
-            val = r.get(col_id, "")
-            s = str(val)
-            if s.isdigit():
-                return (0, int(s), "")
-            return (1, 0, s.lower())
-
-        self._rows.sort(key=_sort_key, reverse=not self._sort_asc)
-        # Re-populate without clearing _rows
+        self._sort_rows_in_place()
+        # Re-render without clearing _rows
         self._tree.delete(*self._tree.get_children())
         for i, row in enumerate(self._rows):
             values = self._values_for_row(row)
@@ -322,6 +373,12 @@ class ContentTable(ctk.CTkFrame):
 
     def _row_tag(self, idx, row):
         """Return the tag name for a row based on status or alternating index."""
+        # color_key (if set) takes priority — lets the displayed status_key
+        # text vary (e.g. dynamic upload progress) while the tag stays stable.
+        if self._color_key:
+            color = row.get(self._color_key, "")
+            if color in _STATUS_COLORS.get("dark", {}):
+                return f"status_{color}"
         if self._status_key:
             status = row.get(self._status_key, "")
             if status in _STATUS_COLORS.get("dark", {}):

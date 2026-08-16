@@ -9,6 +9,8 @@ class Pages(Node):
     This class is a container for all pages in a course.
     """
 
+    is_container = True
+
     def __init__(self, course_id, parent):
 
         super().__init__(parent, parent)
@@ -40,7 +42,6 @@ class Page(Node):
 
         if not api_dict.get('body'):
             api_dict = get_page(root.course_id, api_dict['page_id'])
-
         if api_dict:
             super().__init__(parent, root, api_dict['page_id'], api_dict['title'])
             self.root.manifest.add_item_to_manifest(self)

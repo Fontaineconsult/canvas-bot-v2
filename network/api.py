@@ -39,7 +39,7 @@ def response_handler(request_url):
     clean_url = _clean_url(request_url)
     try:
         # Perform the GET request
-        request = requests.get(request_url, verify=True)
+        request = requests.get(request_url, verify=True, timeout=10)
     except RequestsConnectionError as exc:
         # Log and warn for connection errors
         log.error(f"Connection error: {exc} | URL: {clean_url}")
@@ -78,6 +78,91 @@ def response_decorator(calling_function):
     return wrapper
 
 
+def put_response_handler(request_url, data):
+    clean_url = _clean_url(request_url)
+    try:
+        request = requests.put(request_url, data=data, verify=True, timeout=30)
+    except RequestsConnectionError as exc:
+        log.error(f"Connection error: {exc} | URL: {clean_url}")
+        warnings.warn(f"Connection error\n    {clean_url}", UserWarning)
+        return False
+    except MissingSchema as exc:
+        log.exception(f"Invalid URL schema: {exc} | URL: {clean_url}")
+        warnings.warn(f"Invalid URL\n    {clean_url}", UserWarning)
+        return None
+
+    if request.status_code == 200:
+        log.info(f"Request successful: {clean_url} | Status Code: {request.status_code}")
+        try:
+            return json.loads(request.content)
+        except json.JSONDecodeError as exc:
+            log.exception(f"Failed to decode JSON: {exc} | URL: {clean_url}")
+            warnings.warn(f"Invalid JSON response\n    {clean_url}", UserWarning)
+            return None
+    else:
+        log.warning(f"Request failed: {clean_url} | Status Code: {request.status_code}")
+        try:
+            error_message = _extract_error_message(json.loads(request.content))
+        except json.JSONDecodeError as exc:
+            log.exception(f"Failed to decode error JSON: {exc} | URL: {clean_url}")
+            error_message = "Failed to parse error response"
+        warnings.warn(f"HTTP {request.status_code} - {error_message}: {clean_url}", UserWarning)
+        return None
+
+
+def put_response_decorator(calling_function):
+    def wrapper(*args):
+        url, data = calling_function(*args)
+        return put_response_handler(url, data)
+    return wrapper
+
+
+def post_response_handler(request_url, data=None):
+    """POST with optional form data; mirrors put_response_handler. Returns
+    parsed JSON on 200/201, None on failure (with a UserWarning emitted).
+    """
+    clean_url = _clean_url(request_url)
+    try:
+        request = requests.post(request_url, data=data or {}, verify=True, timeout=30)
+    except RequestsConnectionError as exc:
+        log.error(f"Connection error: {exc} | URL: {clean_url}")
+        warnings.warn(f"Connection error\n    {clean_url}", UserWarning)
+        return False
+    except MissingSchema as exc:
+        log.exception(f"Invalid URL schema: {exc} | URL: {clean_url}")
+        warnings.warn(f"Invalid URL\n    {clean_url}", UserWarning)
+        return None
+
+    if request.status_code in (200, 201):
+        log.info(f"Request successful: {clean_url} | Status Code: {request.status_code}")
+        try:
+            return json.loads(request.content)
+        except json.JSONDecodeError as exc:
+            log.exception(f"Failed to decode JSON: {exc} | URL: {clean_url}")
+            warnings.warn(f"Invalid JSON response\n    {clean_url}", UserWarning)
+            return None
+    else:
+        log.warning(f"Request failed: {clean_url} | Status Code: {request.status_code}")
+        try:
+            error_message = _extract_error_message(json.loads(request.content))
+        except json.JSONDecodeError as exc:
+            log.exception(f"Failed to decode error JSON: {exc} | URL: {clean_url}")
+            error_message = "Failed to parse error response"
+        warnings.warn(f"HTTP {request.status_code} - {error_message}: {clean_url}", UserWarning)
+        return None
+
+
+def post_response_decorator(calling_function):
+    """Wrap a function that returns either a URL or (URL, data) tuple."""
+    def wrapper(*args):
+        result = calling_function(*args)
+        if isinstance(result, tuple):
+            url, data = result
+            return post_response_handler(url, data)
+        return post_response_handler(result, None)
+    return wrapper
+
+
 
 @response_decorator
 def get_active_accounts(page):
@@ -90,6 +175,48 @@ def get_active_accounts(page):
 def get_course(course_id):
     course_url = f"{os.environ.get('API_PATH')}/courses/{course_id}?access_token={get_access_token()}"
     return course_url
+
+
+def get_course_with_status(course_id):
+    """
+    Like get_course but returns (data, status_code, reason). Used by
+    initialize_course for diagnostic error messages.
+
+    For 404 responses, reason is either "course_not_found" (Canvas-style
+    JSON error body) or "api_path_invalid" (non-Canvas body, suggesting
+    the configured API path is wrong).
+    """
+    course_url = (f"{os.environ.get('API_PATH')}/courses/{course_id}"
+                  f"?access_token={get_access_token()}")
+    try:
+        resp = requests.get(course_url, verify=True, timeout=10)
+    except RequestsConnectionError as exc:
+        return None, None, str(exc)
+    except MissingSchema as exc:
+        return None, None, f"Invalid URL: {exc}"
+
+    if resp.status_code == 200:
+        try:
+            return json.loads(resp.content), 200, "OK"
+        except json.JSONDecodeError as exc:
+            return None, 200, f"Malformed JSON: {exc}"
+
+    if resp.status_code == 404:
+        try:
+            body = json.loads(resp.content)
+            if isinstance(body, dict) and "errors" in body:
+                return None, 404, "course_not_found"
+        except (json.JSONDecodeError, ValueError):
+            pass
+        return None, 404, "api_path_invalid"
+
+    return None, resp.status_code, resp.reason
+
+
+@response_decorator
+def get_user_self():
+    user_url = f"{os.environ.get('API_PATH')}/users/self?access_token={get_access_token()}"
+    return user_url
 
 
 @response_decorator
@@ -127,6 +254,16 @@ def get_assignment(course_id, assignment_id):
     return assignment_url
 
 
+@put_response_decorator
+def update_assignment(course_id, assignment_id, description):
+    """PUT a new description (HTML body) to an assignment. Returns the
+    updated assignment dict on success, None on failure.
+    """
+    url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
+          f"/assignments/{assignment_id}?access_token={get_access_token()}"
+    return url, {"assignment[description]": description}
+
+
 @response_decorator
 def get_discussions(course_id):
     discussions_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
@@ -141,6 +278,18 @@ def get_discussion(course_id, topic_id):
                       f"/discussion_topics/{topic_id}?access_token={get_access_token()}"
 
     return discussions_url
+
+
+@put_response_decorator
+def update_discussion_topic(course_id, topic_id, message):
+    """PUT a new message (HTML body) to a discussion topic. Works for both
+    regular discussions and announcements (announcements are discussion_topics
+    with is_announcement=true). Returns the updated topic dict on success.
+    """
+    url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
+          f"/discussion_topics/{topic_id}?access_token={get_access_token()}"
+    return url, {"message": message}
+
 
 @response_decorator
 def get_modules(course_id):
@@ -166,6 +315,43 @@ def get_page(course_id, page_url):
     return page_url
 
 
+@put_response_decorator
+def update_page(course_id, page_url, body):
+    """PUT a new body to a Canvas page. Always sets notify_of_update=false
+    so students don't get a 'page updated' email for what is effectively
+    a link cleanup. Returns the updated page dict on success, None on failure.
+    """
+    url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
+          f"/pages/{page_url}?access_token={get_access_token()}"
+    return url, {
+        "wiki_page[body]": body,
+        "wiki_page[notify_of_update]": "false",
+    }
+
+
+@response_decorator
+def get_page_revision_latest(course_id, page_url):
+    """GET metadata for a page's most recent revision. Returns a dict with
+    revision_id (and other fields) on success. Used by the rollback path —
+    captured at __init__ time so a later POST to the revisions endpoint can
+    revert to this exact state if a verify-after-push fails.
+    """
+    url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
+          f"/pages/{page_url}/revisions/latest?access_token={get_access_token()}"
+    return url
+
+
+@post_response_decorator
+def revert_page_to_revision(course_id, page_url, revision_id):
+    """POST to revert a page to a prior revision. Canvas creates a NEW
+    revision whose body matches the target revision; the user's history is
+    preserved. Returns the new revision dict on success.
+    """
+    url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
+          f"/pages/{page_url}/revisions/{revision_id}?access_token={get_access_token()}"
+    return url
+
+
 @response_decorator
 def get_quizzes(course_id):
     quizzes_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
@@ -178,6 +364,18 @@ def get_quiz(course_id, quiz_id):
     quizzes_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                   f"/quizzes/{quiz_id}?access_token={get_access_token()}"
     return quizzes_url
+
+
+@put_response_decorator
+def update_quiz(course_id, quiz_id, description):
+    """PUT a new description (HTML body) to a quiz. Note: Canvas does NOT
+    expose a revision history API for quizzes — rollback for this resource
+    type relies on our locally-captured original_body. Returns the updated
+    quiz dict on success, None on failure.
+    """
+    url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
+          f"/quizzes/{quiz_id}?access_token={get_access_token()}"
+    return url, {"quiz[description]": description}
 
 
 @response_decorator
@@ -223,7 +421,6 @@ def get_module_items(module_items_url):
 def get_external_tools(course_id):
     external_tools_url = f"{os.environ.get('API_PATH')}/courses/{course_id}" \
                 f"/external_tools?access_token={get_access_token()}"
-    print(external_tools_url)
     return external_tools_url
 
 
@@ -235,7 +432,143 @@ def get_external_tool(course_id, id):
 
 
 @response_decorator
+def get_course_permissions(course_id):
+    permissions_url = (f"{os.environ.get('API_PATH')}/courses/{course_id}"
+                       f"/permissions?access_token={get_access_token()}")
+    return permissions_url
+
+
+@response_decorator
 def get_url(url):
     authenticated_url = f"{url}?access_token={get_access_token()}"
     return authenticated_url
+
+
+def replace_file(course_id, file_id, file_path):
+    """Replace a Canvas file using the 3-step upload process.
+
+    1. GET the existing file to obtain folder_id and display_name
+    2. POST to /courses/{id}/files to notify Canvas (same name + folder + on_duplicate=overwrite)
+    3. POST multipart upload to the upload_url
+    4. GET the redirect Location to confirm
+
+    Returns the final file metadata dict on success, or None on failure.
+    """
+    # Step 0: Get existing file metadata for folder_id and display_name
+    existing = get_file(course_id, file_id)
+    if not existing:
+        warnings.warn(f"File replace failed: could not retrieve file {file_id}", UserWarning)
+        return None
+
+    folder_id = existing.get("folder_id")
+    original_name = existing.get("display_name") or existing.get("filename")
+    if not folder_id or not original_name:
+        warnings.warn("File replace failed: missing folder_id or filename from file metadata", UserWarning)
+        return None
+
+    filename = os.path.basename(file_path)
+    filesize = os.path.getsize(file_path)
+
+    # Enforce file type match
+    original_ext = os.path.splitext(original_name)[1].lower()
+    local_ext = os.path.splitext(filename)[1].lower()
+    if original_ext != local_ext:
+        warnings.warn(
+            f"File type mismatch: Canvas file is '{original_ext}' but replacement is '{local_ext}'",
+            UserWarning,
+        )
+        return None
+
+    # Step 1: Notify Canvas of the upload
+    notify_url = (f"{os.environ.get('API_PATH')}/courses/{course_id}"
+                  f"/files?access_token={get_access_token()}")
+    clean_url = _clean_url(notify_url)
+    try:
+        resp = requests.post(notify_url, data={
+            "name": original_name,
+            "size": filesize,
+            "parent_folder_id": folder_id,
+            "on_duplicate": "overwrite",
+        }, verify=True)
+    except RequestsConnectionError as exc:
+        log.error(f"Connection error during file replace step 1: {exc}")
+        return None
+
+    if resp.status_code != 200:
+        log.warning(f"File replace step 1 failed: {clean_url} | {resp.status_code}")
+        try:
+            error_message = _extract_error_message(json.loads(resp.content))
+        except json.JSONDecodeError:
+            error_message = resp.text
+        warnings.warn(f"File replace failed (step 1): HTTP {resp.status_code} - {error_message}", UserWarning)
+        return None
+
+    upload_info = json.loads(resp.content)
+    upload_url = upload_info.get("upload_url")
+    upload_params = upload_info.get("upload_params", {})
+    if not upload_url:
+        log.error("File replace step 1 returned no upload_url")
+        return None
+
+    log.info(f"File replace step 1 OK: {clean_url}")
+
+    # Step 2: Upload the file
+    try:
+        with open(file_path, "rb") as f:
+            resp2 = requests.post(upload_url, data=upload_params,
+                                  files={"file": (original_name, f)}, verify=True,
+                                  allow_redirects=False)
+    except (RequestsConnectionError, OSError) as exc:
+        log.error(f"Connection error during file replace step 2: {exc}")
+        return None
+
+    # Canvas returns 3xx with Location header, or 201 with JSON
+    if resp2.status_code in (301, 302, 303):
+        confirm_url = resp2.headers.get("Location")
+    elif resp2.status_code in (200, 201):
+        try:
+            result = json.loads(resp2.content)
+            if result.get("id"):
+                log.info(f"File replace complete (no confirmation needed): {original_name}")
+                return result
+            confirm_url = result.get("location")
+        except json.JSONDecodeError:
+            confirm_url = None
+    else:
+        log.warning(f"File replace step 2 failed: {resp2.status_code}")
+        try:
+            error_message = _extract_error_message(json.loads(resp2.content))
+        except json.JSONDecodeError:
+            error_message = resp2.text
+        warnings.warn(f"File replace failed (step 2): HTTP {resp2.status_code} - {error_message}", UserWarning)
+        return None
+
+    if not confirm_url:
+        log.error("File replace step 2 returned no confirmation URL")
+        return None
+
+    log.info("File replace step 2 OK, confirming upload")
+
+    # Step 3: Confirm the upload (GET to the redirect Location)
+    try:
+        separator = "&" if "?" in confirm_url else "?"
+        resp3 = requests.get(f"{confirm_url}{separator}access_token={get_access_token()}", verify=True)
+    except RequestsConnectionError as exc:
+        log.error(f"Connection error during file replace step 3: {exc}")
+        return None
+
+    if resp3.status_code in (200, 201):
+        log.info(f"File replace complete: {original_name}")
+        try:
+            return json.loads(resp3.content)
+        except json.JSONDecodeError:
+            return {"status": "ok"}
+    else:
+        log.warning(f"File replace step 3 failed: {resp3.status_code}")
+        try:
+            error_message = _extract_error_message(json.loads(resp3.content))
+        except json.JSONDecodeError:
+            error_message = resp3.text
+        warnings.warn(f"File replace failed (step 3): HTTP {resp3.status_code} - {error_message}", UserWarning)
+        return None
 

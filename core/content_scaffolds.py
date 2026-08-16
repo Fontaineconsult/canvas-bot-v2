@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import List
 from urllib.parse import unquote_plus
 
 from core.downloader import path_constructor, derive_file_name
+from core.utilities import build_path, is_hidden, get_hidden_reasons, get_visibility
 from tools.captioning_check import get_youtube_caption_info
 from tools.string_checking.other_tools import get_extension_from_filename, get_extension_from_mime_type
 
@@ -59,6 +59,29 @@ def get_file_type(node) -> str | None:
     return None
 
 
+def get_file_type_across_refs(manifest, node) -> str | None:
+    """Try get_file_type on every manifest entry for node.item_id and
+    return the first non-None result. The Manifest holds one entry per
+    encounter — for multi-referenced items, the first entry is often a
+    reference shell from an HTML walk that lacks display_name/file_name,
+    while a later entry from the Files traversal carries the full
+    metadata. Walking all refs finds the extension wherever it lives.
+
+    Falls back to get_file_type(node) when manifest is None or no
+    entries are tracked.
+    """
+    if manifest is None:
+        return get_file_type(node)
+    item_id = getattr(node, "item_id", None)
+    if item_id is None:
+        return get_file_type(node)
+    for n in manifest.manifest.get(item_id, []):
+        ft = get_file_type(n)
+        if ft:
+            return ft
+    return get_file_type(node)
+
+
 def get_source_page_url(node) -> str:
 
     """
@@ -75,6 +98,52 @@ def get_source_page_url(node) -> str:
             return f"{url}/modules#{node.parent.id}"
         else:
             return getattr(node.parent, "url", None)
+
+
+def visibility_fields(manifest, node) -> dict:
+    """Return the two visibility fields (is_hidden, hidden_reason)
+    aggregated via core.utilities.get_visibility, shaped for splatting
+    (**) into a scaffold dict so each scaffold keeps a single-line
+    visibility entry."""
+    hidden, reason = get_visibility(manifest, node)
+    return {"is_hidden": hidden, "hidden_reason": reason}
+
+
+def get_all_source_page_urls(manifest, item_id) -> list:
+    """Return a deduped list of source page URLs for an item_id.
+
+    During scan traversal, the Manifest appends every occurrence of a
+    given item_id to its list (see core/manifest.py:add_item_to_manifest).
+    Each occurrence is a different content node with its own parent —
+    i.e. each represents a distinct place in the course where the item
+    was found. This helper walks that list and collects unique
+    source-page URLs so consumers (the link-replace flow in particular)
+    can rewrite every place the item is referenced from.
+
+    Order is preserved (first occurrence wins on duplicates). Returns
+    an empty list if manifest is None, item_id is missing, or no source
+    URL resolves for any node.
+
+    Module-item references (".../modules#<id>") are excluded when the
+    item also appears in a rewritable HTML body. A module item is a
+    ContentTag, not rich text: on file replace Canvas auto-repoints it to
+    the new file, so it is never a rewrite target and listing it would
+    overstate how many pages actually reference the item. Module URLs are
+    kept only when a module is the item's sole location, so a
+    module-only file still resolves a source page (stays "active").
+    """
+    if manifest is None or item_id is None:
+        return []
+    nodes = manifest.manifest.get(item_id, [])
+    urls = []
+    seen = set()
+    for n in nodes:
+        url = get_source_page_url(n)
+        if url and url not in seen:
+            seen.add(url)
+            urls.append(url)
+    body_urls = [u for u in urls if "/modules#" not in u]
+    return body_urls if body_urls else urls
 
 def return_node_of_type(node, node_type):
 
@@ -111,53 +180,6 @@ def get_order(node) -> int:
     return 0
 
 
-def is_hidden(node) -> bool:
-
-    """
-    Check if the node is hidden.
-    :param node:
-    :return:
-    """
-
-    # don't print node, will cause max recursion error
-    path_list = build_path(node)
-
-
-    for node_ in path_list:
-        if node_.__dict__.get("hidden_for_user") is True\
-                or node_.__dict__.get('published') is False\
-                or node_.__dict__.get("hide_from_students") is True \
-                or node_.__dict__.get("locked") is True:
-            return True
-    return False
-
-
-
-def build_path(node, ignore_root=False) -> List:
-
-    """
-    Build a list of the path from the node to the root node.
-    :param node:
-    :param ignore_root:
-    :return:
-    """
-
-    path_list = list()
-
-    def get_parent(node_):
-
-        if hasattr(node_, "root_node"):
-
-            if not ignore_root:
-                pass
-            else:
-                path_list.append(node_)
-        if not hasattr(node_, "root_node"):
-
-            path_list.append(node_)
-            get_parent(node_.parent)
-    get_parent(node)
-    return path_list
 
 
 
@@ -176,18 +198,21 @@ def main_dict(**items) -> dict:
 
 
 
-def document_dict(document_node, file_download_directory, flatten):
+def document_dict(document_node, file_download_directory, flatten, manifest=None):
 
     document_dict = {
 
         "title": getattr(document_node, "title", None),
         "url": getattr(document_node, "url", None),
         "source_page_type": document_node.parent.__class__.__name__,
-        "source_page_url": get_source_page_url(document_node),
+        "source_page_url": get_all_source_page_urls(manifest, getattr(document_node, "item_id", None)),
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
-        "is_hidden": is_hidden(document_node),
-        "file_type": get_file_type(document_node),
+        **visibility_fields(manifest, document_node),
+        "file_source": "Canvas" if getattr(document_node, "is_canvas_file", False) else "External File",
+        "file_scope": getattr(document_node, "file_scope", None),
+        "canvas_file_id": getattr(document_node, "id", None),
+        "file_type": get_file_type_across_refs(manifest, document_node),
         "order": get_order(document_node),
         "path": [node.title for node in build_path(document_node, ignore_root=True) if node.title is not None],
     }
@@ -198,7 +223,7 @@ def document_dict(document_node, file_download_directory, flatten):
     return document_dict
 
 
-def document_site_dict(document_site_node):
+def document_site_dict(document_site_node, manifest=None):
 
     document_site_dict = {
 
@@ -206,10 +231,10 @@ def document_site_dict(document_site_node):
         "file_name": derive_file_name(document_site_node),
         "url": getattr(document_site_node, "url", None),
         "source_page_type": document_site_node.parent.__class__.__name__,
-        "source_page_url": get_source_page_url(document_site_node),
+        "source_page_url": get_all_source_page_urls(manifest, getattr(document_site_node, "item_id", None)),
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
-        "is_hidden": is_hidden(document_site_node),
+        **visibility_fields(manifest, document_site_node),
         "order": get_order(document_site_node),
         "path": [node.title for node in build_path(document_site_node, ignore_root=True) if node.title is not None],
 
@@ -218,17 +243,17 @@ def document_site_dict(document_site_node):
 
 
 
-def video_site_dict(video_site_node, check_caption_status):
+def video_site_dict(video_site_node, check_caption_status, manifest=None):
 
     video_site_dict = {
 
         "title": getattr(video_site_node, "title", None),
         "url": getattr(video_site_node, "url", None),
         "source_page_type": video_site_node.parent.__class__.__name__,
-        "source_page_url": get_source_page_url(video_site_node),
+        "source_page_url": get_all_source_page_urls(manifest, getattr(video_site_node, "item_id", None)),
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
-        "is_hidden": is_hidden(video_site_node),
+        **visibility_fields(manifest, video_site_node),
         "order": get_order(video_site_node),
         "is_captioned": getattr(video_site_node, "captioned", False),
         "path": [node.title for node in build_path(video_site_node, ignore_root=True) if node.title is not None],
@@ -243,7 +268,7 @@ def video_site_dict(video_site_node, check_caption_status):
     return video_site_dict
 
 
-def video_file_dict(video_file_node, file_download_directory, flatten):
+def video_file_dict(video_file_node, file_download_directory, flatten, manifest=None):
 
     # check_if_canvas_media_in_shell(video_file_node)
 
@@ -253,11 +278,11 @@ def video_file_dict(video_file_node, file_download_directory, flatten):
         "file_name": derive_file_name(video_file_node),
         "url": getattr(video_file_node, "url", None),
         "source_page_type": video_file_node.parent.__class__.__name__,
-        "source_page_url": get_source_page_url(video_file_node),
+        "source_page_url": get_all_source_page_urls(manifest, getattr(video_file_node, "item_id", None)),
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
-        "is_hidden": is_hidden(video_file_node),
-        "file_type": get_file_type(video_file_node),
+        **visibility_fields(manifest, video_file_node),
+        "file_type": get_file_type_across_refs(manifest, video_file_node),
         "order": get_order(video_file_node),
         "is_captioned": getattr(video_file_node, "captioned", False),
         "download_url": getattr(video_file_node, "download_url", getattr(video_file_node, "url", None)),
@@ -296,7 +321,7 @@ def video_file_dict(video_file_node, file_download_directory, flatten):
     return video_file_dict
 
 
-def audio_file_dict(audio_file_node, file_download_directory, flatten):
+def audio_file_dict(audio_file_node, file_download_directory, flatten, manifest=None):
 
     audio_file_dict = {
 
@@ -304,11 +329,11 @@ def audio_file_dict(audio_file_node, file_download_directory, flatten):
         "file_name": derive_file_name(audio_file_node),
         "url": getattr(audio_file_node, "url", None),
         "source_page_type": audio_file_node.parent.__class__.__name__,
-        "source_page_url": get_source_page_url(audio_file_node),
+        "source_page_url": get_all_source_page_urls(manifest, getattr(audio_file_node, "item_id", None)),
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
-        "is_hidden": is_hidden(audio_file_node),
-        "file_type": get_file_type(audio_file_node),
+        **visibility_fields(manifest, audio_file_node),
+        "file_type": get_file_type_across_refs(manifest, audio_file_node),
         "order": get_order(audio_file_node),
         "path": [node.title for node in build_path(audio_file_node, ignore_root=True) if node.title is not None],
     }
@@ -319,17 +344,17 @@ def audio_file_dict(audio_file_node, file_download_directory, flatten):
     return audio_file_dict
 
 
-def audio_site_dict(audio_site_node):
+def audio_site_dict(audio_site_node, manifest=None):
 
     audio_site_dict = {
 
         "title": getattr(audio_site_node, "title", None),
         "url": getattr(audio_site_node, "url", None),
         "source_page_type": audio_site_node.parent.__class__.__name__,
-        "source_page_url": get_source_page_url(audio_site_node),
+        "source_page_url": get_all_source_page_urls(manifest, getattr(audio_site_node, "item_id", None)),
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
-        "is_hidden": is_hidden(audio_site_node),
+        **visibility_fields(manifest, audio_site_node),
         "order": get_order(audio_site_node),
         "path": [node.title for node in build_path(audio_site_node, ignore_root=True) if node.title is not None],
 
@@ -338,7 +363,7 @@ def audio_site_dict(audio_site_node):
 
 
 
-def image_file_dict(image_file_node, file_download_directory, flatten):
+def image_file_dict(image_file_node, file_download_directory, flatten, manifest=None):
 
     image_file_dict = {
 
@@ -346,11 +371,11 @@ def image_file_dict(image_file_node, file_download_directory, flatten):
         "file_name": derive_file_name(image_file_node),
         "url": getattr(image_file_node, "url", None),
         "source_page_type": image_file_node.parent.__class__.__name__,
-        "source_page_url": get_source_page_url(image_file_node),
+        "source_page_url": get_all_source_page_urls(manifest, getattr(image_file_node, "item_id", None)),
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
-        "is_hidden": is_hidden(image_file_node),
-        "file_type": get_file_type(image_file_node),
+        **visibility_fields(manifest, image_file_node),
+        "file_type": get_file_type_across_refs(manifest, image_file_node),
         "order": get_order(image_file_node),
         "path": [node.title for node in build_path(image_file_node, ignore_root=True) if node.title is not None],
     }
@@ -362,16 +387,16 @@ def image_file_dict(image_file_node, file_download_directory, flatten):
 
 
 
-def digital_textbook_dict(node):
+def digital_textbook_dict(node, manifest=None):
 
     digital_textbook_dict = {
 
         "title": getattr(node, "title", None),
         "url": getattr(node, "url", None),
         "source_page_type": node.parent.__class__.__name__,
-        "source_page_url": get_source_page_url(node),
+        "source_page_url": get_all_source_page_urls(manifest, getattr(node, "item_id", None)),
         "scan_date": datetime.now(),
-        "is_hidden": is_hidden(node),
+        **visibility_fields(manifest, node),
         "order": get_order(node),
         "path": [n.title for n in build_path(node, ignore_root=True) if n.title is not None],
 
@@ -379,16 +404,16 @@ def digital_textbook_dict(node):
     return digital_textbook_dict
 
 
-def institution_video_dict(node):
+def institution_video_dict(node, manifest=None):
 
     institution_video_dict = {
 
         "title": getattr(node, "title", None),
         "url": getattr(node, "url", None),
         "source_page_type": node.parent.__class__.__name__,
-        "source_page_url": get_source_page_url(node),
+        "source_page_url": get_all_source_page_urls(manifest, getattr(node, "item_id", None)),
         "scan_date": datetime.now(),
-        "is_hidden": is_hidden(node),
+        **visibility_fields(manifest, node),
         "order": get_order(node),
         "path": [n.title for n in build_path(node, ignore_root=True) if n.title is not None],
 
@@ -396,16 +421,16 @@ def institution_video_dict(node):
     return institution_video_dict
 
 
-def file_storage_dict(node):
+def file_storage_dict(node, manifest=None):
 
     file_storage_dict = {
 
         "title": getattr(node, "title", None),
         "url": getattr(node, "url", None),
         "source_page_type": node.parent.__class__.__name__,
-        "source_page_url": get_source_page_url(node),
+        "source_page_url": get_all_source_page_urls(manifest, getattr(node, "item_id", None)),
         "scan_date": datetime.now(),
-        "is_hidden": is_hidden(node),
+        **visibility_fields(manifest, node),
         "order": get_order(node),
         "path": [n.title for n in build_path(node, ignore_root=True) if n.title is not None],
 
@@ -413,17 +438,17 @@ def file_storage_dict(node):
     return file_storage_dict
 
 
-def unsorted_dict(unsorted_node):
+def unsorted_dict(unsorted_node, manifest=None):
 
     unsorted_dict = {
 
         "title": getattr(unsorted_node, "title", None),
         "url": getattr(unsorted_node, "url", None),
         "source_page_type": unsorted_node.parent.__class__.__name__,
-        "source_page_url": get_source_page_url(unsorted_node),
+        "source_page_url": get_all_source_page_urls(manifest, getattr(unsorted_node, "item_id", None)),
         # "source_page_title": document_node.parent.html_url,
         "scan_date": datetime.now(),
-        "is_hidden": is_hidden(unsorted_node),
+        **visibility_fields(manifest, unsorted_node),
         "order": get_order(unsorted_node),
         "path": [node.title for node in build_path(unsorted_node, ignore_root=True) if node.title is not None],
 

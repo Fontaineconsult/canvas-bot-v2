@@ -10,6 +10,8 @@ class Assignments(Node):
     This class is a container for all assignments in a course.
     """
 
+    is_container = True
+
     def __init__(self, course_id, parent):
         super().__init__(parent, parent)
         self.course_id = course_id

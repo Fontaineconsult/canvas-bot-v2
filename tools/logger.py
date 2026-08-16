@@ -3,6 +3,7 @@ import getpass
 import os
 import stat
 import sys
+import threading
 import uuid
 import logging
 from network.set_config import save_config_data
@@ -61,16 +62,34 @@ _session_filter = SessionContextFilter()
 for handler in logging.root.handlers:
     handler.addFilter(_session_filter)
 
-# Global exception hook — logs any unhandled exception to the log file
+# Global exception hook — logs any unhandled exception (with its full
+# traceback) to the log file. wx event-handler exceptions also arrive here
+# via PyErr_Print.
 _unhandled_log = logging.getLogger('unhandled')
 
 def _excepthook(exc_type, exc_value, exc_tb):
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_tb)
         return
-    _unhandled_log.error(f"Unhandled {exc_type.__name__}: {exc_value}")
+    _unhandled_log.error(f"Unhandled {exc_type.__name__}: {exc_value}",
+                         exc_info=(exc_type, exc_value, exc_tb))
 
 sys.excepthook = _excepthook
+
+
+# Thread exceptions bypass sys.excepthook entirely (Python routes them to
+# threading.excepthook, which only prints to stderr). The app runs scans,
+# replaces, token validation, and speech on worker threads — an uncaught
+# crash there must still reach the log file.
+def _thread_excepthook(args):
+    if args.exc_type is SystemExit:
+        return  # matches the default hook's behavior
+    name = args.thread.name if args.thread is not None else "?"
+    _unhandled_log.error(
+        f"Unhandled {args.exc_type.__name__} in thread {name}: {args.exc_value}",
+        exc_info=(args.exc_type, args.exc_value, args.exc_traceback))
+
+threading.excepthook = _thread_excepthook
 
 # Best-effort log file permission restriction (limited on Windows,
 # but %APPDATA% is already per-user)
