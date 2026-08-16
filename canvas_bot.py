@@ -620,11 +620,7 @@ class CanvasBot(CanvasCourseRoot):
 if __name__=='__main__':
 
     @click.command()
-    @click.help_option('-h', '--help', help='Canvas Bot - A tool for downloading and auditing Canvas LMS course content. '
-                                            'Discovers all content in a course (modules, pages, assignments, quizzes, files), '
-                                            'categorizes embedded links (documents, videos, audio, images), and exports to '
-                                            'organized folders or Excel/JSON for accessibility auditing. '
-                                            'Requires a Canvas API access token (Account > Settings > New Access Token).')
+    @click.help_option('-h', '--help')
 
     # === GUI ===
     @click.option('--gui', type=click.Choice(['wx', 'tk']), default=None,
@@ -640,7 +636,9 @@ if __name__=='__main__':
     # === Output Options ===
     @click.option('--download_folder', type=click.STRING,
                   help='Directory to download files to. By default downloads documents only (PDF, DOCX, PPTX, etc). '
-                       'Files are organized into subfolders matching the course module structure.')
+                       'Files are organized into subfolders matching the course module structure. '
+                       'Also saves the scan manifest to <course folder>/.manifest/, which feeds '
+                       'the GUI Content tab and --rewrite_from_manifest.')
     @click.option('--output_as_json', type=click.STRING,
                   help='Directory to save JSON export. Creates a structured inventory of all course content '
                        'with metadata (URLs, titles, source pages, content types).')
@@ -676,7 +674,8 @@ if __name__=='__main__':
     @click.option('--config_status', is_flag=True,
                   help='Display current configuration status. Shows all settings with sensitive values masked.')
     @click.option('--reset_canvas_params', is_flag=True,
-                  help='Clear and reconfigure Canvas API token and instance URL (stored in Windows Credential Vault).')
+                  help='Clear and reconfigure the Canvas API token (stored in the Windows Credential Vault) '
+                       'and instance URLs (stored in the AppData config).')
     @click.option('--reset_canvas_studio_params', is_flag=True,
                   help='Clear and reconfigure Canvas Studio OAuth credentials (client ID, secret, tokens).')
 
@@ -700,20 +699,21 @@ if __name__=='__main__':
     # === Replace Content (orchestrator path: file replace + optional body rewrites) ===
     @click.option('--replace_pair', nargs=2, default=None,
                   metavar='OLD_FILE_ID LOCAL_PATH',
-                  help='Replace one Canvas file with a local file via the new orchestrator path. '
-                       'Single file per invocation. Use --rewrite_target (repeatable) to also '
+                  help='Replace one Canvas file with a local file, with pre-flight validation, '
+                       'upload progress, and post-replace verification. Single file per '
+                       'invocation. Use --rewrite_target or --rewrite_from_manifest to also '
                        'rewrite body link references. Requires --course_id.')
     @click.option('--rewrite_target', nargs=2, multiple=True,
                   metavar='RESOURCE_TYPE IDENTIFIER',
                   help='Body to rewrite (repeatable). RESOURCE_TYPE is one of '
                        'page/discussion/announcement/assignment/quiz; IDENTIFIER is the page slug '
                        'for pages, numeric id for the others. Optional — module-file replacements '
-                       'need no body rewrites. Used with --replace_pair.')
+                       'need no body rewrites. Used with --replace_pair or --replace_file.')
     @click.option('--rewrite_from_manifest', type=click.STRING, metavar='PATH',
                   help='Derive rewrite targets for the replaced file from a course scan manifest. '
                        'PATH is the course folder, its .manifest folder, or the content JSON itself '
                        '(written by any run with --download_folder, or by the GUI). Combines with '
-                       'explicit --rewrite_target entries. Used with --replace_pair.')
+                       'explicit --rewrite_target entries. Used with --replace_pair or --replace_file.')
 
     # === Pattern Management ===
     @click.option('--patterns-list', 'patterns_list', default=None, is_flag=False, flag_value='',
@@ -766,6 +766,16 @@ if __name__=='__main__':
              patterns_reset,
              skip_confirm
              ):
+        """Canvas Bot - download, audit, and maintain Canvas LMS course content.
+
+        Discovers all content in a course (modules, pages, assignments,
+        quizzes, files), categorizes embedded links (documents, videos, audio,
+        images), and exports to organized folders or Excel/JSON for
+        accessibility auditing. Can also replace course files in place and
+        rewrite the pages that reference them. Requires a Canvas API access
+        token (Account > Settings > New Access Token). Running with no
+        arguments launches the GUI.
+        """
 
         # Handle --gui first: launch the chosen GUI and exit.
         if gui:
