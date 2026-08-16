@@ -1,14 +1,49 @@
 # Link-Replace Feature — Resume Bookmark
 
-> **Paused 2026-05-07**: Canvas instance offline due to a cyber attack.
-> All forward progress requires a live Canvas to round-trip against, so we
-> stopped mid-stride. This file is the bookmark for when service is back.
+> ## STATUS 2026-08-16: COMPLETE — this file is now historical
+>
+> Everything below describes the world as of the 2026-05-07 pause and
+> **predates the orchestrator architecture**. Do not resume work from
+> this checklist. The migration finished and was verified live against
+> course 21016 (all resource types: page, discussion, assignment, quiz,
+> plus module file-only replaces; single, bulk, and CLI flows).
+>
+> **Current architecture** (what actually exists now):
+> - `core/orchestrator.py` — `ContentUpdateOrchestrator` / `replace_content`:
+>   atomic pre-flight → file replaces → body rewrites, event callbacks.
+> - `core/replace.py` — `FileReplace` + `UpdateBody` subclasses for all 5
+>   rewritable resource types (page, discussion, announcement, assignment,
+>   quiz), with stale-check / verify / rollback.
+> - `network/files.py` — upload primitives (live-tested).
+> - `tools/replace_content_cli.py` + `--replace_pair`/`--rewrite_target`
+>   in canvas_bot.py — the CLI flow.
+> - `gui/wx/replace_dialogs.py` + `gui/core/replace_helpers.py` — wx single
+>   and bulk dialogs; `derive_body_targets` builds body targets from the
+>   scan manifest's `source_page_url` (list-shaped since 2026-05-30);
+>   byte-level upload progress with screen-reader-safe announcements.
+>
+> **Key live findings** (see project memory for detail): Canvas follows
+> file replacement chains itself — after a same-name overwrite, old
+> `/files/N` links resolve to the new file and served body HTML arrives
+> already rewritten, so body rewrites report `skipped` and that IS the
+> success outcome. A byte-identical overwrite dedupes to the SAME file id.
+>
+> **How the old checklist resolved**: steps 1–2 (live-test FileReplace,
+> round-trip) done 2026-05-10 ("cli tested"); step 3 superseded — the wx
+> bulk dialog drives `replace_content` directly; step 4 (delete
+> `gui/network.py`) deferred — it goes when the legacy Tk GUI is retired
+> (deliberately held off for now); step 5 superseded by
+> `derive_body_targets`; step 6 resolved — no scanner rebuild, the scan
+> manifest is the authoritative source of referencing pages.
 >
 > **Sibling file:** `claude/LINK_REPLACE_HISTORY.md` is the longer
 > backstory (the original session that ended in a `git reset`, the
-> Canvas-source findings, the update-endpoint matrix, etc.). Read that
-> first if you need full context; this file is only the "where do I pick
-> up" snapshot.
+> Canvas-source findings, the update-endpoint matrix, etc.). Both files
+> are now history, kept for context only.
+
+> **Paused 2026-05-07**: Canvas instance offline due to a cyber attack.
+> All forward progress requires a live Canvas to round-trip against, so we
+> stopped mid-stride. This file is the bookmark for when service is back.
 
 ## What's in the working tree right now
 
