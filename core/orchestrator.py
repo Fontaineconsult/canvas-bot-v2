@@ -393,6 +393,29 @@ class ContentUpdateOrchestrator:
             r for r in self.body_reports if r.status == "unverified"
         ]
 
+        # Central log-file record of every non-success outcome. The CLI and
+        # GUI display these transiently, and core/replace.py itself raises
+        # only user-facing warnings — without this block a failed replace
+        # would leave no trace in canvas_bot.log.
+        for r in self._preflight_failed_files:
+            log.warning("Pre-flight failed for file %s: %s - %s",
+                        r.old_file_id, r.status, r.error)
+        for r in self._preflight_failed_bodies:
+            log.warning("Pre-flight failed for %s/%s: %s - %s",
+                        r.resource_type, r.identifier, r.status, r.error)
+        for r in self.file_reports:
+            if r.status not in ("replaced", "cancelled"):
+                log.warning("File replace failed: old_file_id=%s status=%s error=%s",
+                            r.old_file_id, r.status, r.error)
+        for r in self.body_reports:
+            if r.status in ("pushed_ok", "skipped", "cancelled"):
+                continue
+            level = log.error if r.status in ("rollback_failed", "unverified") else log.warning
+            level("Body update failed: %s/%s status=%s error=%s",
+                  r.resource_type, r.identifier, r.status, r.error)
+        if early:
+            log.warning("Content update ended early: %s", early)
+
         self.summary = {
             "early": early,
             "files_replaced": files_replaced,
