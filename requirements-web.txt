@@ -1,0 +1,8 @@
+# Web console (browser UI for course audits). Server-side only — end users
+# need nothing but a browser.
+#   pip install -r requirements.txt -r requirements-web.txt
+-r requirements.txt
+
+fastapi~=0.115
+uvicorn~=0.34
+python-multipart~=0.0.20
