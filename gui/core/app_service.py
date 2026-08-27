@@ -17,6 +17,7 @@ import os
 import subprocess
 import sys
 import threading
+from core.platform_compat import user_config_dir
 
 log = logging.getLogger(__name__)
 
@@ -139,7 +140,7 @@ def save_canvas_config(domain=None, urls=None, token=None):
 
 def log_file_path():
     """Absolute path to the rotating log file under %APPDATA%/canvas bot/."""
-    return os.path.join(os.environ.get("APPDATA", ""), "canvas bot", "canvas_bot.log")
+    return os.path.join(user_config_dir(), "canvas_bot.log")
 
 
 def open_log_file():

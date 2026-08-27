@@ -3,7 +3,9 @@ import yaml
 import os
 import re
 import sys
-import shutil, ctypes
+import shutil
+
+from core.platform_compat import hide_directory, user_config_dir
 
 log = logging.getLogger(__name__)
 
@@ -24,11 +26,12 @@ def _get_bundled_path(filename):
 
 def _get_user_re_path():
     """
-    Get path to user-editable re.yaml in AppData.
+    Get path to the user-editable re.yaml in the platform config directory.
     Creates the file from bundled default if it doesn't exist.
+
+    On Windows this is %APPDATA%/canvas bot, unchanged from previous versions.
     """
-    appdata_path = os.environ.get("APPDATA", "")
-    app_folder = os.path.join(appdata_path, "canvas bot")
+    app_folder = user_config_dir()
     user_re_path = os.path.join(app_folder, "re.yaml")
 
     # Create app folder if needed
@@ -119,8 +122,9 @@ def write_re(data):
 
 def reset_re():
     """Reset user's re.yaml to bundled default by deleting the user copy."""
-    appdata_path = os.environ.get("APPDATA", "")
-    user_re_path = os.path.join(appdata_path, "canvas bot", "re.yaml")
+    # Built directly rather than via _get_user_re_path(), which would recreate
+    # the file from the bundled default just so we could delete it again.
+    user_re_path = os.path.join(user_config_dir(), "re.yaml")
     if os.path.exists(user_re_path):
         os.remove(user_re_path)
         return True
@@ -157,7 +161,7 @@ def create_download_manifest(course_folder: str) -> str:
         try:
             shutil.copy(raw_manifest_path, os.path.join(manifest_dir, "download_manifest.yaml"))
 
-            ctypes.windll.kernel32.SetFileAttributesW(manifest_dir, 0x02)
+            hide_directory(manifest_dir)
         except FileNotFoundError as exc:
             print("Could not create download manifest file. Please check the course folder path and try again.")
             log.warning(f"Failed to create download manifest file: {course_folder} | {exc}")

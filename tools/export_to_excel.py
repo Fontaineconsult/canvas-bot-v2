@@ -8,7 +8,7 @@ from openpyxl.utils.cell import get_column_letter
 from openpyxl.utils import get_column_letter
 from openpyxl.formatting.rule import FormulaRule
 from openpyxl import load_workbook
-from tools.vba_to_excel import insert_vba
+from tools.vba_to_excel import insert_vba, macros_supported
 
 tracking_columns = {
     'Documents': [
@@ -516,7 +516,11 @@ def create_output_folder(file_save_path):
 
 def save_as_excel(json_data, file_save_path, download_hidden_files):
 
-    xcel_path = os.path.join(file_save_path, json_data['course_id'] + '.xlsm')
+    # Macro-enabled only where the macros can actually be inserted. Elsewhere
+    # a .xlsm would be a macro-enabled file containing no macros, which some
+    # institutions block outright at the mail gateway or by Group Policy.
+    suffix = '.xlsm' if macros_supported() else '.xlsx'
+    xcel_path = os.path.join(file_save_path, json_data['course_id'] + suffix)
     json_data = remove_key_recursively(json_data, 'path')
 
     # Remove existing file to avoid PermissionError from stale locks

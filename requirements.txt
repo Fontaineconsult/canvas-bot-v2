@@ -1,3 +1,6 @@
+# Core dependencies — required on every platform (Windows, macOS, Linux).
+# The scan engine runs headless on Linux for the web UI, so nothing in this
+# file may be Windows-only. See requirements-gui.txt for the desktop GUI.
 bs4~=0.0.1
 beautifulsoup4~=4.12.0
 colorama==0.4.6
@@ -9,8 +12,14 @@ PyYAML~=6.0
 click~=8.1.3
 animation~=0.0.7
 openpyxl~=3.1.2
+platformdirs~=4.3
+
+# Credential storage. Backends are per-platform and resolved at runtime:
+# Windows Credential Vault / macOS Keychain / Secret Service (Linux).
 keyring~=23.13.1
-pywin32
-comtypes
-wxPython~=4.2.0
-accessible-output2~=0.17
+
+# Excel COM automation for VBA macro insertion (tools/vba_to_excel.py).
+# Windows-only; macro insertion is skipped elsewhere and the workbook is
+# still written by openpyxl.
+pywin32; sys_platform == "win32"
+comtypes; sys_platform == "win32"

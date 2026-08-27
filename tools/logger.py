@@ -6,6 +6,7 @@ import sys
 import threading
 import uuid
 import logging
+import re
 from network.set_config import save_config_data
 
 log_save_location = save_config_data(folder_only=True)
@@ -23,8 +24,29 @@ class SessionContextFilter(logging.Filter):
         return True
 
 
+class _RedactSecrets(logging.Filter):
+    """Scrub Canvas access tokens from every record on every handler.
+
+    Legacy Canvas auth rides in URL query strings, and requests exceptions
+    embed full URLs — without this, a connection error can write the token
+    into canvas_bot.log verbatim.
+    """
+
+    _TOKEN = re.compile(r"access_token=[^&\s'\"]+")
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.getMessage()
+        if "access_token=" in message:
+            record.msg = self._TOKEN.sub("access_token=***", message)
+            record.args = None
+        return True
+
+
 LOGGING_CONFIG = {
     'version': 1,
+    'filters': {
+        'redact': {'()': _RedactSecrets},
+    },
     'formatters': {
         'default': {
             'format': '%(asctime)s - %(user)s - %(session)s - %(name)s - %(levelname)s - %(message)s',
@@ -35,6 +57,7 @@ LOGGING_CONFIG = {
             'class': 'logging.StreamHandler',
             'formatter': 'default',
             'level': 'DEBUG',
+            'filters': ['redact'],
         },
         'file': {
             'class': 'logging.handlers.RotatingFileHandler',
@@ -45,6 +68,7 @@ LOGGING_CONFIG = {
             'encoding': 'utf-8',
             'maxBytes': 10 * 1024 * 1024,  # 10 MB
             'backupCount': 5,
+            'filters': ['redact'],
         },
     },
     'loggers': {

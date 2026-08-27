@@ -11,6 +11,7 @@ from network.cred import set_canvas_api_key_to_environment_variable, save_canvas
 from network.set_config import save_config_data
 from network.studio_api import authorize_studio_token, refresh_studio_token
 from tools.canvas_studio_caption_upload import add_caption_to_canvas_studio_video
+from core.platform_compat import user_config_dir
 
 __version__ = "1.2.3"
 version = __version__
@@ -270,8 +271,7 @@ def show_config_status():
     print("=" * 60)
 
     # Get config file path
-    appdata_path = os.environ.get("APPDATA", "")
-    config_path = os.path.join(appdata_path, "canvas bot", "config.json")
+    config_path = os.path.join(user_config_dir(), "config.json")
 
     # Check if config file exists
     print(f"\nConfig file: {config_path}")

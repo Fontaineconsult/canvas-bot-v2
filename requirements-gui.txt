@@ -1,0 +1,9 @@
+# Desktop GUI dependencies. Not needed for CLI or headless/server use.
+#   pip install -r requirements.txt -r requirements-gui.txt
+-r requirements.txt
+
+wxPython~=4.2.0
+
+# Screen-reader output (NVDA / JAWS / SAPI). Windows-only upstream; the GUI
+# degrades to silent operation without it.
+accessible-output2~=0.17; sys_platform == "win32"
