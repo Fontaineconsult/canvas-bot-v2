@@ -1,7 +1,7 @@
 """
 Tests for the OCR extraction post-pass (core/text_extraction.py).
 
-The doc-extract HTTP service is faked throughout — these tests prove the
+The DocAble HTTP service is faked throughout — these tests prove the
 fork-side logic: hash caching, verdict->column mapping, and Excel updates.
 """
 import json

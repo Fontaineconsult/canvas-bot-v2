@@ -2,7 +2,7 @@
 Text Extraction Post-Pass
 =========================
 
-Connects a completed course scan to the doc-extract OCR service and turns
+Connects a completed course scan to the DocAble OCR service and turns
 its per-document verdicts into the Excel report's "Requires OCR" column —
 a judgment that column has always asked a human to make by eye.
 
@@ -24,7 +24,7 @@ time predictable, works when the OCR service is down (errors are recorded,
 never cached), and makes re-runs cheap: verdicts are cached by content
 hash, so only new or remediated files hit the GPU again.
 
-The service is a separate self-hosted project (doc-extract) reached over
+The service is a separate self-hosted project (DocAble) reached over
 HTTP; nothing in this module imports torch or touches a model.
 
 See Also
@@ -50,7 +50,7 @@ REQUEST_TIMEOUT_SECONDS = 600  # a large scanned PDF is minutes of GPU time
 CACHE_FILE = "extraction_cache.json"
 RESULTS_FILE = "extraction_results.json"
 
-# Formats the doc-extract service accepts: PDFs and images natively, office
+# Formats the DocAble service accepts: PDFs and images natively, office
 # and OpenDocument formats via its LibreOffice conversion path.
 EXTRACTABLE_SUFFIXES = (
     ".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff",
@@ -60,7 +60,7 @@ EXTRACTABLE_SUFFIXES = (
 
 
 class ExtractionClient:
-    """Thin HTTP client for the doc-extract service."""
+    """Thin HTTP client for the DocAble service."""
 
     def __init__(self, endpoint: str, session: requests.Session | None = None):
         self.endpoint = endpoint.rstrip("/")

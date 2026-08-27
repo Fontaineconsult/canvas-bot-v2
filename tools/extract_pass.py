@@ -24,7 +24,7 @@ from core.text_extraction import ExtractionClient, ExtractionPass, update_excel_
 
 @click.command()
 @click.option("--course-folder", required=True, type=click.Path(exists=True, file_okay=False))
-@click.option("--endpoint", required=True, help="doc-extract service URL")
+@click.option("--endpoint", required=True, help="DocAble service URL")
 @click.option("--excel", type=click.Path(exists=True, dir_okay=False),
               help="Excel report to update (default: auto-discover in course folder)")
 def main(course_folder: str, endpoint: str, excel: str | None) -> None:

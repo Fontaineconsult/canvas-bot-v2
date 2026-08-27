@@ -12,7 +12,7 @@ POST /audit starts a background job::
 
     configure Canvas creds (memory only) -> initialize_course()
     -> download_files() -> save_content_as_json() -> save_content_as_excel()
-    -> ExtractionPass (doc-extract service) -> Excel Requires-OCR update
+    -> ExtractionPass (DocAble service) -> Excel Requires-OCR update
 
 GET /jobs/{id} is polled by the console page; GET /course/{id} is the
 results dashboard, linking each document's saved audit report.
@@ -119,7 +119,7 @@ def real_pipeline(params: dict, job: Job) -> None:
     bot.save_content_as_json(str(course_folder), str(course_folder))
     bot.save_content_as_excel(str(course_folder))
 
-    job.update(stage="extracting", detail="OCR verdicts via doc-extract (~8s/page)")
+    job.update(stage="extracting", detail="OCR verdicts via DocAble (~8s/page)")
     from core.text_extraction import ExtractionClient, ExtractionPass, update_excel_requires_ocr
     results = ExtractionPass(
         ExtractionClient(params["extract_endpoint"]), course_folder).run()
@@ -329,7 +329,7 @@ verdicts for every document — all from the browser.</p></header>
          autocomplete="off" aria-describedby="token-note">
   <p class="note" id="token-note">Held in memory for this audit only — never
   stored, logged, or sent anywhere but your Canvas instance.</p>
-  <label for="extract_endpoint">doc-extract service</label>
+  <label for="extract_endpoint">DocAble service</label>
   <input id="extract_endpoint" name="extract_endpoint"
          value="http://127.0.0.1:8077">
   <button>Start course audit</button>
