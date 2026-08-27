@@ -4,6 +4,7 @@ import sys
 
 import logging
 import tools.logger
+from core.platform_compat import user_config_dir
 log = logging.getLogger(__name__)
 
 
@@ -15,9 +16,7 @@ def save_config_data(config_data=None, folder_only=False):
     Args:
     config_data (dict): A dictionary containing the configuration data.
     """
-    # Get the AppData folder path
-    appdata_path = os.environ.get("APPDATA")
-    app_folder = os.path.join(appdata_path, "canvas bot")
+    app_folder = user_config_dir()
 
     # Create the application folder if it doesn't exist
     try:

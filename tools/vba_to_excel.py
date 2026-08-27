@@ -1,10 +1,43 @@
+"""
+Excel VBA Insertion
+===================
+
+Injects helper macros into the exported workbook via Excel COM automation.
+
+Platform Support
+----------------
+COM automation requires Excel on Windows. On macOS and Linux ``insert_vba()``
+is a no-op: the workbook is still fully written by openpyxl — inventory,
+tracking columns, validations and styling all survive — it just ships without
+the convenience macros. Callers do not need to branch; ask
+``macros_supported()`` if you need to know which you got.
+"""
+
 import os
 import warnings
-import win32com.client as win32
-import comtypes, comtypes.client
-import pywintypes
+
+from core.platform_compat import IS_WINDOWS
 
 from tools.vba.vba_strings import get_vba_modules, get_vba_triggers
+
+
+def macros_supported() -> bool:
+    """
+    Whether VBA macros can be injected into a workbook on this host.
+
+    Returns
+    -------
+    bool
+        True only on Windows with pywin32 available. Excel's Trust Center may
+        still refuse at runtime — see the warning raised by insert_vba().
+    """
+    if not IS_WINDOWS:
+        return False
+    try:
+        import win32com.client  # noqa: F401
+    except ImportError:
+        return False
+    return True
 
 
 
@@ -66,6 +99,8 @@ def insert_hyperlinks(ss, hyper_link_dict):
 def _get_excel():
     """Get an Excel COM object, clearing corrupted cache if needed."""
     import shutil
+
+    import win32com.client as win32
     try:
         return win32.gencache.EnsureDispatch('Excel.Application')
     except Exception:
@@ -76,7 +111,18 @@ def _get_excel():
 
 
 def insert_vba(wb_path):
+    """
+    Inject the helper macros into an existing workbook, in place.
+
+    Silently does nothing where COM automation is unavailable, so the export
+    pipeline runs unchanged on macOS, Linux, and headless servers.
+    """
+    if not macros_supported():
+        return
+
     import pythoncom
+    import pywintypes
+
     pythoncom.CoInitialize()
     wb_path = os.path.abspath(wb_path)  # Normalize to absolute path with backslashes for COM
     xl = _get_excel()

@@ -11,3 +11,8 @@
 __pycache__/
 *.pyc
 /test/test_pdfs/
+
+# local dev
+.venv/
+e2e_course/
+__pycache__/

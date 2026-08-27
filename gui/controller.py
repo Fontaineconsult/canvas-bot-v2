@@ -8,6 +8,7 @@ import customtkinter as ctk
 from tkinter import filedialog
 
 from gui.widgets import _add_focus_ring, _underline_char, Tooltip, TextRedirector
+from core.platform_compat import user_config_dir
 
 log = logging.getLogger(__name__)
 
@@ -29,8 +30,7 @@ class GUIController:
     # ── Settings Persistence ──
 
     def settings_path(self):
-        appdata = os.environ.get("APPDATA", "")
-        return os.path.join(appdata, "canvas bot", "gui_settings.json")
+        return os.path.join(user_config_dir(), "gui_settings.json")
 
     def load_settings(self):
         try:
@@ -272,7 +272,7 @@ class GUIController:
         self.launch_cli('--config_status')
 
     def open_log_file(self):
-        log_path = os.path.join(os.environ.get("APPDATA", ""), "canvas bot", "canvas_bot.log")
+        log_path = os.path.join(user_config_dir(), "canvas_bot.log")
         if os.path.isfile(log_path):
             os.startfile(log_path)
         else:

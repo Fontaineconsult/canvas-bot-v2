@@ -8,6 +8,7 @@ StringVars. Both GUIs can share the file, so switching between ``--gui wx`` and
 
 import json
 import os
+from core.platform_compat import user_config_dir
 
 
 # Default values for every persisted field. The wx Run panel reads/writes these
@@ -30,8 +31,7 @@ DEFAULTS = {
 
 def settings_path():
     """Absolute path to gui_settings.json under %APPDATA%/canvas bot/."""
-    appdata = os.environ.get("APPDATA", "")
-    return os.path.join(appdata, "canvas bot", "gui_settings.json")
+    return os.path.join(user_config_dir(), "gui_settings.json")
 
 
 def _read_raw():

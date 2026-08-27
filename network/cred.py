@@ -9,6 +9,7 @@ from requests.exceptions import RequestException
 
 import logging
 import tools.logger
+from core.platform_compat import user_config_dir
 log = logging.getLogger(__name__)
 
 # Private credential store — secrets stay here instead of os.environ
@@ -174,8 +175,7 @@ def check_config_status():
     Returns a tuple of (ok, message) where ok is True if the config is ready
     to use, and message is a human-readable status string.
     """
-    appdata_path = os.environ.get("APPDATA", "")
-    config_path = os.path.join(appdata_path, "canvas bot", "config.json")
+    config_path = os.path.join(user_config_dir(), "config.json")
 
     if not os.path.exists(config_path):
         return False, "Not Configured — click Reset Config to set up Canvas instance"
@@ -253,9 +253,7 @@ def load_config_data_from_appdata():
     Returns:
     dict: A dictionary containing the configuration data.
     """
-    # Get the AppData folder path
-    appdata_path = os.environ.get("APPDATA")
-    app_folder = os.path.join(appdata_path, "canvas bot")
+    app_folder = user_config_dir()
 
     # check if the config file exists
     if not os.path.exists(os.path.join(app_folder, "config.json")):
@@ -277,9 +275,7 @@ def delete_config_file_from_appdata():
     """
     Delete the configuration file from the AppData folder.
     """
-    # Get the AppData folder path
-    appdata_path = os.environ.get("APPDATA")
-    app_folder = os.path.join(appdata_path, "canvas bot")
+    app_folder = user_config_dir()
 
     # Delete the configuration file
     config_file_path = os.path.join(app_folder, "config.json")
