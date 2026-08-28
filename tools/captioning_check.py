@@ -20,9 +20,9 @@ def get_youtube_caption_info(link):
 
         youtube_id = youtube_id_search.group(4)
         payload = {
-            'part':'snippet',
+            'part': 'snippet',
             'videoId': youtube_id,
-            'key': "AIzaSyDS0BCrIzUjuJ3grm-aQiXndCAmtvaka0M",
+            'key': api_key,   # from keyring/config — never hardcoded
         }
 
         time.sleep(0.3)
